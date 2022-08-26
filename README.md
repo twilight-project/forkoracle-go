@@ -1,7 +1,8 @@
 # forkoracle-go
  
-This package fetches latest bitcoin chaintip from [forkscanner](https://github.com/twilight-project/forkscanner) and passes it on to the nyks testnet as MsgSeenBtcChaintip message.
+This package fetches latest bitcoin chaintip from [forkscanner](https://github.com/twilight-project/forkscanner) and forwards it to the nyks testnet as MsgSeenBtcChaintip message.
 
+This oracle runs common prefix and validity heuristic checks. This also maintains a separate key pair to propose or vote on valid block proposal. For the purposes of validity gadget, we do not need double spend detection or other secondary checks from ForkScanner. 
 
 # Setup
 

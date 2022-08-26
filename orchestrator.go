@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func orchestrator() {
+func orchestrator(accountName string) {
 	var addr = flag.String("addr", "0.0.0.0:8340", "http service address")
 
 	flag.Parse()
@@ -41,7 +41,7 @@ func orchestrator() {
 				log.Println("read:", err)
 				return
 			}
-			process_message(message)
+			process_message(accountName, message)
 			log.Printf("recv: %s", message)
 		}
 	}()
@@ -59,6 +59,7 @@ func orchestrator() {
 	for {
 		select {
 		case <-done:
+			log.Println("done")
 			return
 		case <-tunnel:
 			err := c.WriteMessage(websocket.TextMessage, []byte(payload))
@@ -86,7 +87,7 @@ func orchestrator() {
 }
 
 // This function is a buffer between websocket and send_transaction to add future functionality
-func process_message(message []byte) {
+func process_message(accountName string, message []byte) {
 	var c BlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {
@@ -99,32 +100,7 @@ func process_message(message []byte) {
 		fmt.Printf("Row: %v\n", i)
 		fmt.Printf("Row: %v\n", item[1].Node)
 		fmt.Println(c.ChainTip[i][i].Block)
-		send_transaction(item[0])
+		send_transaction(accountName, item[0])
 	}
 
 }
-
-// func orchestrator() {
-// 	tick := time.Tick(5000 * time.Millisecond)
-// 	for range tick {
-// 		fmt.Println("Tick")
-// 		chaintip := get_active_chaintip()
-// 		send_transaction((chaintip))
-// 	}
-// }
-
-// func get_active_chaintip() *ChainTip {
-
-// 	rpcClient := jsonrpc.NewClient("http://127.0.0.1:8339")
-// 	response, err := rpcClient.Call("getforks")
-
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	var c []*ChainTip
-// 	response.GetObject(&c)
-
-// 	//fmt.Printf("%v\n", c[0].Block)
-// 	return c[0]
-// }

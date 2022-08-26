@@ -30,7 +30,7 @@ var (
 )
 
 const (
-	AccountPrefixCosmos = "cosmos"
+	AccountPrefixCosmos = "twilight"
 )
 
 // KeyringBackend is the backend for where keys are stored.

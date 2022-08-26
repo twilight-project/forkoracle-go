@@ -1,7 +1,10 @@
 package main
 
+import "os"
+
 func main() {
 
-	orchestrator()
+	accountName := os.Args[1]
+	orchestrator(accountName)
 
 }

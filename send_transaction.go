@@ -7,8 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
-	"github.com/twilight-project/twilight-core/x/twilightcore/types"
+	"github.com/twilight-project/nyks/x/nyks/types"
 )
 
 type ChainTip struct {
@@ -25,38 +26,27 @@ type BlockData struct {
 	ChainTip [][]ChainTip `json:"params,omitempty"`
 }
 
-func send_transaction(c ChainTip) {
-
-	// logSnap := &LogSnap{
-	// 	BlockHash: chaintip.Block,
-	// 	Height:    chaintip.Height,
-	// }
-
-	// logSnapJson, err := json.Marshal(logSnap)
-	// if err != nil {
-	// 	fmt.Printf("Error: %s", err)
-	// 	return
-	// }
+func send_transaction(accountName string, c ChainTip) {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	homePath := filepath.Join(home, ".twilight-core")
+	homePath := filepath.Join(home, ".nyks")
 
 	cosmosOptions := []cosmosclient.Option{
 		cosmosclient.WithHome(homePath),
 	}
+
+	config := sdktypes.GetConfig()
+	config.SetBech32PrefixForAccount("twilight", "twilight"+"pub")
 
 	// create an instance of cosmosclient
 	cosmos, err := cosmosclient.New(context.Background(), cosmosOptions...)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// account `alice` was initialized during `starport chain serve`
-	accountName := "alice"
 
 	// get account from the keyring by account name and return a bech32 address
 	address, err := cosmos.Address(accountName)
@@ -77,7 +67,7 @@ func send_transaction(c ChainTip) {
 	// store response in txResp
 	txResp, err := cosmos.BroadcastTx(accountName, msg)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	// print response from broadcasting a transaction

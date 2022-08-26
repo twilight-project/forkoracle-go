@@ -148,7 +148,7 @@ func New(ctx context.Context, options ...Option) (Client, error) {
 	c := Client{
 		nodeAddress:     defaultNodeAddress,
 		keyringBackend:  cosmosaccount.KeyringTest,
-		addressPrefix:   "cosmos",
+		addressPrefix:   "twilight",
 		faucetAddress:   defaultFaucetAddress,
 		faucetDenom:     defaultFaucetDenom,
 		faucetMinAmount: defaultFaucetMinAmount,

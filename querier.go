@@ -7,7 +7,7 @@ func query_snapshot_proposal() {
 	// 	log.Fatal(err)
 	// }
 
-	// homePath := filepath.Join(home, ".twilight-core")
+	// homePath := filepath.Join(home, ".nyks")
 
 	// cosmosOptions := []cosmosclient.Option{
 	// 	cosmosclient.WithHome(homePath),

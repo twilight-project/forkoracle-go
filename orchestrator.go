@@ -98,7 +98,7 @@ func process_message(accountName string, message []byte) {
 
 	for i, item := range c.ChainTip {
 		fmt.Printf("Row: %v\n", i)
-		fmt.Printf("Row: %v\n", item[1].Node)
+		fmt.Printf("Row: %v\n", item[i].Node)
 		fmt.Println(c.ChainTip[i][i].Block)
 		send_transaction(accountName, item[0])
 	}

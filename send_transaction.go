@@ -22,8 +22,8 @@ type ChainTip struct {
 }
 
 type BlockData struct {
-	Method   string       `json:"method"`
-	ChainTip [][]ChainTip `json:"params,omitempty"`
+	Method   string     `json:"method"`
+	ChainTip []ChainTip `json:"params,omitempty"`
 }
 
 func send_transaction(accountName string, c ChainTip) {

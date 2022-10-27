@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -54,7 +53,7 @@ func send_transaction(accountName string, c ChainTip) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(address.String())
+	log.Println(address.String())
 	// define a message to create a post
 	msg := &types.MsgSeenBtcChainTip{
 		Creator:             address.String(),
@@ -71,7 +70,7 @@ func send_transaction(accountName string, c ChainTip) {
 	}
 
 	// print response from broadcasting a transaction
-	fmt.Print("MsgSeenBtcChainTip:\n\n")
-	fmt.Println(txResp)
+	log.Print("MsgSeenBtcChainTip:\n\n")
+	log.Println(txResp)
 
 }

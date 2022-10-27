@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -91,7 +90,7 @@ func process_message(accountName string, message []byte) {
 	var c BlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {
-		fmt.Printf("Unmarshal: %v\n", err)
+		log.Printf("Unmarshal: %v\n", err)
 	}
 
 	log.Println("new_message test", c)

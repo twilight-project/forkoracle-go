@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -48,7 +47,7 @@ func orchestrator(accountName string) {
 
 	tunnel := make(chan bool)
 
-	payload := `{"jsonrpc": "2.0", "id": 1, "method": "subscribe_forks", "params": null}`
+	payload := `{"jsonrpc": "2.0", "id": 1, "method": "subscribe_active_fork", "params": null}`
 
 	go func() {
 
@@ -91,16 +90,20 @@ func process_message(accountName string, message []byte) {
 	var c BlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {
-		fmt.Printf("Unmarshal: %v\n", err)
+		log.Printf("Unmarshal: %v\n", err)
 	}
 
-	log.Println("new_message", c.ChainTip)
+	log.Println("new_message test", c)
 
-	for i, item := range c.ChainTip {
-		fmt.Printf("Row: %v\n", i)
-		fmt.Printf("Row: %v\n", item[i].Node)
-		fmt.Println(c.ChainTip[i][i].Block)
-		send_transaction(accountName, item[0])
+	active_chaintip := c.ChainTip
+
+	if len(active_chaintip) <= 0 {
+		log.Println("first mesaage or empty list")
+		return
 	}
+	log.Printf("active chain tip : ", active_chaintip[0])
+	log.Printf("Row: %v\n", active_chaintip[0].Node)
+	log.Println(active_chaintip[0].Block)
+	send_transaction(accountName, active_chaintip[0])
 
 }

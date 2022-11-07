@@ -1,20 +1,19 @@
 package main
 
 import (
-	"log"
 	"os"
 )
 
 func main() {
 
-	file, err := openLogFile("Debug.log")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(file)
-	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	// file, err := openLogFile("Debug.log")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.SetOutput(file)
+	// log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 
-	log.Println("log file created")
+	// log.Println("log file created")
 	accountName := os.Args[1]
 	orchestrator(accountName)
 

@@ -8,7 +8,7 @@ import (
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
-	"github.com/twilight-project/nyks/x/nyks/types"
+	"github.com/twilight-project/nyks/x/forks/types"
 )
 
 type ChainTip struct {

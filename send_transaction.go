@@ -11,20 +11,6 @@ import (
 	"github.com/twilight-project/nyks/x/forks/types"
 )
 
-type ChainTip struct {
-	Block           string `json:"block"`
-	Height          int64  `json:"height"`
-	ID              int64  `json:"id"`
-	Node            int64  `json:"node"`
-	Parent_chaintip *int64 `json:"parent_chaintip,omitempty"`
-	Status          string `json:"status"`
-}
-
-type BlockData struct {
-	Method   string     `json:"method"`
-	ChainTip []ChainTip `json:"params,omitempty"`
-}
-
 func send_transaction(accountName string, c ChainTip) {
 
 	home, err := os.UserHomeDir()

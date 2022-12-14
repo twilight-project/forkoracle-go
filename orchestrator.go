@@ -1,8 +1,8 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
-	"flag"
 	"log"
 	"net/url"
 	"os"
@@ -12,19 +12,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func orchestrator(accountName string) {
-	var addr = flag.String("addr", "0.0.0.0:8340", "http service address")
-
-	flag.Parse()
+func orchestrator(accountName string, forkscanner_url url.URL, db *sql.DB) {
 	log.SetFlags(0)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
-	log.Printf("connecting to %s", u.String())
+	log.Printf("connecting to %s", forkscanner_url.String())
 
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	c, _, err := websocket.DefaultDialer.Dial(forkscanner_url.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}

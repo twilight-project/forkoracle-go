@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/url"
@@ -10,10 +9,13 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/twilight-project/nyks/x/forks/types"
 )
 
-func orchestrator(accountName string, forkscanner_url url.URL, db *sql.DB) {
+func orchestrator(accountName string, forkscanner_url url.URL) {
 	log.SetFlags(0)
+
+	go start_bridge(accountName, forkscanner_url)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -91,15 +93,28 @@ func process_message(accountName string, message []byte) {
 
 	log.Println("new_message test", c)
 
-	active_chaintip := c.ChainTip
+	active_chaintips := c.ChainTip
 
-	if len(active_chaintip) <= 0 {
+	if len(active_chaintips) <= 0 {
 		log.Println("first mesaage or empty list")
 		return
 	}
-	log.Printf("active chain tip : ", active_chaintip[0])
-	log.Printf("Row: %v\n", active_chaintip[0].Node)
-	log.Println(active_chaintip[0].Block)
-	send_transaction(accountName, active_chaintip[0])
+
+	log.Printf("active chain tip : ", active_chaintips[0])
+	log.Printf("Row: %v\n", active_chaintips[0].Node)
+	log.Println(active_chaintips[0].Block)
+
+	active_chaintip := active_chaintips[0]
+
+	cosmos_client := get_cosmos_client()
+	cosmos_address := get_cosmos_address(accountName, cosmos_client)
+
+	msg := &types.MsgSeenBtcChainTip{
+		Height:           uint64(active_chaintip.Height),
+		Hash:             active_chaintip.Block,
+		BtcOracleAddress: cosmos_address.String(),
+	}
+
+	send_transaction(accountName, cosmos_client, msg, "SeenBtcChainTip")
 
 }

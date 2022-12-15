@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var dbconn *sql.DB
+
 func main() {
 
 	viper.AddConfigPath("./configs")
@@ -18,17 +20,11 @@ func main() {
 	viper.ReadInConfig()
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", viper.Get("DB_host"), viper.Get("DB_port"), viper.Get("DB_user"), viper.Get("DB_password"), viper.Get("DB_name"))
-	db, err := sql.Open("postgres", psqlconn)
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
+	dbconn = init_db()
 
 	var addr = flag.String("addr", fmt.Sprintf("%v:%d", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
 	flag.Parse()
 	forkscanner_url := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 
-	orchestrator(accountName, forkscanner_url, db)
+	orchestrator(accountName, forkscanner_url)
 }

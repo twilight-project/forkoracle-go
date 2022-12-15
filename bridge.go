@@ -1,19 +1,17 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"strconv"
 
 	"github.com/gorilla/websocket"
+	"github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func watch_address(url url.URL, db *sql.DB) {
+func watch_address(url url.URL) {
 	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
@@ -53,35 +51,12 @@ func watch_address(url url.URL, db *sql.DB) {
 		}
 
 		watch_notification := c.Params
+		resp := get_deposit_addresses()
 
-		resp, err := http.Get("https://nyks.twilight-explorer.com/api/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		//We Read the response body on the line below.
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		a := QueryDepositAddressResp{}
-		err = json.Unmarshal(body, &a)
-		if err != nil {
-			fmt.Println(err)
-		}
-		for _, address := range a.addresses {
+		for _, address := range resp.addresses {
 			for _, element := range watch_notification {
 				if address.depositAddress == element.Receiving {
-					_, err = db.Exec("INSERT into watched VALUES ($1, $2, $3, $4, $5)",
-						element.Block,
-						element.Receiving,
-						element.Satoshis,
-						element.Height,
-						element.Txid,
-					)
-					if err != nil {
-						log.Fatalf("An error occured while executing query: %v", err)
-					}
+					insert_notifications(element)
 				}
 			}
 		}
@@ -90,31 +65,19 @@ func watch_address(url url.URL, db *sql.DB) {
 
 }
 
-func k_deep_service(accountName string, url url.URL, db *sql.DB) {
+func k_deep_service(accountName string, url url.URL) {
 
 	for {
-		resp, err := http.Get("https://nyks.twilight-explorer.com/api/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		//We Read the response body on the line below.
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		a := AttestaionBlock{}
-		err = json.Unmarshal(body, &a)
-
-		if a.Attestations != nil {
-			attestation := a.Attestations[0]
+		resp := get_attestations()
+		if resp.Attestations != nil {
+			attestation := resp.Attestations[0]
 
 			if attestation.Observed == true {
 				height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
 				if err != nil {
 					fmt.Println(err)
 				}
-				k_deep_check(accountName, uint64(height), db)
+				k_deep_check(accountName, uint64(height))
 			}
 
 		}
@@ -122,32 +85,8 @@ func k_deep_service(accountName string, url url.URL, db *sql.DB) {
 	}
 }
 
-func k_deep_check(accountName string, height uint64, db *sql.DB) {
-	DB_reader, err := db.Query("select * from watched where archived = false")
-	if err != nil {
-		log.Fatalf("An error occured while executing query: %v", err)
-	}
-	defer DB_reader.Close()
-
-	addresses := make([]WatchtowerNotification, 0)
-
-	for DB_reader.Next() {
-		address := WatchtowerNotification{}
-		err := DB_reader.Scan(
-			address.Block,
-			address.Receiving,
-			address.Satoshis,
-			address.Height,
-			address.Txid,
-			address.archived,
-		)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-		addresses = append(addresses, address)
-	}
-
+func k_deep_check(accountName string, height uint64) {
+	addresses := query_notification()
 	for _, a := range addresses {
 		if height-a.Height > 3 {
 			Confirm_BTc_Transaction_on_nyks(accountName, a)
@@ -157,48 +96,31 @@ func k_deep_check(accountName string, height uint64, db *sql.DB) {
 
 func Confirm_BTc_Transaction_on_nyks(accountName string, data WatchtowerNotification) {
 
-	// home, err := os.UserHomeDir()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
+	cosmos := get_cosmos_client()
+	oracle_address := get_cosmos_address(accountName, cosmos)
 
-	// homePath := filepath.Join(home, ".nyks")
+	deposit_addresses := get_deposit_addresses()
 
-	// cosmosOptions := []cosmosclient.Option{
-	// 	cosmosclient.WithHome(homePath),
-	// }
+	for _, a := range deposit_addresses.addresses {
+		if a.depositAddress == data.Receiving {
+			msg := &types.MsgConfirmBtcDeposit{
+				DepositAddress:         data.Receiving,
+				DepositAmount:          data.Satoshis,
+				Height:                 data.Height,
+				Hash:                   data.Txid,
+				TwilightDepositAddress: a.twilightDepositAddress,
+				BtcOracleAddress:       oracle_address.String(),
+			}
 
-	// config := sdktypes.GetConfig()
-	// config.SetBech32PrefixForAccount("twilight", "twilight"+"pub")
-
-	// // create an instance of cosmosclient
-	// cosmos, err := cosmosclient.New(context.Background(), cosmosOptions...)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// oracle_address, err := cosmos.Address(accountName)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// msg := &types.MsgConfirmBtcDeposit{
-	// 	DepositAddress:         data.Receiving,
-	// 	DepositAmount:          data.Satoshis,
-	// 	BlockHeight:            data.Height,
-	// 	BlockHash:              data.Txid,
-	// 	TwilightDepositAddress: "",
-	// 	BtcOracleAddress:       oracle_address.String(),
-	// 	InputAddress:           data.Receiving,
-	// }
+			send_transaction(accountName, cosmos, msg, "MsgConfirmBtcDeposit")
+		}
+	}
 
 }
 
-func start_bridge(accountName string, forkscanner_url url.URL, db *sql.DB) {
+func start_bridge(accountName string, forkscanner_url url.URL) {
 
-	go watch_address(forkscanner_url, db)
-	go k_deep_service(accountName, forkscanner_url, db)
-
-	// go watch_address(address)
+	go watch_address(forkscanner_url)
+	go k_deep_service(accountName, forkscanner_url)
 
 }

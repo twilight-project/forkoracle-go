@@ -26,5 +26,6 @@ func main() {
 	flag.Parse()
 	forkscanner_url := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 
+	go start_judge(accountName)
 	orchestrator(accountName, forkscanner_url)
 }

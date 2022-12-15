@@ -19,7 +19,7 @@ func init_db() *sql.DB {
 
 func insert_notifications(element WatchtowerNotification) {
 
-	_, err := dbconn.Exec("INSERT into watched VALUES ($1, $2, $3, $4, $5)",
+	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5)",
 		element.Block,
 		element.Receiving,
 		element.Satoshis,
@@ -32,7 +32,7 @@ func insert_notifications(element WatchtowerNotification) {
 }
 
 func query_notification() []WatchtowerNotification {
-	DB_reader, err := dbconn.Query("select * from watched where archived = false")
+	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
 		log.Fatalf("An error occured while executing query: %v", err)
 	}

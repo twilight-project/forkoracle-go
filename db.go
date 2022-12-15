@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func init_db() *sql.DB {
+func initDB() *sql.DB {
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", viper.Get("DB_host"), viper.Get("DB_port"), viper.Get("DB_user"), viper.Get("DB_password"), viper.Get("DB_name"))
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
@@ -17,7 +17,7 @@ func init_db() *sql.DB {
 	return db
 }
 
-func insert_notifications(element WatchtowerNotification) {
+func insertNotifications(element WatchtowerNotification) {
 
 	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5)",
 		element.Block,
@@ -31,7 +31,7 @@ func insert_notifications(element WatchtowerNotification) {
 	}
 }
 
-func query_notification() []WatchtowerNotification {
+func queryNotification() []WatchtowerNotification {
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
 		log.Fatalf("An error occured while executing query: %v", err)

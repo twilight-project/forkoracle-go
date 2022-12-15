@@ -15,7 +15,7 @@ import (
 func orchestrator(accountName string, forkscanner_url url.URL) {
 	log.SetFlags(0)
 
-	go start_bridge(accountName, forkscanner_url)
+	go startBridge(accountName, forkscanner_url)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -106,8 +106,8 @@ func process_message(accountName string, message []byte) {
 
 	active_chaintip := active_chaintips[0]
 
-	cosmos_client := get_cosmos_client()
-	cosmos_address := get_cosmos_address(accountName, cosmos_client)
+	cosmos_client := getCosmosClient()
+	cosmos_address := getCosmosAddress(accountName, cosmos_client)
 
 	msg := &types.MsgSeenBtcChainTip{
 		Height:           uint64(active_chaintip.Height),
@@ -115,6 +115,6 @@ func process_message(accountName string, message []byte) {
 		BtcOracleAddress: cosmos_address.String(),
 	}
 
-	send_transaction(accountName, cosmos_client, msg, "SeenBtcChainTip")
+	sendTransaction(accountName, cosmos_client, msg, "SeenBtcChainTip")
 
 }

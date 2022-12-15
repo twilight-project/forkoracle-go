@@ -18,7 +18,7 @@ import (
 	forktypes "github.com/twilight-project/nyks/x/forks/types"
 )
 
-func send_transaction(accountName string, cosmos cosmosclient.Client, data interface{}, msgtype string) {
+func sendTransaction(accountName string, cosmos cosmosclient.Client, data interface{}, msgtype string) {
 
 	switch msgtype {
 	case "SeenBtcChainTip":
@@ -44,7 +44,7 @@ func send_transaction(accountName string, cosmos cosmosclient.Client, data inter
 
 }
 
-func get_cosmos_client() cosmosclient.Client {
+func getCosmosClient() cosmosclient.Client {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -68,7 +68,7 @@ func get_cosmos_client() cosmosclient.Client {
 	return cosmos
 }
 
-func get_cosmos_address(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
+func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
 	address, err := cosmos.Address(accountName)
 	if err != nil {
 		log.Fatal(err)
@@ -76,7 +76,7 @@ func get_cosmos_address(accountName string, cosmos cosmosclient.Client) sdktypes
 	return address
 }
 
-func get_deposit_addresses() QueryDepositAddressResp {
+func getDepositAddresses() QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/api/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
 	if err != nil {
@@ -97,7 +97,7 @@ func get_deposit_addresses() QueryDepositAddressResp {
 	return a
 }
 
-func get_attestations() AttestaionBlock {
+func getAttestations() AttestaionBlock {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/api/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc")
 	if err != nil {

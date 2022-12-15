@@ -20,12 +20,12 @@ func main() {
 	viper.ReadInConfig()
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	dbconn = init_db()
+	dbconn = initDB()
 
 	var addr = flag.String("addr", fmt.Sprintf("%v:%d", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
 	flag.Parse()
 	forkscanner_url := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 
-	go start_judge(accountName)
+	go startJudge(accountName)
 	orchestrator(accountName, forkscanner_url)
 }

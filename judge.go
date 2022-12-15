@@ -17,12 +17,12 @@ import (
 	"github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func generate_address() string {
+func generateAddress() string {
 	address := "bc1q0vsja3m9xtskmxwrjmkz2phgd8n95k9f8gcy4s"
 	return address
 }
 
-func register_reserve_address_on_nyks(accountName string, address string) {
+func registerReserveAddressOnNyks(accountName string, address string) {
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -65,7 +65,7 @@ func register_reserve_address_on_nyks(accountName string, address string) {
 	fmt.Println(txResp)
 }
 
-func register_address_on_forkscanner(address string) {
+func registerAddressOnForkscanner(address string) {
 	dt := time.Now().UTC()
 	dt = dt.AddDate(1, 0, 0)
 
@@ -108,8 +108,8 @@ func register_address_on_forkscanner(address string) {
 
 }
 
-func start_judge(accountName string) {
-	address := generate_address()
-	register_reserve_address_on_nyks(accountName, address)
-	register_address_on_forkscanner(address)
+func startJudge(accountName string) {
+	address := generateAddress()
+	registerReserveAddressOnNyks(accountName, address)
+	registerAddressOnForkscanner(address)
 }

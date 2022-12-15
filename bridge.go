@@ -11,7 +11,7 @@ import (
 	"github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func watch_address(url url.URL) {
+func watchAddress(url url.URL) {
 	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
@@ -51,12 +51,12 @@ func watch_address(url url.URL) {
 		}
 
 		watch_notification := c.Params
-		resp := get_deposit_addresses()
+		resp := getDepositAddresses()
 
 		for _, address := range resp.addresses {
 			for _, element := range watch_notification {
 				if address.depositAddress == element.Receiving {
-					insert_notifications(element)
+					insertNotifications(element)
 				}
 			}
 		}
@@ -65,10 +65,10 @@ func watch_address(url url.URL) {
 
 }
 
-func k_deep_service(accountName string, url url.URL) {
+func kDeepService(accountName string, url url.URL) {
 
 	for {
-		resp := get_attestations()
+		resp := getAttestations()
 		if resp.Attestations != nil {
 			attestation := resp.Attestations[0]
 
@@ -77,7 +77,7 @@ func k_deep_service(accountName string, url url.URL) {
 				if err != nil {
 					fmt.Println(err)
 				}
-				k_deep_check(accountName, uint64(height))
+				kDeepCheck(accountName, uint64(height))
 			}
 
 		}
@@ -85,21 +85,21 @@ func k_deep_service(accountName string, url url.URL) {
 	}
 }
 
-func k_deep_check(accountName string, height uint64) {
-	addresses := query_notification()
+func kDeepCheck(accountName string, height uint64) {
+	addresses := queryNotification()
 	for _, a := range addresses {
 		if height-a.Height > 3 {
-			Confirm_BTc_Transaction_on_nyks(accountName, a)
+			confirmBtcTransactionOnNyks(accountName, a)
 		}
 	}
 }
 
-func Confirm_BTc_Transaction_on_nyks(accountName string, data WatchtowerNotification) {
+func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {
 
-	cosmos := get_cosmos_client()
-	oracle_address := get_cosmos_address(accountName, cosmos)
+	cosmos := getCosmosClient()
+	oracle_address := getCosmosAddress(accountName, cosmos)
 
-	deposit_addresses := get_deposit_addresses()
+	deposit_addresses := getDepositAddresses()
 
 	for _, a := range deposit_addresses.addresses {
 		if a.depositAddress == data.Receiving {
@@ -112,15 +112,15 @@ func Confirm_BTc_Transaction_on_nyks(accountName string, data WatchtowerNotifica
 				BtcOracleAddress:       oracle_address.String(),
 			}
 
-			send_transaction(accountName, cosmos, msg, "MsgConfirmBtcDeposit")
+			sendTransaction(accountName, cosmos, msg, "MsgConfirmBtcDeposit")
 		}
 	}
 
 }
 
-func start_bridge(accountName string, forkscanner_url url.URL) {
+func startBridge(accountName string, forkscanner_url url.URL) {
 
-	go watch_address(forkscanner_url)
-	go k_deep_service(accountName, forkscanner_url)
+	go watchAddress(forkscanner_url)
+	go kDeepService(accountName, forkscanner_url)
 
 }

@@ -22,9 +22,9 @@ type WatchtowerResponse struct {
 
 type WatchtowerNotification struct {
 	Block     string
+	Height    uint64
 	Receiving string
 	Satoshis  uint64
-	Height    uint64
 	Txid      string
 	archived  bool
 }

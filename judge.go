@@ -18,7 +18,7 @@ import (
 )
 
 func generateAddress() string {
-	address := "bc1q0vsja3m9xtskmxwrjmkz2phgd8n95k9f8gcy4s"
+	address := "bc1qyxfmmenus6fahvcwdkmzsqlm6ndlqudt8zxnum"
 	return address
 }
 

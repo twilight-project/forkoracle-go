@@ -22,7 +22,8 @@ func main() {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	dbconn = initDB()
 
-	var addr = flag.String("addr", fmt.Sprintf("%v:%d", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
+	var addr = flag.String("addr", fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
+	fmt.Println(addr)
 	flag.Parse()
 	forkscanner_url := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 

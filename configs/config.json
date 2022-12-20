@@ -6,8 +6,8 @@
     "DB_password" : "forkscanner",
     "DB_name" : "judge",
     "forkscanner_host": "0.0.0.0",
-    "forkscanner_ws_port": 8340,
-    "forkscanner_rpc_port": 8339,
+    "forkscanner_ws_port": "8340",
+    "forkscanner_rpc_port": "8339",
     "nyksd_url": "http://0.0.0.0:1317"
 
 }

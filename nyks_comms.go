@@ -78,7 +78,7 @@ func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.A
 
 func getDepositAddresses() QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/api/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -99,7 +99,7 @@ func getDepositAddresses() QueryDepositAddressResp {
 
 func getAttestations() AttestaionBlock {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/api/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc")
 	if err != nil {
 		log.Fatalln(err)
 	}

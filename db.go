@@ -19,7 +19,7 @@ func initDB() *sql.DB {
 
 func insertNotifications(element WatchtowerNotification) {
 
-	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5)",
+	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6)",
 		element.Block,
 		element.Receiving,
 		element.Satoshis,

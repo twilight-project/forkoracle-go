@@ -42,12 +42,13 @@ func watchAddress(url url.URL) {
 			return
 		}
 		//save in DB
-		log.Printf("recv: %s", message)
+		fmt.Printf("recv: %s", message)
 
 		c := WatchtowerResponse{}
 		err = json.Unmarshal(message, &c)
 		if err != nil {
 			fmt.Println(err)
+			continue
 		}
 
 		watch_notification := c.Params
@@ -69,7 +70,7 @@ func kDeepService(accountName string, url url.URL) {
 
 	for {
 		resp := getAttestations()
-		if resp.Attestations != nil {
+		if len(resp.Attestations) > 0 {
 			attestation := resp.Attestations[0]
 
 			if attestation.Observed == true {
@@ -113,6 +114,8 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 			}
 
 			sendTransaction(accountName, cosmos, msg, "MsgConfirmBtcDeposit")
+
+			fmt.Println("sent confirm btc transaction")
 		}
 	}
 

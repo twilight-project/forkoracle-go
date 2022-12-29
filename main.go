@@ -1,29 +1,31 @@
 package main
 
 import (
-	"log"
-	"os"
+	"database/sql"
+	"flag"
+	"fmt"
+	"net/url"
+
+	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 )
+
+var dbconn *sql.DB
 
 func main() {
 
-	file, err := openLogFile("Debug.log")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(file)
-	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	viper.AddConfigPath("./configs")
+	viper.SetConfigName("config") // Register config file name (no extension)
+	viper.SetConfigType("json")   // Look for specific type
+	viper.ReadInConfig()
 
-	log.Println("log file created")
-	accountName := os.Args[1]
-	orchestrator(accountName)
+	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	dbconn = initDB()
 
-}
+	var addr = flag.String("addr", fmt.Sprintf("%v:%d", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
+	flag.Parse()
+	forkscanner_url := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 
-func openLogFile(path string) (*os.File, error) {
-	logFile, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if err != nil {
-		return nil, err
-	}
-	return logFile, nil
+	go startJudge(accountName)
+	orchestrator(accountName, forkscanner_url)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"log"
 	"net/url"
 	"os"
@@ -10,21 +9,20 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/twilight-project/nyks/x/forks/types"
 )
 
-func orchestrator(accountName string) {
-	var addr = flag.String("addr", "0.0.0.0:8340", "http service address")
-
-	flag.Parse()
+func orchestrator(accountName string, forkscanner_url url.URL) {
 	log.SetFlags(0)
+
+	go startBridge(accountName, forkscanner_url)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
-	log.Printf("connecting to %s", u.String())
+	log.Printf("connecting to %s", forkscanner_url.String())
 
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	c, _, err := websocket.DefaultDialer.Dial(forkscanner_url.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
@@ -95,15 +93,28 @@ func process_message(accountName string, message []byte) {
 
 	log.Println("new_message test", c)
 
-	active_chaintip := c.ChainTip
+	active_chaintips := c.ChainTip
 
-	if len(active_chaintip) <= 0 {
+	if len(active_chaintips) <= 0 {
 		log.Println("first mesaage or empty list")
 		return
 	}
-	log.Printf("active chain tip : ", active_chaintip[0])
-	log.Printf("Row: %v\n", active_chaintip[0].Node)
-	log.Println(active_chaintip[0].Block)
-	send_transaction(accountName, active_chaintip[0])
+
+	log.Printf("active chain tip : ", active_chaintips[0])
+	log.Printf("Row: %v\n", active_chaintips[0].Node)
+	log.Println(active_chaintips[0].Block)
+
+	active_chaintip := active_chaintips[0]
+
+	cosmos_client := getCosmosClient()
+	cosmos_address := getCosmosAddress(accountName, cosmos_client)
+
+	msg := &types.MsgSeenBtcChainTip{
+		Height:           uint64(active_chaintip.Height),
+		Hash:             active_chaintip.Block,
+		BtcOracleAddress: cosmos_address.String(),
+	}
+
+	sendTransaction(accountName, cosmos_client, msg, "SeenBtcChainTip")
 
 }

@@ -3,13 +3,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	"github.com/spf13/viper"
 )
 
 func initDB() *sql.DB {
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", viper.Get("DB_host"), viper.Get("DB_port"), viper.Get("DB_user"), viper.Get("DB_password"), viper.Get("DB_name"))
+	psqlconn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", viper.Get("DB_host"), viper.Get("DB_port"), viper.Get("DB_user"), viper.Get("DB_password"), viper.Get("DB_name"))
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
 		panic(err)
@@ -19,37 +18,42 @@ func initDB() *sql.DB {
 
 func insertNotifications(element WatchtowerNotification) {
 
-	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6)",
+	fmt.Println("inside insert DB")
+	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		element.Block,
 		element.Receiving,
 		element.Satoshis,
 		element.Height,
-		element.Txid,
+		element.Receiving_txid,
+		false,
+		element.Sending,
 	)
 	if err != nil {
-		log.Fatalf("An error occured while executing query: %v", err)
+		fmt.Println("An error occured while executing query: ", err)
 	}
 }
 
 func queryNotification() []WatchtowerNotification {
+	fmt.Println("inside query notification")
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
-		log.Fatalf("An error occured while executing query: %v", err)
+		fmt.Println("An error occured while executing query: ", err)
 	}
+
 	defer DB_reader.Close()
 	addresses := make([]WatchtowerNotification, 0)
 
 	for DB_reader.Next() {
 		address := WatchtowerNotification{}
 		err := DB_reader.Scan(
-			address.Block,
-			address.Receiving,
-			address.Satoshis,
-			address.Height,
-			address.Txid,
-			address.archived,
+			&address.Block,
+			&address.Receiving,
+			&address.Satoshis,
+			&address.Height,
+			&address.Receiving_txid,
+			&address.Archived,
+			&address.Sending,
 		)
-
 		if err != nil {
 			fmt.Println(err)
 		}

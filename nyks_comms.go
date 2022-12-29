@@ -18,30 +18,20 @@ import (
 	forktypes "github.com/twilight-project/nyks/x/forks/types"
 )
 
-func sendTransaction(accountName string, cosmos cosmosclient.Client, data interface{}, msgtype string) {
-
-	switch msgtype {
-	case "SeenBtcChainTip":
-		msg, ok := data.(forktypes.MsgSeenBtcChainTip)
-		if ok {
-			_, err := cosmos.BroadcastTx(accountName, &msg)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	case "MsgConfirmBtcDeposit":
-		msg, ok := data.(bridgetypes.MsgConfirmBtcDeposit)
-		if ok {
-			_, err := cosmos.BroadcastTx(accountName, &msg)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-
-	default:
-		panic("undefined message type")
+func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("+++++++++++++", err)
 	}
+	fmt.Println("sent chaintip")
+}
 
+func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("errrrrr : ", err)
+	}
 }
 
 func getCosmosClient() cosmosclient.Client {
@@ -80,20 +70,19 @@ func getDepositAddresses() QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println("error : ", err)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Println("error : ", err)
 	}
 
 	a := QueryDepositAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error : ", err)
 	}
-
 	return a
 }
 

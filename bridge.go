@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/twilight-project/nyks/x/bridge/types"
@@ -31,33 +32,35 @@ func watchAddress(url url.URL) {
 
 	err = conn.WriteMessage(websocket.TextMessage, []byte(payload))
 	if err != nil {
-		log.Println("write:", err)
+		log.Println("error in address watcher: ", err)
 		return
 	}
+
+	fmt.Println("registered on address watcher")
 
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("read:", err)
+			log.Println("error in address watcher: ", err)
 			return
 		}
 		//save in DB
-		fmt.Printf("recv: %s", message)
+		fmt.Printf("recv watchtower noti: %s", message)
 
 		c := WatchtowerResponse{}
 		err = json.Unmarshal(message, &c)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("error in address watcher: ", err)
 			continue
 		}
 
-		watch_notification := c.Params
+		watchtower_notifications := c.Params
 		resp := getDepositAddresses()
 
-		for _, address := range resp.addresses {
-			for _, element := range watch_notification {
-				if address.depositAddress == element.Receiving {
-					insertNotifications(element)
+		for _, address := range resp.Addresses {
+			for _, notification := range watchtower_notifications {
+				if address.DepositAddress == notification.Sending {
+					insertNotifications(notification)
 				}
 			}
 		}
@@ -67,12 +70,10 @@ func watchAddress(url url.URL) {
 }
 
 func kDeepService(accountName string, url url.URL) {
-
 	for {
 		resp := getAttestations()
 		if len(resp.Attestations) > 0 {
 			attestation := resp.Attestations[0]
-
 			if attestation.Observed == true {
 				height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
 				if err != nil {
@@ -82,7 +83,7 @@ func kDeepService(accountName string, url url.URL) {
 			}
 
 		}
-
+		time.Sleep(5 * time.Minute)
 	}
 }
 
@@ -90,30 +91,29 @@ func kDeepCheck(accountName string, height uint64) {
 	addresses := queryNotification()
 	for _, a := range addresses {
 		if height-a.Height > 3 {
+			time.Sleep(1 * time.Minute)
 			confirmBtcTransactionOnNyks(accountName, a)
 		}
 	}
 }
 
 func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {
-
 	cosmos := getCosmosClient()
 	oracle_address := getCosmosAddress(accountName, cosmos)
 
 	deposit_addresses := getDepositAddresses()
-
-	for _, a := range deposit_addresses.addresses {
-		if a.depositAddress == data.Receiving {
+	for _, a := range deposit_addresses.Addresses {
+		if a.DepositAddress == data.Sending {
 			msg := &types.MsgConfirmBtcDeposit{
 				DepositAddress:         data.Receiving,
 				DepositAmount:          data.Satoshis,
 				Height:                 data.Height,
-				Hash:                   data.Txid,
-				TwilightDepositAddress: a.twilightDepositAddress,
+				Hash:                   data.Receiving_txid,
+				TwilightDepositAddress: a.TwilightDepositAddress,
 				BtcOracleAddress:       oracle_address.String(),
 			}
 
-			sendTransaction(accountName, cosmos, msg, "MsgConfirmBtcDeposit")
+			sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
 
 			fmt.Println("sent confirm btc transaction")
 		}

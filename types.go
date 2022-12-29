@@ -21,12 +21,13 @@ type WatchtowerResponse struct {
 }
 
 type WatchtowerNotification struct {
-	Block     string
-	Height    uint64
-	Receiving string
-	Satoshis  uint64
-	Txid      string
-	archived  bool
+	Block          string
+	Height         uint64
+	Receiving      string
+	Satoshis       uint64
+	Receiving_txid string
+	Sending        string
+	Archived       bool
 }
 
 type Proposal struct {
@@ -49,12 +50,12 @@ type AttestaionBlock struct {
 }
 
 type DepositAddress struct {
-	depositAddress         string
-	twilightDepositAddress string
+	DepositAddress         string
+	TwilightDepositAddress string
 }
 
 type QueryDepositAddressResp struct {
-	addresses []DepositAddress
+	Addresses []DepositAddress
 }
 
 type ConfirmDepositMessage struct {

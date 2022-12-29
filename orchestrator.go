@@ -39,7 +39,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 				return
 			}
 			process_message(accountName, message)
-			log.Printf("recv: %s", message)
+			// log.Printf("recv: %s", message)
 		}
 	}()
 
@@ -91,18 +91,18 @@ func process_message(accountName string, message []byte) {
 		log.Printf("Unmarshal: %v\n", err)
 	}
 
-	log.Println("new_message test", c)
+	// log.Println("new_message test", c)
 
 	active_chaintips := c.ChainTip
 
 	if len(active_chaintips) <= 0 {
-		log.Println("first mesaage or empty list")
+		log.Println("first message or empty list")
 		return
 	}
 
-	log.Printf("active chain tip : ", active_chaintips[0])
-	log.Printf("Row: %v\n", active_chaintips[0].Node)
-	log.Println(active_chaintips[0].Block)
+	log.Println("active chain tip : ", active_chaintips[0])
+	// log.Printf("Row: %v\n", active_chaintips[0].Node)
+	// log.Println(active_chaintips[0].Block)
 
 	active_chaintip := active_chaintips[0]
 
@@ -115,6 +115,6 @@ func process_message(accountName string, message []byte) {
 		BtcOracleAddress: cosmos_address.String(),
 	}
 
-	sendTransaction(accountName, cosmos_client, msg, "SeenBtcChainTip")
+	sendTransactionSeenBtcChainTip(accountName, cosmos_client, msg)
 
 }

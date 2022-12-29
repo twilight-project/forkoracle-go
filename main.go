@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
@@ -23,10 +24,10 @@ func main() {
 	dbconn = initDB()
 
 	var addr = flag.String("addr", fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
-	fmt.Println(addr)
 	flag.Parse()
 	forkscanner_url := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
 
 	go startJudge(accountName)
+	time.Sleep(1 * time.Minute)
 	orchestrator(accountName, forkscanner_url)
 }

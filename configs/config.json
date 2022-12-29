@@ -1,6 +1,6 @@
 {
     "accountName": "alice",
-    "DB_port": 5432,
+    "DB_port": "5432",
     "DB_host": "localhost",
     "DB_user": "forkscanner",
     "DB_password" : "forkscanner",

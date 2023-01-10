@@ -33,6 +33,17 @@ func insertNotifications(element WatchtowerNotification) {
 	}
 }
 
+func markProcessedNotifications(element WatchtowerNotification) {
+
+	_, err := dbconn.Exec("update notification set archived = true where txid = $1 and sending = $2",
+		element.Receiving_txid,
+		element.Sending,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing query: ", err)
+	}
+}
+
 func queryNotification() []WatchtowerNotification {
 	fmt.Println("inside query notification")
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")

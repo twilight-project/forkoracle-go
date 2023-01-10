@@ -114,7 +114,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 			}
 
 			sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
-
+			markProcessedNotifications(data)
 			fmt.Println("sent confirm btc transaction")
 		}
 	}

@@ -54,12 +54,20 @@ func watchAddress(url url.URL) {
 			continue
 		}
 
+		if len(c.Params) <= 0 {
+			fmt.Println("first message from forkscanner, confirming subscription")
+			continue
+		}
+
 		watchtower_notifications := c.Params
 		resp := getDepositAddresses()
+
+		fmt.Println("deposit addresses : ", resp)
 
 		for _, address := range resp.Addresses {
 			for _, notification := range watchtower_notifications {
 				if address.DepositAddress == notification.Sending {
+					fmt.Println("adding notification to DB")
 					insertNotifications(notification)
 				}
 			}
@@ -112,10 +120,11 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 				TwilightDepositAddress: a.TwilightDepositAddress,
 				BtcOracleAddress:       oracle_address.String(),
 			}
-
+			fmt.Println("confirming btc transaction")
 			sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
+			fmt.Println("deleting notifiction after procesing")
 			markProcessedNotifications(data)
-			fmt.Println("sent confirm btc transaction")
+
 		}
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/spf13/viper"
 )
@@ -11,6 +12,7 @@ func initDB() *sql.DB {
 	psqlconn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", viper.Get("DB_host"), viper.Get("DB_port"), viper.Get("DB_user"), viper.Get("DB_password"), viper.Get("DB_name"))
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
+		log.Println("DB error : ", err)
 		panic(err)
 	}
 	return db

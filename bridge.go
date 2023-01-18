@@ -78,11 +78,15 @@ func watchAddress(url url.URL) {
 }
 
 func kDeepService(accountName string, url url.URL) {
+	fmt.Println("running k deep service")
 	for {
 		resp := getAttestations()
 		if len(resp.Attestations) > 0 {
+			fmt.Println("recieved attestaions")
 			attestation := resp.Attestations[0]
+			fmt.Println("latest attestaion is : ", attestation)
 			if attestation.Observed == true {
+				fmt.Println("attestaion is Observed")
 				height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
 				if err != nil {
 					fmt.Println(err)
@@ -96,16 +100,18 @@ func kDeepService(accountName string, url url.URL) {
 }
 
 func kDeepCheck(accountName string, height uint64) {
+	fmt.Println("running k deep check for height : ", height)
 	addresses := queryNotification()
 	for _, a := range addresses {
 		if height-a.Height > 3 {
-			time.Sleep(1 * time.Minute)
+			fmt.Println("reached height confirmations: ")
 			confirmBtcTransactionOnNyks(accountName, a)
 		}
 	}
 }
 
 func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {
+	fmt.Println("inside confirm btc transaction")
 	cosmos := getCosmosClient()
 	oracle_address := getCosmosAddress(accountName, cosmos)
 

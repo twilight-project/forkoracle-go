@@ -21,7 +21,10 @@ func main() {
 	viper.ReadInConfig()
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	fmt.Println("account name : ", accountName)
+
 	dbconn = initDB()
+	fmt.Println("DB initialized")
 
 	var addr = flag.String("addr", fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port")), "http service address")
 	flag.Parse()

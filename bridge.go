@@ -137,7 +137,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 }
 
 func startBridge(accountName string, forkscanner_url url.URL) {
-
+	fmt.Println("starting bridge")
 	go watchAddress(forkscanner_url)
 	go kDeepService(accountName, forkscanner_url)
 

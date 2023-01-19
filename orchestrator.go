@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -17,6 +18,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 
 	go startBridge(accountName, forkscanner_url)
 
+	fmt.Println("starting orchestrator")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 

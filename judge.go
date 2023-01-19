@@ -109,6 +109,7 @@ func registerAddressOnForkscanner(address string) {
 }
 
 func startJudge(accountName string) {
+	fmt.Println("starting judge")
 	address := generateAddress()
 	registerReserveAddressOnNyks(accountName, address)
 	registerAddressOnForkscanner(address)

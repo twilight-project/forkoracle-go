@@ -16,7 +16,7 @@ var dbconn *sql.DB
 
 func main() {
 
-	viper.AddConfigPath("/Users/ahmadashraf/work/twilight/btc-oracle/configs")
+	viper.AddConfigPath("/testnet/btc-oracle/configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
 	viper.SetConfigType("json")   // Look for specific type
 	viper.ReadInConfig()

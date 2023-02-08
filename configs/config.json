@@ -1,5 +1,5 @@
 {
-    "accountName": "alice",
+    "accountName": "validator-sfo",
     "DB_port": "5432",
     "DB_host": "localhost",
     "DB_user": "forkscanner",
@@ -8,6 +8,6 @@
     "forkscanner_host": "0.0.0.0",
     "forkscanner_ws_port": "8340",
     "forkscanner_rpc_port": "8339",
-    "nyksd_url": "http://0.0.0.0:1317",
+    "nyksd_url": "https://nyks.twilight-explorer.com/api",
     "confirmation_limit": "3"
 }

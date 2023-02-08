@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
 	"github.com/twilight-project/nyks/x/bridge/types"
 )
 
@@ -102,8 +103,10 @@ func kDeepService(accountName string, url url.URL) {
 func kDeepCheck(accountName string, height uint64) {
 	fmt.Println("running k deep check for height : ", height)
 	addresses := queryNotification()
+	number := fmt.Sprintf("%v", viper.Get("confirmation_limit"))
+	confirmations, _ := strconv.ParseUint(number, 10, 64)
 	for _, a := range addresses {
-		if height-a.Height > 3 {
+		if height-a.Height >= confirmations {
 			fmt.Println("reached height confirmations: ")
 			confirmBtcTransactionOnNyks(accountName, a)
 		}
@@ -115,24 +118,19 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	cosmos := getCosmosClient()
 	oracle_address := getCosmosAddress(accountName, cosmos)
 
-	deposit_addresses := getDepositAddresses()
-	for _, a := range deposit_addresses.Addresses {
-		if a.DepositAddress == data.Sending {
-			msg := &types.MsgConfirmBtcDeposit{
-				DepositAddress:         data.Receiving,
-				DepositAmount:          data.Satoshis,
-				Height:                 data.Height,
-				Hash:                   data.Receiving_txid,
-				TwilightDepositAddress: a.TwilightDepositAddress,
-				BtcOracleAddress:       oracle_address.String(),
-			}
-			fmt.Println("confirming btc transaction")
-			sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
-			fmt.Println("deleting notifiction after procesing")
-			markProcessedNotifications(data)
-
-		}
+	deposit_address := getDepositAddress(data.Sending)
+	msg := &types.MsgConfirmBtcDeposit{
+		DepositAddress:         data.Receiving,
+		DepositAmount:          data.Satoshis,
+		Height:                 data.Height,
+		Hash:                   data.Receiving_txid,
+		TwilightDepositAddress: deposit_address.TwilightDepositAddress,
+		BtcOracleAddress:       oracle_address.String(),
 	}
+	fmt.Println("confirming btc transaction")
+	sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
+	fmt.Println("deleting notifiction after procesing")
+	markProcessedNotifications(data)
 
 }
 

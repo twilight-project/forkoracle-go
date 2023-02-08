@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -15,10 +16,14 @@ var dbconn *sql.DB
 
 func main() {
 
-	viper.AddConfigPath("/testnet/btc-oracle/configs")
+	viper.AddConfigPath("/Users/ahmadashraf/work/twilight/btc-oracle/configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
 	viper.SetConfigType("json")   // Look for specific type
 	viper.ReadInConfig()
+
+	test := fmt.Sprintf("%v", viper.Get("confirmation_limit"))
+	number, _ := strconv.ParseUint(test, 10, 64)
+	fmt.Printf("var1 = %T\n", number)
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)

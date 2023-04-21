@@ -34,6 +34,30 @@ func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Cl
 	}
 }
 
+func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in sweep transaction proposal : ", err)
+	}
+}
+
+func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in confirm deposit transaction : ", err)
+	}
+}
+
+func broadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in confirm deposit transaction : ", err)
+	}
+}
+
 func getCosmosClient() cosmosclient.Client {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -119,5 +143,83 @@ func getAttestations() AttestaionBlock {
 	a := AttestaionBlock{}
 	err = json.Unmarshal(body, &a)
 
+	return a
+}
+
+func getAttestationsSweepProposal() AttestaionBlockSweep {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc&proposal_type=2")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	a := AttestaionBlockSweep{}
+	err = json.Unmarshal(body, &a)
+
+	return a
+}
+
+func getDelegateAddresses() DelegateAddressesResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/forks/delegate_keys_all")
+	if err != nil {
+		fmt.Println("error getting delegate addresses : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting delegate addresses body : ", err)
+	}
+
+	a := DelegateAddressesResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling deposit addresses : ", err)
+	}
+	return a
+}
+
+func getBtcWithdrawRequest() BtcWithdrawRequestResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/withdraw_btc_request_all")
+	if err != nil {
+		fmt.Println("error getting delegate addresses : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting delegate addresses body : ", err)
+	}
+
+	a := BtcWithdrawRequestResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling deposit addresses : ", err)
+	}
+	return a
+}
+
+func getSignSweep() MsgSignSweepResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_sweep_all")
+	if err != nil {
+		fmt.Println("error getting delegate addresses : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting delegate addresses body : ", err)
+	}
+
+	a := MsgSignSweepResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling deposit addresses : ", err)
+	}
 	return a
 }

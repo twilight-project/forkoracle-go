@@ -61,17 +61,8 @@ func watchAddress(url url.URL) {
 		}
 
 		watchtower_notifications := c.Params
-		resp := getDepositAddresses()
-
-		fmt.Println("deposit addresses : ", resp)
-
-		for _, address := range resp.Addresses {
-			for _, notification := range watchtower_notifications {
-				if address.DepositAddress == notification.Sending {
-					fmt.Println("adding notification to DB")
-					insertNotifications(notification)
-				}
-			}
+		for _, notification := range watchtower_notifications {
+			insertNotifications(notification)
 		}
 
 	}
@@ -119,13 +110,20 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	oracle_address := getCosmosAddress(accountName, cosmos)
 
 	deposit_address := getDepositAddress(data.Sending)
+
+	if deposit_address.DepositAddress != data.Sending {
+		markProcessedNotifications(data)
+		return
+	}
+
 	msg := &types.MsgConfirmBtcDeposit{
 		DepositAddress:         data.Receiving,
 		DepositAmount:          data.Satoshis,
 		Height:                 data.Height,
-		Hash:                   data.Receiving_txid,
+		Hash:                   data.Txid,
 		TwilightDepositAddress: deposit_address.TwilightDepositAddress,
-		BtcOracleAddress:       oracle_address.String(),
+		ReserveAddress:         data.Receiving,
+		OracleAddress:          oracle_address.String(),
 	}
 	fmt.Println("confirming btc transaction")
 	sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)

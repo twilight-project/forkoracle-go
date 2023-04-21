@@ -25,9 +25,10 @@ type WatchtowerNotification struct {
 	Height         uint64
 	Receiving      string
 	Satoshis       uint64
-	Receiving_txid string
+	Txid           string
 	Sending        string
 	Archived       bool
+	Receiving_vout uint64
 }
 
 type Proposal struct {
@@ -49,6 +50,31 @@ type AttestaionBlock struct {
 	Attestations []Attestation
 }
 
+type IndividualTwilightReserveAccount struct {
+	TwilightAddress string
+	BtcValue        string
+}
+
+type SweepProposal struct {
+	ReserveAddress                   string
+	JudgeAddress                     string
+	TotalValue                       string
+	IndividualTwilightReserveAccount []IndividualTwilightReserveAccount
+	BtcRefundTx                      string
+	BtcSweepTx                       string
+}
+
+type AttestationSweep struct {
+	Observed bool
+	Votes    []string
+	Height   string
+	Proposal SweepProposal
+}
+
+type AttestaionBlockSweep struct {
+	Attestations []AttestationSweep
+}
+
 type DepositAddress struct {
 	DepositAddress         string
 	TwilightDepositAddress string
@@ -65,4 +91,53 @@ type ConfirmDepositMessage struct {
 	Hash                   string
 	TwilightDepositAddress string
 	BtcOracleAddress       string
+}
+
+type DelegateAddress struct {
+	ValidatorAddress string
+	BtcOracleAddress string
+	BtcPublicKey     string
+}
+
+type DelegateAddressesResp struct {
+	Addresses []DelegateAddress
+}
+
+type ErrorResp struct {
+	Code    int
+	Message string
+}
+
+type SweepAddress struct {
+	Address  string
+	Script   []byte
+	Preimage []byte
+}
+
+type Utxo struct {
+	Txid   string
+	Vout   uint32
+	Amount uint64
+}
+
+type BtcWithdrawRequestResp struct {
+	WithdrawRequest []BtcWithdrawRequest
+}
+
+type BtcWithdrawRequest struct {
+	WithdrawAddress string
+	ReserveAddress  string
+	WithdrawAmount  string
+	TwilightAddress string
+}
+
+type MsgSignSweep struct {
+	ReserveAddress   string
+	SignerAddress    string
+	SweepSignature   string
+	BtcOracleAddress string
+}
+
+type MsgSignSweepResp struct {
+	SignSweepMsg []MsgSignSweep
 }

@@ -449,14 +449,17 @@ func startJudge(accountName string) {
 func processSweepTx(accountName string) {
 	SweepProposal := getAttestationsSweepProposal()
 
-	sweeptxHex := SweepProposal.Attestations[0].Proposal.BtcSweepTx
-	reserveAddress := SweepProposal.Attestations[0].Proposal.ReserveAddress
-	sweeptx, err := createTxFromHex(sweeptxHex)
-	if err != nil {
-		log.Fatal(err)
+	if len(SweepProposal.Attestations) >= 0 {
+		sweeptxHex := SweepProposal.Attestations[0].Proposal.BtcSweepTx
+		reserveAddress := SweepProposal.Attestations[0].Proposal.ReserveAddress
+		sweeptx, err := createTxFromHex(sweeptxHex)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		signature := signTx(sweeptx, reserveAddress)
+		hexSignature := hex.EncodeToString(signature)
+		sendSweepSign(hexSignature, reserveAddress, accountName)
 	}
 
-	signature := signTx(sweeptx, reserveAddress)
-	hexSignature := hex.EncodeToString(signature)
-	sendSweepSign(hexSignature, reserveAddress, accountName)
 }

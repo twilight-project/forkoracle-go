@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"net/url"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
@@ -22,7 +24,7 @@ var wg sync.WaitGroup
 
 func initialize() {
 	//config setup
-	viper.AddConfigPath("./configs")
+	viper.AddConfigPath("/testnet/btc-oracle/configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
 	viper.SetConfigType("json")   // Look for specific type
 	viper.ReadInConfig()
@@ -113,58 +115,20 @@ func main() {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)
 
-	// var addr = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
-	// forkscanner_url := url.URL{Scheme: "ws", Host: addr, Path: "/"}
+	var addr = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
+	forkscanner_url := url.URL{Scheme: "ws", Host: addr, Path: "/"}
 
 	wg.Add(1)
-	// go orchestrator(accountName, forkscanner_url)
-	// time.Sleep(1 * time.Minute)
-	if accountName == "alice" {
+	go orchestrator(accountName, forkscanner_url)
+	time.Sleep(1 * time.Minute)
+	if accountName == "validator-sfo" {
 		judge = true
-		// go initJudge(accountName)
+		go initJudge(accountName)
+		time.Sleep(1 * time.Minute)
 	}
 
-	// time.Sleep(1 * time.Minute)
 	go startJudge(accountName)
 
 	wg.Wait()
 
 }
-
-// package main
-
-// import (
-// 	"database/sql"
-// 	"fmt"
-// 	"sync"
-
-// 	"github.com/btcsuite/btcd/chaincfg"
-// 	"github.com/btcsuite/btcd/txscript"
-// 	"github.com/btcsuite/btcutil"
-// 	"github.com/tyler-smith/go-bip32"
-// )
-
-// var dbconn *sql.DB
-// var masterPrivateKey *bip32.Key
-// var judge bool
-// var wg sync.WaitGroup
-
-// func main() {
-// 	addressString := "bc1q85z24t6eq87ru6vp9kvt9uvuvzzx84w9kkhhhumjdda6vqfw2cxsfxfyj6"
-
-// 	// Decode the Bitcoin address.
-// 	address, err := btcutil.DecodeAddress(addressString, &chaincfg.MainNetParams)
-// 	if err != nil {
-// 		fmt.Println("Error decoding address:", err)
-// 		return
-// 	}
-
-// 	// Generate the pay-to-address script.
-// 	script, err := txscript.PayToAddrScript(address)
-// 	if err != nil {
-// 		fmt.Println("Error generating pay-to-address script:", err)
-// 		return
-// 	}
-
-// 	fmt.Printf("Generated script: %x\n", script)
-// }

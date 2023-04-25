@@ -104,6 +104,7 @@ func Encrypt(plainText []byte, MySecret string) ([]byte, error) {
 
 	write_to_file("iv.txt", iv)
 
+	fmt.Println("cipher length : ", len([]byte(MySecret)))
 	block, err := aes.NewCipher([]byte(MySecret))
 	if err != nil {
 		return nil, err

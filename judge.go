@@ -360,19 +360,23 @@ func initJudge(accountName string) {
 	height := 0
 	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
 	noOfMultisigs, _ := strconv.Atoi(number)
-	resp := getAttestations()
-	if len(resp.Attestations) <= 0 {
-		fmt.Println("no attestations attestaions")
-		return
-	} else {
-		attestation := resp.Attestations[0]
-		if attestation.Observed == true {
-			btc_height, err := strconv.Atoi(attestation.Proposal.Height)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
+
+	for {
+		resp := getAttestations()
+		if len(resp.Attestations) <= 0 {
+			fmt.Println("no attestaions")
+			continue
+		} else {
+			attestation := resp.Attestations[0]
+			if attestation.Observed == true {
+				btc_height, err := strconv.Atoi(attestation.Proposal.Height)
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				height = btc_height
+				break
 			}
-			height = btc_height
 		}
 	}
 
@@ -389,6 +393,7 @@ func initJudge(accountName string) {
 }
 
 func startJudge(accountName string) {
+	fmt.Println("start judge")
 	var address SweepAddress
 	var transaction string
 	for {
@@ -449,7 +454,7 @@ func startJudge(accountName string) {
 func processSweepTx(accountName string) {
 	SweepProposal := getAttestationsSweepProposal()
 
-	if len(SweepProposal.Attestations) >= 0 {
+	if len(SweepProposal.Attestations) > 0 {
 		sweeptxHex := SweepProposal.Attestations[0].Proposal.BtcSweepTx
 		reserveAddress := SweepProposal.Attestations[0].Proposal.ReserveAddress
 		sweeptx, err := createTxFromHex(sweeptxHex)

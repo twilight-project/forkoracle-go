@@ -128,9 +128,10 @@ func getDepositAddress(address string) DepositAddress {
 	return a
 }
 
-func getAttestations() AttestaionBlock {
+func getAttestations(limit string) AttestaionBlock {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc")
+	req_url := fmt.Sprintf("%s/twilight-project/nyks/nyks/attestations?limit=%s&order_by=desc", nyksd_url, limit)
+	resp, err := http.Get(req_url)
 	if err != nil {
 		log.Fatalln(err)
 	}

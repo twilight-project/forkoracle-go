@@ -72,7 +72,7 @@ func watchAddress(url url.URL) {
 func kDeepService(accountName string, url url.URL) {
 	fmt.Println("running k deep service")
 	for {
-		resp := getAttestations()
+		resp := getAttestations("1")
 		if len(resp.Attestations) > 0 {
 			fmt.Println("recieved attestaions")
 			attestation := resp.Attestations[0]

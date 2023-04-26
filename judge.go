@@ -362,21 +362,20 @@ func initJudge(accountName string) {
 	noOfMultisigs, _ := strconv.Atoi(number)
 
 	for {
-		resp := getAttestations()
+		resp := getAttestations("1")
 		if len(resp.Attestations) <= 0 {
-			fmt.Println("no attestaions")
+			fmt.Println("no attestaions (init judge)")
+			time.Sleep(30)
 			continue
 		} else {
 			attestation := resp.Attestations[0]
-			if attestation.Observed == true {
-				btc_height, err := strconv.Atoi(attestation.Proposal.Height)
-				if err != nil {
-					fmt.Println("Error:", err)
-					return
-				}
-				height = btc_height
-				break
+			btc_height, err := strconv.Atoi(attestation.Proposal.Height)
+			if err != nil {
+				fmt.Println("Error: converting to int : ", err)
+				continue
 			}
+			height = btc_height
+			break
 		}
 	}
 
@@ -398,35 +397,37 @@ func startJudge(accountName string) {
 	var transaction string
 	for {
 		if judge == true {
-			resp := getAttestations()
+			resp := getAttestations("20")
 			if len(resp.Attestations) <= 0 {
 				fmt.Println("INFO: ", "no attestations")
 				time.Sleep(1 * time.Minute)
 				continue
 			}
 
-			attestation := resp.Attestations[0]
-			if attestation.Observed == false {
-				fmt.Println("Info: ", "latest attestation not observed")
-				time.Sleep(1 * time.Minute)
-				continue
-			}
-			height, _ := strconv.Atoi(attestation.Proposal.Height)
-			addresses := querySweepAddresses(uint64(height))
-			if len(addresses) <= 0 {
-				fmt.Println("INFO: ", "no sweep address found")
-				time.Sleep(5 * time.Minute)
-				continue
-			}
+			for _, attestation := range resp.Attestations {
+				if attestation.Observed == false {
+					fmt.Println("INFO: ", "attestation not observed btc height : ", attestation.Proposal.Height)
+					continue
+				}
+				height, _ := strconv.Atoi(attestation.Proposal.Height)
+				addresses := querySweepAddresses(uint64(height))
+				if len(addresses) <= 0 {
+					fmt.Println("INFO: ", "no sweep address found")
+					time.Sleep(1 * time.Minute)
+					break
+				}
 
-			address = addresses[0]
-			tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
-			transaction = tx
-			if err != nil {
-				fmt.Println("Error: ", err)
-				continue
+				//get latest address from the list
+				address = addresses[0]
+
+				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
+				transaction = tx
+				if err != nil {
+					fmt.Println("Error: ", err)
+					continue
+				}
+				sendSweepProposal(tx, address.Address, withdrawals, accountName, total)
 			}
-			sendSweepProposal(tx, address.Address, withdrawals, accountName, total)
 		}
 
 		processSweepTx(accountName)

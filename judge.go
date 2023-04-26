@@ -382,7 +382,7 @@ func initJudge(accountName string) {
 	if height > 0 {
 
 		for i := 0; i < noOfMultisigs; i++ {
-			address, script := generateAddress(height + noOfMultisigs)
+			address, script := generateAddress(height + noOfMultisigs + 3)
 			registerReserveAddressOnNyks(accountName, address, script)
 			registerAddressOnForkscanner(address)
 			height = height + 1
@@ -435,6 +435,7 @@ func startJudge(accountName string) {
 		if judge == true {
 			sweeptx, err := createTxFromHex(transaction)
 			if err != nil {
+				fmt.Println("error decoding sweep tx : inside judge")
 				log.Fatal(err)
 			}
 			signedTx, err := generate_signed_tx(address.Address, accountName, sweeptx)
@@ -460,6 +461,7 @@ func processSweepTx(accountName string) {
 		reserveAddress := SweepProposal.Attestations[0].Proposal.ReserveAddress
 		sweeptx, err := createTxFromHex(sweeptxHex)
 		if err != nil {
+			fmt.Println("error decoding sweep tx : inside processSweepTx")
 			log.Fatal(err)
 		}
 

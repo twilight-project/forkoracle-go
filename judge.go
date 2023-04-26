@@ -124,8 +124,22 @@ func CreateTxIn(utxo Utxo) (*wire.TxIn, error) {
 	return txIn, nil
 }
 
+func generateAndRegisterNewAddress(accountName string, height int) string {
+	newSweepAddress, reserveScript := generateAddress(height)
+	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript)
+	registerAddressOnForkscanner(newSweepAddress)
+	return newSweepAddress
+}
+
 func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) (string, []BtcWithdrawRequest, uint64, error) {
+	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
+	noOfMultisigs, _ := strconv.Atoi(number)
 	utxos := queryUtxo(sweepAddress.Address)
+	if len(utxos) <= 0 {
+		addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs)
+		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ", addr)
+		return "", nil, 0, nil
+	}
 	withdrawals := getBtcWithdrawRequest()
 	totalAmountTxIn := uint64(0)
 	totalAmountTxOut := uint64(0)
@@ -157,11 +171,8 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 	}
 
 	fee := 5000
-	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
-	noOfMultisigs, _ := strconv.Atoi(number)
-	newSweepAddress, reserveScript := generateAddress(height + noOfMultisigs)
-	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript)
-	registerAddressOnForkscanner(newSweepAddress)
+
+	newSweepAddress := generateAndRegisterNewAddress(accountName, height+noOfMultisigs)
 
 	txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
 	if err != nil {
@@ -382,9 +393,7 @@ func initJudge(accountName string) {
 	if height > 0 {
 
 		for i := 0; i < noOfMultisigs; i++ {
-			address, script := generateAddress(height + noOfMultisigs + 3)
-			registerReserveAddressOnNyks(accountName, address, script)
-			registerAddressOnForkscanner(address)
+			_ = generateAndRegisterNewAddress(accountName, height+noOfMultisigs+3)
 			height = height + 1
 		}
 	}
@@ -417,10 +426,16 @@ func startJudge(accountName string) {
 					break
 				}
 
+				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
 				//get latest address from the list
 				address = addresses[0]
 
 				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
+				if tx == "" {
+					fmt.Println("INFO: ", "no sweep tx generated because no funds in current address")
+					time.Sleep(1 * time.Minute)
+					break
+				}
 				transaction = tx
 				if err != nil {
 					fmt.Println("Error: ", err)

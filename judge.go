@@ -438,11 +438,11 @@ func startJudge(accountName string) {
 				sweeptx, err := createTxFromHex(transaction)
 				if err != nil {
 					fmt.Println("error decoding sweep tx : inside judge")
-					log.Fatal(err)
+					fmt.Println(err)
 				}
 				signedTx, err := generate_signed_tx(address.Address, accountName, sweeptx)
 				if err != nil {
-					log.Fatal(err)
+					fmt.Println(err)
 				}
 
 				unsignedTxHex := hex.EncodeToString(signedTx)

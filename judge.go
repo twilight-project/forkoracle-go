@@ -433,20 +433,23 @@ func startJudge(accountName string) {
 		processSweepTx(accountName)
 
 		if judge == true {
-			sweeptx, err := createTxFromHex(transaction)
-			if err != nil {
-				fmt.Println("error decoding sweep tx : inside judge")
-				log.Fatal(err)
-			}
-			signedTx, err := generate_signed_tx(address.Address, accountName, sweeptx)
-			if err != nil {
-				log.Fatal(err)
-			}
+			fmt.Println("INFO: Transaction hex string : ", transaction)
+			if transaction != "" {
+				sweeptx, err := createTxFromHex(transaction)
+				if err != nil {
+					fmt.Println("error decoding sweep tx : inside judge")
+					log.Fatal(err)
+				}
+				signedTx, err := generate_signed_tx(address.Address, accountName, sweeptx)
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			unsignedTxHex := hex.EncodeToString(signedTx)
-			fmt.Println("Signed P2WSH transaction with preimage:", unsignedTxHex)
+				unsignedTxHex := hex.EncodeToString(signedTx)
+				fmt.Println("Signed P2WSH transaction with preimage:", unsignedTxHex)
 
-			broadcastSweeptxNYKS(unsignedTxHex, unsignedTxHex, accountName)
+				broadcastSweeptxNYKS(unsignedTxHex, unsignedTxHex, accountName)
+			}
 
 		}
 

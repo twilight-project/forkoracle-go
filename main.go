@@ -59,6 +59,8 @@ func initialize() {
 		}
 	}
 
+	fmt.Println("Wallet initialized")
+
 	// db connection
 	dbconn = initDB()
 	fmt.Println("DB initialized")
@@ -89,7 +91,6 @@ func initialize() {
 
 	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", string(valAddr), string(OrchAddr), btcPublicKey, accountName)
 
-	fmt.Println("command : ", command)
 	args = strings.Fields(command)
 	cmd = exec.Command(args[0], args[1:]...)
 
@@ -114,20 +115,24 @@ func main() {
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)
-
 	var addr = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: addr, Path: "/"}
+	if accountName == "validator-sfo" {
+		judge = true
+	}
+
+	time.Sleep(1 * time.Minute)
 
 	wg.Add(1)
 	go orchestrator(accountName, forkscanner_url)
 	time.Sleep(1 * time.Minute)
-	if accountName == "validator-sfo" {
-		judge = true
-		go initJudge(accountName)
-		time.Sleep(1 * time.Minute)
-	}
+	go initJudge(accountName)
+	time.Sleep(1 * time.Minute)
 
 	go startJudge(accountName)
+
+	time.Sleep(1 * time.Minute)
+	startBridge(accountName, forkscanner_url)
 
 	wg.Wait()
 

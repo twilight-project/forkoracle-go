@@ -74,11 +74,10 @@ func kDeepService(accountName string, url url.URL) {
 	for {
 		resp := getAttestations("1")
 		if len(resp.Attestations) > 0 {
-			fmt.Println("recieved attestaions")
 			attestation := resp.Attestations[0]
-			fmt.Println("latest attestaion is : ", attestation)
+			fmt.Println("INFO : k deep : latest attestaion is : ", attestation)
 			if attestation.Observed == true {
-				fmt.Println("attestaion is Observed")
+				fmt.Println("attestaion is Observed : ", attestation.Proposal.Height)
 				height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
 				if err != nil {
 					fmt.Println(err)

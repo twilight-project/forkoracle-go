@@ -23,7 +23,7 @@ func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Clie
 	if err != nil {
 		fmt.Println("error in chaintip trnasaction", err)
 	}
-	fmt.Println("seen Chaintip transaction")
+	fmt.Println("sent Seen Chaintip transaction")
 }
 
 func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {
@@ -218,6 +218,26 @@ func getSignSweep() MsgSignSweepResp {
 	}
 
 	a := MsgSignSweepResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling deposit addresses : ", err)
+	}
+	return a
+}
+
+func getReserveddresses() ReserveAddressResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_reserve_addresses")
+	if err != nil {
+		fmt.Println("error getting delegate addresses : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting delegate addresses body : ", err)
+	}
+
+	a := ReserveAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling deposit addresses : ", err)

@@ -47,7 +47,7 @@ func registerReserveAddressOnNyks(accountName string, address string, script []b
 	}
 
 	// print response from broadcasting a transaction
-	fmt.Print("MsgRegisterReserveAddress:\n\n")
+	fmt.Println("MsgRegisterReserveAddress : ")
 	fmt.Println(txResp)
 }
 
@@ -184,7 +184,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 	var signedTx bytes.Buffer
 	redeemTx.Serialize(&signedTx)
 	hexTx := hex.EncodeToString(signedTx.Bytes())
-	fmt.Println("transaction : ", hexTx)
+	fmt.Println("transaction Signed: ", hexTx)
 
 	return hexTx, withdrawRequests, totalAmountTxIn, nil
 }
@@ -372,32 +372,40 @@ func initJudge(accountName string) {
 	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
 	noOfMultisigs, _ := strconv.Atoi(number)
 
-	for {
-		resp := getAttestations("1")
-		if len(resp.Attestations) <= 0 {
-			fmt.Println("no attestaions (init judge)")
-			time.Sleep(30)
-			continue
-		} else {
-			attestation := resp.Attestations[0]
-			btc_height, err := strconv.Atoi(attestation.Proposal.Height)
-			if err != nil {
-				fmt.Println("Error: converting to int : ", err)
+	if judge == true {
+		for {
+			resp := getAttestations("1")
+			if len(resp.Attestations) <= 0 {
+				fmt.Println("no attestaions (init judge)")
+				time.Sleep(30)
 				continue
+			} else {
+				attestation := resp.Attestations[0]
+				btc_height, err := strconv.Atoi(attestation.Proposal.Height)
+				if err != nil {
+					fmt.Println("Error: converting to int : ", err)
+					continue
+				}
+				height = btc_height
+				break
 			}
-			height = btc_height
-			break
+		}
+
+		if height > 0 {
+
+			for i := 0; i < noOfMultisigs; i++ {
+				_ = generateAndRegisterNewAddress(accountName, height+noOfMultisigs+3)
+				height = height + 1
+			}
+		}
+	} else {
+		resp := getReserveddresses()
+		if len(resp.Addresses) > 0 {
+			for _, address := range resp.Addresses {
+				registerAddressOnForkscanner(address.ReserveAddress)
+			}
 		}
 	}
-
-	if height > 0 {
-
-		for i := 0; i < noOfMultisigs; i++ {
-			_ = generateAndRegisterNewAddress(accountName, height+noOfMultisigs+3)
-			height = height + 1
-		}
-	}
-
 }
 
 func startJudge(accountName string) {
@@ -418,10 +426,12 @@ func startJudge(accountName string) {
 					fmt.Println("INFO: ", "attestation not observed btc height : ", attestation.Proposal.Height)
 					continue
 				}
+
+				fmt.Println("INFO: ", "attestation observed btc height : ", attestation.Proposal.Height)
 				height, _ := strconv.Atoi(attestation.Proposal.Height)
 				addresses := querySweepAddresses(uint64(height))
 				if len(addresses) <= 0 {
-					fmt.Println("INFO: ", "no sweep address found")
+					fmt.Println("INFO: ", "no sweep address found for btc height : ", attestation.Proposal.Height)
 					time.Sleep(1 * time.Minute)
 					break
 				}
@@ -448,7 +458,6 @@ func startJudge(accountName string) {
 		processSweepTx(accountName)
 
 		if judge == true {
-			fmt.Println("INFO: Transaction hex string : ", transaction)
 			if transaction != "" {
 				sweeptx, err := createTxFromHex(transaction)
 				if err != nil {

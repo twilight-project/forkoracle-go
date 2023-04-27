@@ -16,8 +16,6 @@ import (
 func orchestrator(accountName string, forkscanner_url url.URL) {
 	log.SetFlags(0)
 
-	go startBridge(accountName, forkscanner_url)
-
 	fmt.Println("starting orchestrator")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -90,21 +88,16 @@ func process_message(accountName string, message []byte) {
 	var c BlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {
-		log.Printf("Unmarshal: %v\n", err)
+		fmt.Printf("Unmarshal: %v\n", err)
 	}
-
-	// log.Println("new_message test", c)
 
 	active_chaintips := c.ChainTip
 
 	if len(active_chaintips) <= 0 {
-		log.Println("first message or empty list")
 		return
 	}
 
-	log.Println("active chain tip : ", active_chaintips[0])
-	// log.Printf("Row: %v\n", active_chaintips[0].Node)
-	// log.Println(active_chaintips[0].Block)
+	fmt.Println("active chain tip : ", active_chaintips[0])
 
 	active_chaintip := active_chaintips[0]
 
@@ -118,5 +111,5 @@ func process_message(accountName string, message []byte) {
 	}
 
 	sendTransactionSeenBtcChainTip(accountName, cosmos_client, msg)
-
+	fmt.Println("Sent Chain Tip Seen Transaction for btc height :  ", active_chaintip.Height)
 }

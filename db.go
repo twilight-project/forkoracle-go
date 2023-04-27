@@ -47,7 +47,6 @@ func markProcessedNotifications(element WatchtowerNotification) {
 }
 
 func queryNotification() []WatchtowerNotification {
-	fmt.Println("inside query notification")
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)
@@ -78,7 +77,6 @@ func queryNotification() []WatchtowerNotification {
 }
 
 func queryUtxo(address string) []Utxo {
-	fmt.Println("inside query notification")
 	DB_reader, err := dbconn.Query("select txid, Receiving_vout, satoshis from notification where receiving = $1", address)
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)

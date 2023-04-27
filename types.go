@@ -141,3 +141,13 @@ type MsgSignSweep struct {
 type MsgSignSweepResp struct {
 	SignSweepMsg []MsgSignSweep
 }
+
+type ReserveAddress struct {
+	ReserveScript  string
+	ReserveAddress string
+	JudgeAddress   string
+}
+
+type ReserveAddressResp struct {
+	Addresses []ReserveAddress
+}

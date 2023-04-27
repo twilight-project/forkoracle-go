@@ -22,8 +22,9 @@ func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Clie
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
 		fmt.Println("error in chaintip trnasaction", err)
+	} else {
+		fmt.Println("sent Seen Chaintip transaction")
 	}
-	fmt.Println("sent Seen Chaintip transaction")
 }
 
 func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {

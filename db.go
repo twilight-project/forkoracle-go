@@ -131,8 +131,17 @@ func insertSweepAddress(address string, script []byte, preimage []byte, unlock_h
 	}
 }
 
+func markProcessedSweepAddress(address string) {
+	_, err := dbconn.Exec("update address set archived = true where address = $1",
+		address,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing query: ", err)
+	}
+}
+
 func querySweepAddresses(height uint64) []SweepAddress {
-	DB_reader, err := dbconn.Query("select address, script, preimage from address where unlock_height = $1", height)
+	DB_reader, err := dbconn.Query("select address, script, preimage from address where unlock_height = $1 and archived = false", height)
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)
 	}

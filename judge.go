@@ -43,7 +43,7 @@ func registerReserveAddressOnNyks(accountName string, address string, script []b
 	// store response in txResp
 	txResp, err := cosmos.BroadcastTx(accountName, msg)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("error in registering reserve address : ", err)
 	}
 
 	// print response from broadcasting a transaction
@@ -57,6 +57,49 @@ func registerAddressOnForkscanner(address string) {
 
 	request_body := map[string]interface{}{
 		"method":  "add_watched_addresses",
+		"id":      1,
+		"jsonrpc": "2.0",
+		"params": map[string]interface{}{
+			"add": []interface{}{
+				map[string]string{
+					"address":     address,
+					"watch_until": dt.Format(time.RFC3339),
+				},
+			},
+		},
+	}
+
+	data, err := json.Marshal(request_body)
+	if err != nil {
+		log.Fatalf("Post: %v", err)
+	}
+	fmt.Println(string(data))
+
+	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
+	if err != nil {
+		log.Fatalf("Post: %v", err)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("ReadAll: %v", err)
+	}
+	result := make(map[string]interface{})
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Fatalf("Unmarshal: %v", err)
+	}
+	log.Println(result)
+
+}
+
+func removeAddressOnForkscanner(address string) {
+	dt := time.Now().UTC()
+	dt = dt.AddDate(1, 0, 0)
+
+	request_body := map[string]interface{}{
+		"method":  "remove_watched_addresses",
 		"id":      1,
 		"jsonrpc": "2.0",
 		"params": map[string]interface{}{

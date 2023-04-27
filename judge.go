@@ -179,8 +179,8 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 	noOfMultisigs, _ := strconv.Atoi(number)
 	utxos := queryUtxo(sweepAddress.Address)
 	if len(utxos) <= 0 {
-		addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs)
-		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ", addr)
+		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs)
+		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ")
 		return "", nil, 0, nil
 	}
 	withdrawals := getBtcWithdrawRequest()
@@ -437,7 +437,7 @@ func initJudge(accountName string) {
 		if height > 0 {
 
 			for i := 0; i < noOfMultisigs; i++ {
-				_ = generateAndRegisterNewAddress(accountName, height+noOfMultisigs+3)
+				_ = generateAndRegisterNewAddress(accountName, height+noOfMultisigs+10)
 				height = height + 1
 			}
 		}

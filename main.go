@@ -115,8 +115,8 @@ func main() {
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)
-	var addr = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
-	forkscanner_url := url.URL{Scheme: "ws", Host: addr, Path: "/"}
+	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
+	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
 	if accountName == "validator-sfo" {
 		judge = true
 	}
@@ -125,10 +125,15 @@ func main() {
 
 	wg.Add(1)
 	go orchestrator(accountName, forkscanner_url)
-	time.Sleep(1 * time.Minute)
-	go initJudge(accountName)
-	time.Sleep(1 * time.Minute)
+	addr := queryAllSweepAddresses()
+	if len(addr) > 0 {
+		wg.Add(1)
+		time.Sleep(1 * time.Minute)
+		go initJudge(accountName)
+	}
 
+	wg.Add(1)
+	time.Sleep(1 * time.Minute)
 	go startJudge(accountName)
 
 	time.Sleep(1 * time.Minute)

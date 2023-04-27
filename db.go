@@ -165,6 +165,31 @@ func querySweepAddresses(height uint64) []SweepAddress {
 	return addresses
 }
 
+func queryAllSweepAddresses() []SweepAddress {
+	DB_reader, err := dbconn.Query("select address, script, preimage from address where archived = false")
+	if err != nil {
+		fmt.Println("An error occured while executing query: ", err)
+	}
+
+	defer DB_reader.Close()
+	addresses := make([]SweepAddress, 0)
+
+	for DB_reader.Next() {
+		address := SweepAddress{}
+		err := DB_reader.Scan(
+			&address.Address,
+			&address.Script,
+			&address.Preimage,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses
+}
+
 func querySweepAddressScript(address string) []byte {
 	DB_reader, err := dbconn.Query("select script from address where address = $1", address)
 	if err != nil {

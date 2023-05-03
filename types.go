@@ -36,6 +36,7 @@ type WatchtowerNotification struct {
 	Sending_txinputs []WatchtowerSender
 	Archived         bool
 	Receiving_vout   uint64
+	Sending          string
 }
 
 type Proposal struct {

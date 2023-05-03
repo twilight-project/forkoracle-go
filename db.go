@@ -40,7 +40,7 @@ func insertNotifications(element WatchtowerNotification) {
 func markProcessedNotifications(element WatchtowerNotification) {
 	_, err := dbconn.Exec("update notification set archived = true where txid = $1 and sending = $2",
 		element.Receiving_txid,
-		element.Sending_txinputs[0].Address,
+		element.Sending,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)
@@ -65,7 +65,7 @@ func queryNotification() []WatchtowerNotification {
 			&address.Height,
 			&address.Receiving_txid,
 			&address.Archived,
-			&address.Sending_txinputs[0].Address,
+			&address.Sending,
 			&address.Receiving_vout,
 		)
 		if err != nil {

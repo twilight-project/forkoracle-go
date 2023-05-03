@@ -67,6 +67,7 @@ func queryNotification() []WatchtowerNotification {
 			&address.Archived,
 			&address.Sending,
 			&address.Receiving_vout,
+			&address.Sending_vout,
 		)
 		if err != nil {
 			fmt.Println(err)

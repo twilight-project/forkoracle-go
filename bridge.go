@@ -108,9 +108,9 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	cosmos := getCosmosClient()
 	oracle_address := getCosmosAddress(accountName, cosmos)
 
-	deposit_address := getDepositAddress(data.Sending)
+	deposit_address := getDepositAddress(data.Sending_txinputs[0].Address)
 
-	if deposit_address.DepositAddress != data.Sending {
+	if deposit_address.DepositAddress != data.Sending_txinputs[0].Address {
 		markProcessedNotifications(data)
 		return
 	}
@@ -119,7 +119,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 		DepositAddress:         data.Receiving,
 		DepositAmount:          data.Satoshis,
 		Height:                 data.Height,
-		Hash:                   data.Txid,
+		Hash:                   data.Receiving_txid,
 		TwilightDepositAddress: deposit_address.TwilightDepositAddress,
 		ReserveAddress:         data.Receiving,
 		OracleAddress:          oracle_address.String(),

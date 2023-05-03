@@ -21,15 +21,16 @@ func initDB() *sql.DB {
 func insertNotifications(element WatchtowerNotification) {
 
 	fmt.Println("inside insert DB")
-	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
 		element.Block,
 		element.Receiving,
 		element.Satoshis,
 		element.Height,
-		element.Txid,
+		element.Receiving_txid,
 		false,
-		element.Sending,
+		element.Sending_txinputs[0].Address,
 		element.Receiving_vout,
+		nil,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)
@@ -38,8 +39,8 @@ func insertNotifications(element WatchtowerNotification) {
 
 func markProcessedNotifications(element WatchtowerNotification) {
 	_, err := dbconn.Exec("update notification set archived = true where txid = $1 and sending = $2",
-		element.Txid,
-		element.Sending,
+		element.Receiving_txid,
+		element.Sending_txinputs[0].Address,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)
@@ -62,9 +63,9 @@ func queryNotification() []WatchtowerNotification {
 			&address.Receiving,
 			&address.Satoshis,
 			&address.Height,
-			&address.Txid,
+			&address.Receiving_txid,
 			&address.Archived,
-			&address.Sending,
+			&address.Sending_txinputs[0].Address,
 			&address.Receiving_vout,
 		)
 		if err != nil {

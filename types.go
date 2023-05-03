@@ -20,15 +20,22 @@ type WatchtowerResponse struct {
 	Params  []WatchtowerNotification
 }
 
+type WatchtowerSender struct {
+	Address string
+	Amount  uint64
+	Txid    string
+	vout    uint32
+}
+
 type WatchtowerNotification struct {
-	Block          string
-	Height         uint64
-	Receiving      string
-	Satoshis       uint64
-	Txid           string
-	Sending        string
-	Archived       bool
-	Receiving_vout uint64
+	Block            string
+	Height           uint64
+	Receiving        string
+	Satoshis         uint64
+	Receiving_txid   string
+	Sending_txinputs []WatchtowerSender
+	Archived         bool
+	Receiving_vout   uint64
 }
 
 type Proposal struct {

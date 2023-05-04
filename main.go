@@ -134,7 +134,7 @@ func main() {
 
 	// wg.Add(1)
 	// time.Sleep(1 * time.Minute)
-	// go startJudge(accountName)
+	go startJudge(accountName)
 
 	time.Sleep(1 * time.Minute)
 	startBridge(accountName, forkscanner_url)

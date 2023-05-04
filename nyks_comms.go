@@ -39,7 +39,7 @@ func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client
 
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
-		fmt.Println("error in sweep transaction proposal : ", err)
+		fmt.Println("error in sending sweep transaction proposal : ", err)
 	}
 }
 
@@ -47,15 +47,15 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
-		fmt.Println("error in confirm deposit transaction : ", err)
+		fmt.Println("error in sending Sweep Sognatures transaction : ", err)
 	}
 }
 
-func broadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
+func broadcastTransactionSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
 
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
-		fmt.Println("error in confirm deposit transaction : ", err)
+		fmt.Println("error in Boradcasting Sweep Tx transaction : ", err)
 	}
 }
 
@@ -175,13 +175,13 @@ func getDelegateAddresses() DelegateAddressesResp {
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting delegate addresses body : ", err)
+		fmt.Println("error reading delegate addresses : ", err)
 	}
 
 	a := DelegateAddressesResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling deposit addresses : ", err)
+		fmt.Println("error unmarshalling delegate addresses : ", err)
 	}
 	return a
 }
@@ -190,18 +190,18 @@ func getBtcWithdrawRequest() BtcWithdrawRequestResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/withdraw_btc_request_all")
 	if err != nil {
-		fmt.Println("error getting delegate addresses : ", err)
+		fmt.Println("error getting withdrawals : ", err)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting delegate addresses body : ", err)
+		fmt.Println("error reading withdrawals  : ", err)
 	}
 
 	a := BtcWithdrawRequestResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling deposit addresses : ", err)
+		fmt.Println("error unmarshalling withdrawals : ", err)
 	}
 	return a
 }

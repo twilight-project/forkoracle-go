@@ -199,6 +199,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 			return "", nil, 0, err
 		}
 		totalAmountTxIn = totalAmountTxIn + utxo.Amount
+		txIn.Sequence = wire.MaxTxInSequenceNum - 10
 		redeemTx.AddTxIn(txIn)
 	}
 

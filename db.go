@@ -142,6 +142,16 @@ func markProcessedSweepAddress(address string) {
 	}
 }
 
+func updateAddressUnlockHeight(address string, height int) {
+	_, err := dbconn.Exec("update address set unlock_height = $1 where address = $2",
+		height,
+		address,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing query: ", err)
+	}
+}
+
 func querySweepAddresses(height uint64) []SweepAddress {
 	DB_reader, err := dbconn.Query("select address, script, preimage from address where unlock_height = $1 and archived = false", height)
 	if err != nil {

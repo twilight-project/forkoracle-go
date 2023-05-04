@@ -175,11 +175,11 @@ func generateAndRegisterNewAddress(accountName string, height int) string {
 }
 
 func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) (string, []BtcWithdrawRequest, uint64, error) {
-	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
-	noOfMultisigs, _ := strconv.Atoi(number)
+	// number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
+	// noOfMultisigs, _ := strconv.Atoi(number)
 
-	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
-	unlockingTimeInBlocks, _ := strconv.Atoi(number)
+	// number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	// unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
 	utxos := queryUtxo(sweepAddress.Address)
 	if len(utxos) <= 0 {
@@ -220,7 +220,8 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 
 	fee := 5000
 
-	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
+	// newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
+	newSweepAddress := "bc1qeplu0p23jyu3vkp7wrn0dka00qsg7uacxkslp39m6tcqfg759vasr03hzp"
 
 	txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
 	if err != nil {

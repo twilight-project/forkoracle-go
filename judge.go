@@ -509,7 +509,6 @@ func startJudge(accountName string) {
 				addresses := querySweepAddresses(uint64(height))
 				if len(addresses) <= 0 {
 					fmt.Println("INFO: ", "no sweep address found for btc height : ", attestation.Proposal.Height)
-					time.Sleep(1 * time.Minute)
 					continue
 				}
 

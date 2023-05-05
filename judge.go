@@ -234,7 +234,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 	var signedTx bytes.Buffer
 	redeemTx.Serialize(&signedTx)
 	hexTx := hex.EncodeToString(signedTx.Bytes())
-	fmt.Println("transaction Signed: ", hexTx)
+	fmt.Println("transaction UnSigned: ", hexTx)
 
 	return hexTx, withdrawRequests, totalAmountTxIn, nil
 }
@@ -273,6 +273,7 @@ func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWith
 	}
 
 	sendTransactionSweepProposal(accountName, cosmos, msg)
+	fmt.Println("Sweep proposal sent")
 }
 
 func sendSweepSign(hexSignatures string, address string, accountName string) {
@@ -286,6 +287,7 @@ func sendSweepSign(hexSignatures string, address string, accountName string) {
 	}
 
 	sendTransactionSignSweep(accountName, cosmos, msg)
+	fmt.Println("Sweep Sign sent")
 }
 
 func broadcastSweeptxNYKS(sweepTxHex string, refundTxHex string, accountName string) {

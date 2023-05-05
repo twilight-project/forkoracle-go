@@ -439,7 +439,6 @@ func registerJudge(accountName string) {
 
 func initJudge(accountName string) {
 	fmt.Println("init judge")
-
 	height := 0
 	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
 	noOfMultisigs, _ := strconv.Atoi(number)

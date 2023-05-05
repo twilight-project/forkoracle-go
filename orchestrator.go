@@ -104,6 +104,8 @@ func process_message(accountName string, message []byte) {
 	cosmos_client := getCosmosClient()
 	cosmos_address := getCosmosAddress(accountName, cosmos_client)
 
+	fmt.Println("cosmos address : ", cosmos_address.String())
+
 	msg := &types.MsgSeenBtcChainTip{
 		Height:           uint64(active_chaintip.Height),
 		Hash:             active_chaintip.Block,

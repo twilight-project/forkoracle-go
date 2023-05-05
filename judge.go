@@ -175,11 +175,11 @@ func generateAndRegisterNewAddress(accountName string, height int) string {
 }
 
 func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) (string, []BtcWithdrawRequest, uint64, error) {
-	// number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
-	// noOfMultisigs, _ := strconv.Atoi(number)
+	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
+	noOfMultisigs, _ := strconv.Atoi(number)
 
-	// number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
-	// unlockingTimeInBlocks, _ := strconv.Atoi(number)
+	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
 	utxos := queryUtxo(sweepAddress.Address)
 	if len(utxos) <= 0 {
@@ -222,6 +222,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 
 	// newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
 	newSweepAddress := "bc1qeplu0p23jyu3vkp7wrn0dka00qsg7uacxkslp39m6tcqfg759vasr03hzp"
+	updateAddressUnlockHeight(sweepAddress.Address, height+(noOfMultisigs*unlockingTimeInBlocks))
 
 	txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
 	if err != nil {
@@ -296,7 +297,7 @@ func broadcastSweeptxNYKS(sweepTxHex string, refundTxHex string, accountName str
 		JudgeAddress:   cosmos_address.String(),
 	}
 
-	broadcastTransactionSweeptx(accountName, cosmos, msg)
+	sendTransactionBroadcastSweeptx(accountName, cosmos, msg)
 }
 
 func createTxFromHex(txHex string) (*wire.MsgTx, error) {
@@ -424,8 +425,21 @@ func signTx(tx *wire.MsgTx, address string) []byte {
 	return signature
 }
 
+func registerJudge(accountName string) {
+	cosmos := getCosmosClient()
+	cosmosAddress := getCosmosAddress(accountName, cosmos)
+	msg := &bridgetypes.MsgRegisterJudge{
+		Creator:          cosmosAddress.String(),
+		JudgeAddress:     cosmosAddress.String(),
+		ValidatorAddress: cosmosAddress.String(),
+	}
+
+	sendTransactionRegisterJudge(accountName, cosmos, msg)
+}
+
 func initJudge(accountName string) {
 	fmt.Println("init judge")
+
 	height := 0
 	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
 	noOfMultisigs, _ := strconv.Atoi(number)
@@ -434,6 +448,7 @@ func initJudge(accountName string) {
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
 	if judge == true {
+		registerJudge(accountName)
 		for {
 			resp := getAttestations("1")
 			if len(resp.Attestations) <= 0 {

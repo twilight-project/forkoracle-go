@@ -43,6 +43,14 @@ func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client
 	}
 }
 
+func sendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterJudge) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in sending register judge transaction : ", err)
+	}
+}
+
 func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
 
 	_, err := cosmos.BroadcastTx(accountName, data)
@@ -51,7 +59,7 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 	}
 }
 
-func broadcastTransactionSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
+func sendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
 
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {

@@ -273,7 +273,7 @@ func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWith
 	}
 
 	sendTransactionSweepProposal(accountName, cosmos, msg)
-	fmt.Println("Sweep proposal sent")
+	fmt.Println("Sweep Sign sent")
 }
 
 func sendSweepSign(hexSignatures string, address string, accountName string) {
@@ -510,7 +510,7 @@ func startJudge(accountName string) {
 				if len(addresses) <= 0 {
 					fmt.Println("INFO: ", "no sweep address found for btc height : ", attestation.Proposal.Height)
 					time.Sleep(1 * time.Minute)
-					break
+					continue
 				}
 
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
@@ -525,7 +525,7 @@ func startJudge(accountName string) {
 				if tx == "" {
 					fmt.Println("INFO: ", "no sweep tx generated because no funds in current address")
 					time.Sleep(1 * time.Minute)
-					break
+					continue
 				}
 				transaction = tx
 
@@ -551,6 +551,7 @@ func startJudge(accountName string) {
 				fmt.Println("Signed P2WSH transaction with preimage:", signedTxHex)
 
 				broadcastSweeptxNYKS(signedTxHex, signedTxHex, accountName)
+				markProcessedSweepAddress(address.Address)
 			}
 
 		}

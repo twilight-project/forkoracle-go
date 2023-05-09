@@ -487,29 +487,25 @@ func initJudge(accountName string) {
 func startJudge(accountName string) {
 	fmt.Println("start judge")
 	var address SweepAddress
-	var transaction string
 	for {
-		if judge == true {
-			resp := getAttestations("20")
-			if len(resp.Attestations) <= 0 {
-				time.Sleep(1 * time.Minute)
+		resp := getAttestations("20")
+		if len(resp.Attestations) <= 0 {
+			time.Sleep(1 * time.Minute)
+			continue
+		}
+
+		for _, attestation := range resp.Attestations {
+			if attestation.Observed == false {
 				continue
 			}
 
-			for _, attestation := range resp.Attestations {
-				if attestation.Observed == false {
-					continue
-				}
+			height, _ := strconv.Atoi(attestation.Proposal.Height)
+			addresses := querySweepAddresses(uint64(height))
 
-				fmt.Println("INFO: ", "attestation observed btc height : ", attestation.Proposal.Height)
-				height, _ := strconv.Atoi(attestation.Proposal.Height)
-				addresses := querySweepAddresses(uint64(height))
-				if len(addresses) <= 0 {
-					continue
-				}
-
+			if len(addresses) <= 0 {
+				continue
+			} else {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
-				//get latest address from the list
 				address = addresses[0]
 
 				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
@@ -522,17 +518,12 @@ func startJudge(accountName string) {
 					time.Sleep(1 * time.Minute)
 					continue
 				}
-				transaction = tx
 
 				createAndSendSweepProposal(tx, address.Address, withdrawals, accountName, total)
-			}
-		}
 
-		processSweepTx(accountName)
+				time.Sleep(1 * time.Minute)
 
-		if judge == true {
-			if transaction != "" {
-				sweeptx, err := createTxFromHex(transaction)
+				sweeptx, err := createTxFromHex(tx)
 				if err != nil {
 					fmt.Println("error decoding sweep tx : inside judge")
 					fmt.Println(err)
@@ -550,24 +541,6 @@ func startJudge(accountName string) {
 			}
 
 		}
+
 	}
-}
-
-func processSweepTx(accountName string) {
-	SweepProposal := getAttestationsSweepProposal()
-
-	if len(SweepProposal.Attestations) > 0 {
-		sweeptxHex := SweepProposal.Attestations[0].Proposal.BtcSweepTx
-		reserveAddress := SweepProposal.Attestations[0].Proposal.ReserveAddress
-		sweeptx, err := createTxFromHex(sweeptxHex)
-		if err != nil {
-			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
-			log.Fatal(err)
-		}
-
-		signature := signTx(sweeptx, reserveAddress)
-		hexSignature := hex.EncodeToString(signature)
-		sendSweepSign(hexSignature, reserveAddress, accountName)
-	}
-
 }

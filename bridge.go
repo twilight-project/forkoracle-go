@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -135,9 +136,32 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 
 }
 
+func processSweepTx(accountName string) {
+
+	for {
+		SweepProposal := getAttestationsSweepProposal()
+
+		for _, attestation := range SweepProposal.Attestations {
+			sweeptxHex := attestation.Proposal.BtcSweepTx
+			reserveAddress := attestation.Proposal.ReserveAddress
+			sweeptx, err := createTxFromHex(sweeptxHex)
+			if err != nil {
+				fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
+				log.Fatal(err)
+			}
+
+			signature := signTx(sweeptx, reserveAddress)
+			hexSignature := hex.EncodeToString(signature)
+			sendSweepSign(hexSignature, reserveAddress, accountName)
+		}
+		time.Sleep(1 * time.Minute)
+	}
+}
+
 func startBridge(accountName string, forkscanner_url url.URL) {
 	fmt.Println("starting bridge")
 	go watchAddress(forkscanner_url)
 	go kDeepService(accountName, forkscanner_url)
+	go processSweepTx(accountName)
 
 }

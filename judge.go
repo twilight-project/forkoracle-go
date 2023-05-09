@@ -554,7 +554,6 @@ func startJudge(accountName string) {
 			}
 
 		}
-
 	}
 }
 

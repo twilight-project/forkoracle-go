@@ -74,7 +74,6 @@ func queryNotification() []WatchtowerNotification {
 		}
 		addresses = append(addresses, address)
 	}
-	fmt.Println("addresses under watch : ", addresses)
 	return addresses
 }
 

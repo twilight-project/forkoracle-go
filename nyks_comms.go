@@ -40,6 +40,8 @@ func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
 		fmt.Println("error in sending sweep transaction proposal : ", err)
+	} else {
+		fmt.Println("Sweep Transaction sent")
 	}
 }
 
@@ -56,6 +58,8 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
 		fmt.Println("error in sending Sweep Signatures transaction : ", err)
+	} else {
+		fmt.Println("Sweep Signature sent")
 	}
 }
 

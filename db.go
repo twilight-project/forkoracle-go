@@ -19,8 +19,6 @@ func initDB() *sql.DB {
 }
 
 func insertNotifications(element WatchtowerNotification) {
-
-	fmt.Println("inside insert DB")
 	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
 		element.Block,
 		element.Receiving,

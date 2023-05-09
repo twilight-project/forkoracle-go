@@ -273,7 +273,6 @@ func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWith
 	}
 
 	sendTransactionSweepProposal(accountName, cosmos, msg)
-	fmt.Println("Sweep Sign sent")
 }
 
 func sendSweepSign(hexSignatures string, address string, accountName string) {
@@ -287,7 +286,6 @@ func sendSweepSign(hexSignatures string, address string, accountName string) {
 	}
 
 	sendTransactionSignSweep(accountName, cosmos, msg)
-	fmt.Println("Sweep Sign sent")
 }
 
 func broadcastSweeptxNYKS(sweepTxHex string, refundTxHex string, accountName string) {

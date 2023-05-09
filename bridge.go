@@ -72,17 +72,19 @@ func watchAddress(url url.URL) {
 func kDeepService(accountName string, url url.URL) {
 	fmt.Println("running k deep service")
 	for {
-		resp := getAttestations("1")
+		resp := getAttestations("5")
 		if len(resp.Attestations) > 0 {
-			attestation := resp.Attestations[0]
-			fmt.Println("INFO : k deep : latest attestaion is : ", attestation)
-			if attestation.Observed == true {
-				fmt.Println("attestaion is Observed : ", attestation.Proposal.Height)
-				height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
-				if err != nil {
-					fmt.Println(err)
+			fmt.Println("INFO : k deep : latest attestaion is : ", resp.Attestations[0])
+			for _, attestation := range resp.Attestations {
+				if attestation.Observed == true {
+					fmt.Println("attestaion is Observed : ", attestation.Proposal.Height)
+					height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
+					if err != nil {
+						fmt.Println(err)
+					}
+					kDeepCheck(accountName, uint64(height))
+					break
 				}
-				kDeepCheck(accountName, uint64(height))
 			}
 
 		}

@@ -127,9 +127,11 @@ func main() {
 	go orchestrator(accountName, forkscanner_url)
 	addr := queryAllSweepAddresses()
 	if len(addr) <= 0 {
-		wg.Add(1)
-		time.Sleep(1 * time.Minute)
-		go initJudge(accountName)
+		if judge {
+			wg.Add(1)
+			time.Sleep(1 * time.Minute)
+			go initJudge(accountName)
+		}
 	}
 
 	wg.Add(1)

@@ -493,14 +493,12 @@ func startJudge(accountName string) {
 		if judge == true {
 			resp := getAttestations("20")
 			if len(resp.Attestations) <= 0 {
-				fmt.Println("INFO: ", "no attestations")
 				time.Sleep(1 * time.Minute)
 				continue
 			}
 
 			for _, attestation := range resp.Attestations {
 				if attestation.Observed == false {
-					fmt.Println("INFO: ", "attestation not observed btc height : ", attestation.Proposal.Height)
 					continue
 				}
 
@@ -508,7 +506,6 @@ func startJudge(accountName string) {
 				height, _ := strconv.Atoi(attestation.Proposal.Height)
 				addresses := querySweepAddresses(uint64(height))
 				if len(addresses) <= 0 {
-					fmt.Println("INFO: ", "no sweep address found for btc height : ", attestation.Proposal.Height)
 					continue
 				}
 

@@ -472,13 +472,6 @@ func initJudge(accountName string) {
 				height = height + 1
 			}
 		}
-	} else {
-		resp := getReserveddresses()
-		if len(resp.Addresses) > 0 {
-			for _, address := range resp.Addresses {
-				registerAddressOnForkscanner(address.ReserveAddress)
-			}
-		}
 	}
 }
 

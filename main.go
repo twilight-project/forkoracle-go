@@ -120,23 +120,35 @@ func main() {
 	if accountName == "validator-sfo" {
 		judge = true
 	}
-
 	time.Sleep(1 * time.Minute)
 
 	wg.Add(1)
 	go orchestrator(accountName, forkscanner_url)
+
 	addr := queryAllSweepAddresses()
 	if len(addr) <= 0 {
-		if judge {
-			wg.Add(1)
-			time.Sleep(1 * time.Minute)
-			go initJudge(accountName)
+		wg.Add(1)
+		time.Sleep(1 * time.Minute)
+		go initJudge(accountName)
+	}
+
+	if judge == false {
+		time.Sleep(1 * time.Minute)
+		resp := getReserveddresses()
+		if len(resp.Addresses) > 0 {
+			for _, address := range resp.Addresses {
+				registerAddressOnForkscanner(address.ReserveAddress)
+				reserveScript, _ := hex.DecodeString(address.ReserveScript)
+				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
+			}
 		}
 	}
 
 	wg.Add(1)
 	time.Sleep(1 * time.Minute)
-	go startJudge(accountName)
+	if judge == true {
+		go startJudge(accountName)
+	}
 
 	time.Sleep(1 * time.Minute)
 	startBridge(accountName, forkscanner_url)

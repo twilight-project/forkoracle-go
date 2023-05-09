@@ -126,7 +126,7 @@ func insertSweepAddress(address string, script []byte, preimage []byte, unlock_h
 		unlock_height,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while executing insert sweep address query: ", err)
 	}
 }
 

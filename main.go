@@ -121,10 +121,6 @@ func main() {
 		judge = true
 	}
 
-	cosmos := getCosmosClient()
-	cosmosAddress := getCosmosAddress(accountName, cosmos)
-
-	fmt.Println(cosmosAddress.String())
 	time.Sleep(1 * time.Minute)
 
 	wg.Add(1)

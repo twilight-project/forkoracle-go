@@ -326,12 +326,11 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
 	noOfValidators, _ := strconv.Atoi(number)
 	for {
+		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
-
 		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, address)
 
 		if len(filteredSweepSignatures) <= 0 {
-			fmt.Println("INFO: ", "no signatures")
 			continue
 		}
 

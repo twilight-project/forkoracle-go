@@ -150,7 +150,7 @@ func updateAddressUnlockHeight(address string, height int) {
 }
 
 func markSweepAddressSigned(address string) {
-	_, err := dbconn.Exec("update address set unlock_height = $1 where address = $2",
+	_, err := dbconn.Exec("update address set signed = $1 where address = $2",
 		true,
 		address,
 	)

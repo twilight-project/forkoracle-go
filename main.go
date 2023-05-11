@@ -127,6 +127,7 @@ func main() {
 
 	if judge == true {
 		addr := queryAllSweepAddresses()
+		fmt.Println("sweep addresses : ", len(addr))
 		if len(addr) <= 0 {
 			wg.Add(1)
 			time.Sleep(1 * time.Minute)

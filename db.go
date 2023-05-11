@@ -31,7 +31,7 @@ func insertNotifications(element WatchtowerNotification) {
 		nil,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while insert Notification query: ", err)
 	}
 }
 
@@ -41,14 +41,14 @@ func markProcessedNotifications(element WatchtowerNotification) {
 		element.Sending,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while mark notification query: ", err)
 	}
 }
 
 func queryNotification() []WatchtowerNotification {
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query Notification query: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -78,7 +78,7 @@ func queryNotification() []WatchtowerNotification {
 func queryUtxo(address string) []Utxo {
 	DB_reader, err := dbconn.Query("select txid, Receiving_vout, satoshis from notification where receiving = $1", address)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query utxo: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -102,7 +102,7 @@ func queryUtxo(address string) []Utxo {
 func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
 	DB_reader, err := dbconn.Query("select satoshis from notification where receiving_vout = $1 and txid = $2", receiving_vout, receiving_txid)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured query amount query: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -135,7 +135,7 @@ func markProcessedSweepAddress(address string) {
 		address,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while mark sweep address query: ", err)
 	}
 }
 
@@ -145,7 +145,7 @@ func updateAddressUnlockHeight(address string, height int) {
 		address,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while update unlock height query: ", err)
 	}
 }
 
@@ -155,14 +155,14 @@ func markSweepAddressSigned(address string) {
 		address,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while mark sweep address signed query: ", err)
 	}
 }
 
 func querySweepAddressesByHeight(height uint64) []SweepAddress {
 	DB_reader, err := dbconn.Query("select address, script, preimage from address where unlock_height = $1 and archived = false", height)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query address by height: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -187,7 +187,7 @@ func querySweepAddressesByHeight(height uint64) []SweepAddress {
 func querySweepAddress(addr string) []SweepAddress {
 	DB_reader, err := dbconn.Query("select address, script, preimage from address where address = $1 and archived = false", addr)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query sweep address: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -215,7 +215,7 @@ func querySweepAddress(addr string) []SweepAddress {
 func queryAllSweepAddresses() []SweepAddress {
 	DB_reader, err := dbconn.Query("select address, script, preimage from address where archived = false")
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query all sweep addresses: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -240,7 +240,7 @@ func queryAllSweepAddresses() []SweepAddress {
 func querySweepAddressScript(address string) []byte {
 	DB_reader, err := dbconn.Query("select script from address where address = $1", address)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query script: ", err)
 	}
 
 	defer DB_reader.Close()
@@ -261,7 +261,7 @@ func querySweepAddressScript(address string) []byte {
 func querySweepAddressPreimage(address string) []byte {
 	DB_reader, err := dbconn.Query("select preimage from address where address = $1", address)
 	if err != nil {
-		fmt.Println("An error occured while executing query: ", err)
+		fmt.Println("An error occured while query preimage: ", err)
 	}
 
 	defer DB_reader.Close()

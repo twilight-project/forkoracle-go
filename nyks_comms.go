@@ -56,9 +56,7 @@ func sendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client
 func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
 
 	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in sending Sweep Signatures transaction : ", err)
-	} else {
+	if err == nil {
 		fmt.Println("Sweep Signature sent")
 	}
 }

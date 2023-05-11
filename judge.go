@@ -220,8 +220,8 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 
 	fee := 5000
 
-	// newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
-	newSweepAddress := "bc1qeplu0p23jyu3vkp7wrn0dka00qsg7uacxkslp39m6tcqfg759vasr03hzp"
+	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
+	// newSweepAddress := "bc1qeplu0p23jyu3vkp7wrn0dka00qsg7uacxkslp39m6tcqfg759vasr03hzp"
 	updateAddressUnlockHeight(sweepAddress.Address, height+(noOfMultisigs*unlockingTimeInBlocks))
 
 	txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
@@ -406,15 +406,12 @@ func signTx(tx *wire.MsgTx, address string) []byte {
 	sighashes := txscript.NewTxSigHashes(tx)
 	script := querySweepAddressScript(address)
 
-	fmt.Println("masterkey : ", masterPrivateKey)
-
 	privkeybytes, err := masterPrivateKey.Serialize()
 	if err != nil {
 		fmt.Println("Error: converting private key to bytes : ", err)
 	}
 
 	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-	fmt.Println("btcec key : ", privkey)
 
 	signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
 	if err != nil {
@@ -476,8 +473,7 @@ func initJudge(accountName string) {
 }
 
 func startJudge(accountName string) {
-	fmt.Println("start judge")
-	var address SweepAddress
+	fmt.Println("starting judge")
 	for {
 		resp := getAttestations("20")
 		if len(resp.Attestations) <= 0 {
@@ -491,13 +487,13 @@ func startJudge(accountName string) {
 			}
 
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
-			addresses := querySweepAddresses(uint64(height))
+			addresses := querySweepAddressesByHeight(uint64(height))
 
 			if len(addresses) <= 0 {
 				continue
 			} else {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
-				address = addresses[0]
+				address := addresses[0]
 
 				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
 				if err != nil {

@@ -149,7 +149,17 @@ func updateAddressUnlockHeight(address string, height int) {
 	}
 }
 
-func querySweepAddresses(height uint64) []SweepAddress {
+func markSweepAddressSigned(address string) {
+	_, err := dbconn.Exec("update address set unlock_height = $1 where address = $2",
+		true,
+		address,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing query: ", err)
+	}
+}
+
+func querySweepAddressesByHeight(height uint64) []SweepAddress {
 	DB_reader, err := dbconn.Query("select address, script, preimage from address where unlock_height = $1 and archived = false", height)
 	if err != nil {
 		fmt.Println("An error occured while executing query: ", err)
@@ -164,6 +174,34 @@ func querySweepAddresses(height uint64) []SweepAddress {
 			&address.Address,
 			&address.Script,
 			&address.Preimage,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses
+}
+
+func querySweepAddress(addr string) []SweepAddress {
+	DB_reader, err := dbconn.Query("select address, script, preimage from address where address = $1 and archived = false", addr)
+	if err != nil {
+		fmt.Println("An error occured while executing query: ", err)
+	}
+
+	defer DB_reader.Close()
+	addresses := make([]SweepAddress, 0)
+
+	for DB_reader.Next() {
+		address := SweepAddress{}
+		err := DB_reader.Scan(
+			&address.Address,
+			&address.Script,
+			&address.Preimage,
+			&address.Unlock_height,
+			&address.Archived,
+			&address.Signed,
 		)
 		if err != nil {
 			fmt.Println(err)

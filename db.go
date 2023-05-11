@@ -185,7 +185,7 @@ func querySweepAddressesByHeight(height uint64) []SweepAddress {
 }
 
 func querySweepAddress(addr string) []SweepAddress {
-	DB_reader, err := dbconn.Query("select address, script, preimage from address where address = $1 and archived = false", addr)
+	DB_reader, err := dbconn.Query("select * from address where address = $1 and archived = false", addr)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}

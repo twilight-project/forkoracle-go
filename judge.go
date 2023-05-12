@@ -338,7 +338,7 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 		fmt.Println("INFO: ", "minSignsRequired", minSignsRequired)
 		fmt.Println("INFO: ", "len(filteredSweepSignatures)", len(filteredSweepSignatures))
 
-		if len(filteredSweepSignatures)/minSignsRequired <= 1 {
+		if len(filteredSweepSignatures)/minSignsRequired < 1 {
 			fmt.Println("INFO: ", "not enough signatures")
 			continue
 		}

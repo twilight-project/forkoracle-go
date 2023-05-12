@@ -332,7 +332,11 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			continue
 		}
 
+		fmt.Println("INFO: ", "received signatures: ", len(filteredSweepSignatures))
+
 		minSignsRequired := noOfValidators * 2 / 3
+
+		fmt.Println("INFO: ", "required signatures: ", len(filteredSweepSignatures)/minSignsRequired)
 
 		if len(filteredSweepSignatures)/minSignsRequired >= 1 {
 			fmt.Println("INFO: ", "not enough signatures")
@@ -478,6 +482,7 @@ func startJudge(accountName string) {
 		resp := getAttestations("20")
 		if len(resp.Attestations) <= 0 {
 			time.Sleep(1 * time.Minute)
+			fmt.Println("no attestaions (start judge)")
 			continue
 		}
 
@@ -495,7 +500,7 @@ func startJudge(accountName string) {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
 				address := addresses[0]
 
-				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
+				tx, _, _, err := generateSweepTx(address, accountName, height)
 				if err != nil {
 					fmt.Println("Error in generating a Sweep transaction: ", err)
 					continue
@@ -506,7 +511,7 @@ func startJudge(accountName string) {
 					continue
 				}
 
-				createAndSendSweepProposal(tx, address.Address, withdrawals, accountName, total)
+				// createAndSendSweepProposal(tx, address.Address, withdrawals, accountName, total)
 
 				time.Sleep(1 * time.Minute)
 

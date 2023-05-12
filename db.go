@@ -160,7 +160,7 @@ func markSweepAddressSigned(address string) {
 }
 
 func querySweepAddressesByHeight(height uint64) []SweepAddress {
-	fmt.Println("getting address for height: ", height)
+	// fmt.Println("getting address for height: ", height)
 	DB_reader, err := dbconn.Query("select address, script, preimage from address where unlock_height = $1 and archived = false", height)
 	if err != nil {
 		fmt.Println("An error occured while query address by height: ", err)

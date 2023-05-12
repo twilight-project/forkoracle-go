@@ -222,7 +222,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 
 	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
 	// newSweepAddress := "bc1qeplu0p23jyu3vkp7wrn0dka00qsg7uacxkslp39m6tcqfg759vasr03hzp"
-	updateAddressUnlockHeight(sweepAddress.Address, height+(noOfMultisigs*unlockingTimeInBlocks))
+	// updateAddressUnlockHeight(sweepAddress.Address, height+(noOfMultisigs*unlockingTimeInBlocks))
 
 	txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
 	if err != nil {
@@ -326,19 +326,15 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 	for {
 		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
-		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, "bc1qqafhk4zmsp9km532zstawqepquutgwvzmuw7xkmychmt4k9y72xquvc8ke")
+		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, address)
 
 		if len(filteredSweepSignatures) <= 0 {
 			continue
 		}
 
-		fmt.Println("INFO: ", "received signatures: ", len(filteredSweepSignatures))
-
 		minSignsRequired := noOfValidators * 2 / 3
 
-		fmt.Println("INFO: ", "required signatures: ", len(filteredSweepSignatures)/minSignsRequired)
-
-		if len(filteredSweepSignatures)/minSignsRequired >= 1 {
+		if len(filteredSweepSignatures)/minSignsRequired <= 1 {
 			fmt.Println("INFO: ", "not enough signatures")
 			continue
 		}

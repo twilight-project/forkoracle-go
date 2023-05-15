@@ -30,8 +30,8 @@ func initialize() {
 	viper.ReadInConfig()
 
 	//wallet setup
-	new_wallet := flag.Bool("new_wallet", false, "set to true if you want to create a new wallet")
-	mnemonic := flag.String("mnemonic", "", "mnemonic for the wallet, leave empty to generate a new nemonic")
+	new_wallet := flag.Bool("new_wallet", true, "set to true if you want to create a new wallet")
+	mnemonic := flag.String("mnemonic", "throw champion similar brain enjoy west expire guitar lion present solar skull utility produce race resemble barely panda sausage business nasty easily library author", "mnemonic for the wallet, leave empty to generate a new nemonic")
 	flag.Parse()
 
 	var err error
@@ -65,6 +65,7 @@ func initialize() {
 	dbconn = initDB()
 	fmt.Println("DB initialized")
 	btcPublicKey := hex.EncodeToString(masterPrivateKey.PublicKey().Key)
+	fmt.Println("BTC public key : ", btcPublicKey)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)

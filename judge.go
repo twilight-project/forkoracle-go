@@ -355,14 +355,14 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 		preimage := querySweepAddressPreimage(address)
 
 		for i := 0; i < len(sweeptx.TxIn); i++ {
-			witness := make([][]byte, 0)
+			witness := wire.TxWitness{}
+			dummy := []byte{0}
+			witness = append(witness, dummy)
 			for j := 0; j < len(dataSig); j++ {
 				witness = append(witness, dataSig[j])
 			}
 			witness = append(witness, preimage)
 			witness = append(witness, script)
-			dummy := []byte{0}
-			witness = append(witness, dummy)
 			sweeptx.TxIn[i].Witness = witness
 		}
 

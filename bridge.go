@@ -109,7 +109,6 @@ func kDeepCheck(accountName string, height uint64) {
 func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {
 	fmt.Println("inside confirm btc transaction")
 	cosmos := getCosmosClient()
-	oracle_address := getCosmosAddress(accountName, cosmos)
 
 	deposit_address := getDepositAddress(data.Sending)
 
@@ -127,7 +126,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 		Hash:                   data.Receiving_txid,
 		TwilightDepositAddress: deposit_address.TwilightDepositAddress,
 		ReserveAddress:         data.Receiving,
-		OracleAddress:          oracle_address.String(),
+		OracleAddress:          oracleAddr,
 	}
 	fmt.Println("confirming btc transaction")
 	sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)

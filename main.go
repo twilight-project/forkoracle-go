@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec"
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 	"github.com/tyler-smith/go-bip32"
@@ -20,6 +21,8 @@ import (
 var dbconn *sql.DB
 var masterPrivateKey *bip32.Key
 var judge bool
+var oracleAddr string
+var valAddr string
 var wg sync.WaitGroup
 
 func initialize() {
@@ -31,7 +34,7 @@ func initialize() {
 
 	//wallet setup
 	new_wallet := flag.Bool("new_wallet", true, "set to true if you want to create a new wallet")
-	mnemonic := flag.String("mnemonic", "throw champion similar brain enjoy west expire guitar lion present solar skull utility produce race resemble barely panda sausage business nasty easily library author", "mnemonic for the wallet, leave empty to generate a new nemonic")
+	mnemonic := flag.String("mnemonic", "", "mnemonic for the wallet, leave empty to generate a new nemonic")
 	flag.Parse()
 
 	var err error
@@ -59,38 +62,49 @@ func initialize() {
 		}
 	}
 
+	privkeybytes, err := masterPrivateKey.Serialize()
+	if err != nil {
+		fmt.Println("Error: converting private key to bytes : ", err)
+	}
+
+	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
+
+	fmt.Println("BTC Private key : ", hex.EncodeToString(privkey.Serialize()))
+	btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
 	fmt.Println("Wallet initialized")
 
 	// db connection
 	dbconn = initDB()
 	fmt.Println("DB initialized")
-	btcPublicKey := hex.EncodeToString(masterPrivateKey.PublicKey().Key)
-	fmt.Println("BTC public key : ", btcPublicKey)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
 	args := strings.Fields(command)
 	cmd := exec.Command(args[0], args[1:]...)
 
-	valAddr, err := cmd.CombinedOutput()
+	valAddr_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
 	}
+
+	valAddr = string(valAddr_)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
 	args = strings.Fields(command)
 	cmd = exec.Command(args[0], args[1:]...)
 
-	OrchAddr, err := cmd.CombinedOutput()
+	oracleAddr_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		return
 	}
 
+	oracleAddr = string(oracleAddr_)
+
 	// register delegate address
 
-	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", string(valAddr), string(OrchAddr), btcPublicKey, accountName)
+	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, accountName)
 
 	args = strings.Fields(command)
 	cmd = exec.Command(args[0], args[1:]...)
@@ -107,6 +121,8 @@ func initialize() {
 	}
 
 	fmt.Println("Delegate Address Set")
+
+	fmt.Println("Oracle Address : ", oracleAddr)
 
 }
 

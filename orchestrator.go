@@ -102,14 +102,11 @@ func process_message(accountName string, message []byte) {
 	active_chaintip := active_chaintips[0]
 
 	cosmos_client := getCosmosClient()
-	cosmos_address := getCosmosAddress(accountName, cosmos_client)
-
-	fmt.Println("cosmos address : ", cosmos_address.String())
 
 	msg := &types.MsgSeenBtcChainTip{
 		Height:           uint64(active_chaintip.Height),
 		Hash:             active_chaintip.Block,
-		BtcOracleAddress: cosmos_address.String(),
+		BtcOracleAddress: oracleAddr,
 	}
 	fmt.Println("Sending Chain Tip Seen Transaction for btc height :  ", active_chaintip.Height)
 	sendTransactionSeenBtcChainTip(accountName, cosmos_client, msg)

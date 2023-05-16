@@ -27,17 +27,12 @@ func registerReserveAddressOnNyks(accountName string, address string, script []b
 
 	cosmos := getCosmosClient()
 
-	judge_address, err := cosmos.Address(accountName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	reserveScript := hex.EncodeToString(script)
 
 	msg := &bridgetypes.MsgRegisterReserveAddress{
 		ReserveScript:  reserveScript,
 		ReserveAddress: address,
-		JudgeAddress:   judge_address.String(),
+		JudgeAddress:   oracleAddr,
 	}
 
 	// store response in txResp
@@ -254,16 +249,12 @@ func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWith
 	}
 
 	cosmos := getCosmosClient()
-	judge_address, err := cosmos.Address(accountName)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	msg := &bridgetypes.MsgSweepProposal{
 
 		ReserveId:                        1,
 		ReserveAddress:                   address,
-		JudgeAddress:                     judge_address.String(),
+		JudgeAddress:                     oracleAddr,
 		BtcRelayCapacityValue:            0,
 		TotalValue:                       total,
 		PrivatePoolValue:                 0,
@@ -279,12 +270,11 @@ func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWith
 
 func sendSweepSign(hexSignatures string, address string, accountName string) {
 	cosmos := getCosmosClient()
-	cosmos_address := getCosmosAddress(accountName, cosmos)
 	msg := &bridgetypes.MsgSignSweep{
 		ReserveAddress:   address,
 		SignerAddress:    address, // no idea what this is
 		SweepSignature:   hexSignatures,
-		BtcOracleAddress: cosmos_address.String(),
+		BtcOracleAddress: oracleAddr,
 	}
 
 	sendTransactionSignSweep(accountName, cosmos, msg)
@@ -292,11 +282,10 @@ func sendSweepSign(hexSignatures string, address string, accountName string) {
 
 func broadcastSweeptxNYKS(sweepTxHex string, refundTxHex string, accountName string) {
 	cosmos := getCosmosClient()
-	cosmos_address := getCosmosAddress(accountName, cosmos)
 	msg := &bridgetypes.MsgBroadcastTxSweep{
 		SignedRefundTx: refundTxHex,
 		SignedSweepTx:  sweepTxHex,
-		JudgeAddress:   cosmos_address.String(),
+		JudgeAddress:   oracleAddr,
 	}
 
 	sendTransactionBroadcastSweeptx(accountName, cosmos, msg)
@@ -384,7 +373,19 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 			signSweep = append(signSweep, sig)
 		}
 	}
-	return signSweep
+
+	delegateAddresses := getDelegateAddresses()
+	orderedSignSweep := make([]MsgSignSweep, 0)
+
+	for _, oracleAddr := range delegateAddresses.Addresses {
+		for _, sweepSig := range signSweep {
+			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
+				orderedSignSweep = append(orderedSignSweep, sweepSig)
+			}
+		}
+	}
+
+	return orderedSignSweep
 }
 
 func encodeSignatures(signatures [][]byte) string {
@@ -431,11 +432,10 @@ func signTx(tx *wire.MsgTx, address string) []byte {
 
 func registerJudge(accountName string) {
 	cosmos := getCosmosClient()
-	cosmosAddress := getCosmosAddress(accountName, cosmos)
 	msg := &bridgetypes.MsgRegisterJudge{
-		Creator:          cosmosAddress.String(),
-		JudgeAddress:     cosmosAddress.String(),
-		ValidatorAddress: cosmosAddress.String(),
+		Creator:          valAddr,
+		JudgeAddress:     oracleAddr,
+		ValidatorAddress: valAddr,
 	}
 
 	sendTransactionRegisterJudge(accountName, cosmos, msg)

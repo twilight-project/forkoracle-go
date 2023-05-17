@@ -88,6 +88,7 @@ func initialize() {
 	}
 
 	valAddr = string(valAddr_)
+	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
 	fmt.Println("Val Address : ", valAddr)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
@@ -101,7 +102,7 @@ func initialize() {
 	}
 
 	oracleAddr = string(oracleAddr_)
-
+	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
 	fmt.Println("Oracle Address : ", oracleAddr)
 
 	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, accountName)

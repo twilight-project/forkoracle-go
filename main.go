@@ -86,7 +86,7 @@ func initialize() {
 	valAddr_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
-		fmt.Println("Val Address : ", valAddr_)
+		fmt.Printf("Output: %s\n", valAddr_)
 		return
 	}
 

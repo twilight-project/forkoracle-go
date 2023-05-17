@@ -105,6 +105,7 @@ func process_message(accountName string, message []byte) {
 
 	addr := getCosmosAddress(accountName, cosmos_client)
 	fmt.Println(addr.String())
+	fmt.Println(oracleAddr)
 	fmt.Println(accountName)
 
 	if addr.String() != oracleAddr {

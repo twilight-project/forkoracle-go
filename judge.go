@@ -439,6 +439,7 @@ func registerJudge(accountName string) {
 	}
 
 	sendTransactionRegisterJudge(accountName, cosmos, msg)
+	fmt.Println("registered Judge")
 }
 
 func initJudge(accountName string) {

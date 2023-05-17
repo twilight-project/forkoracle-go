@@ -69,16 +69,17 @@ func initialize() {
 
 	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
-	fmt.Println("BTC Private key : ", hex.EncodeToString(privkey.Serialize()))
 	btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
 	fmt.Println("Wallet initialized")
 
 	// db connection
 	dbconn = initDB()
 	fmt.Println("DB initialized")
-	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
+	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
+	fmt.Println("Val command : ", command)
+
 	args := strings.Fields(command)
 	cmd := exec.Command(args[0], args[1:]...)
 
@@ -89,8 +90,10 @@ func initialize() {
 	}
 
 	valAddr = string(valAddr_)
+	fmt.Println("Val Address : ", valAddr)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
+	fmt.Println("Oracle command : ", command)
 	args = strings.Fields(command)
 	cmd = exec.Command(args[0], args[1:]...)
 
@@ -102,9 +105,10 @@ func initialize() {
 
 	oracleAddr = string(oracleAddr_)
 
-	// register delegate address
+	fmt.Println("Oracle Address : ", oracleAddr)
 
 	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, accountName)
+	fmt.Println("delegate command : ", command)
 
 	args = strings.Fields(command)
 	cmd = exec.Command(args[0], args[1:]...)
@@ -121,9 +125,6 @@ func initialize() {
 	}
 
 	fmt.Println("Delegate Address Set")
-
-	fmt.Println("Oracle Address : ", oracleAddr)
-
 }
 
 func main() {
@@ -132,6 +133,7 @@ func main() {
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)
+
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
 	if accountName == "validator-sfo" {

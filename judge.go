@@ -451,33 +451,33 @@ func initJudge(accountName string) {
 	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
-	if judge == true {
-		registerJudge(accountName)
-		for {
-			resp := getAttestations("1")
-			if len(resp.Attestations) <= 0 {
-				time.Sleep(30)
+	registerJudge(accountName)
+	for {
+		resp := getAttestations("1")
+		if len(resp.Attestations) <= 0 {
+			time.Sleep(30)
+			continue
+		} else {
+			attestation := resp.Attestations[0]
+			btc_height, err := strconv.Atoi(attestation.Proposal.Height)
+			if err != nil {
+				fmt.Println("Error: converting to int : ", err)
 				continue
-			} else {
-				attestation := resp.Attestations[0]
-				btc_height, err := strconv.Atoi(attestation.Proposal.Height)
-				if err != nil {
-					fmt.Println("Error: converting to int : ", err)
-					continue
-				}
-				height = btc_height
-				break
 			}
-		}
-
-		if height > 0 {
-
-			for i := 1; i <= noOfMultisigs; i++ {
-				_ = generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
-				height = height + 1
-			}
+			height = btc_height
+			break
 		}
 	}
+
+	if height > 0 {
+
+		for i := 1; i <= noOfMultisigs; i++ {
+			_ = generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
+			height = height + 1
+		}
+	}
+
+	fmt.Println("judge initialized")
 }
 
 func startJudge(accountName string) {

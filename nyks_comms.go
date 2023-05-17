@@ -21,7 +21,7 @@ import (
 func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
-		fmt.Println("error in chaintip trnasaction", err)
+		fmt.Println("error in chaintip trnasaction : ", err)
 	} else {
 		fmt.Println("sent Seen Chaintip transaction")
 	}
@@ -93,13 +93,13 @@ func getCosmosClient() cosmosclient.Client {
 	return cosmos
 }
 
-// func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
-// 	address, err := cosmos.Address(accountName)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	return address
-// }
+func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
+	address, err := cosmos.Address(accountName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return address
+}
 
 func getDepositAddresses() QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))

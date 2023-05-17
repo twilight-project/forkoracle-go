@@ -105,6 +105,11 @@ func process_message(accountName string, message []byte) {
 
 	addr := getCosmosAddress(accountName, cosmos_client)
 	fmt.Println(addr.String())
+	fmt.Println(accountName)
+
+	if addr.String() != oracleAddr {
+		fmt.Println("notequal")
+	}
 
 	msg := &types.MsgSeenBtcChainTip{
 		Height:           uint64(active_chaintip.Height),

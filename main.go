@@ -78,15 +78,12 @@ func initialize() {
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
-	fmt.Println("Val command : ", command)
-
 	args := strings.Fields(command)
 	cmd := exec.Command(args[0], args[1:]...)
 
 	valAddr_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
-		fmt.Printf("Output: %s\n", valAddr_)
 		return
 	}
 
@@ -94,7 +91,6 @@ func initialize() {
 	fmt.Println("Val Address : ", valAddr)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
-	fmt.Println("Oracle command : ", command)
 	args = strings.Fields(command)
 	cmd = exec.Command(args[0], args[1:]...)
 
@@ -145,35 +141,35 @@ func main() {
 	wg.Add(1)
 	go orchestrator(accountName, forkscanner_url)
 
-	if judge == true {
-		addr := queryAllSweepAddresses()
-		if len(addr) <= 0 {
-			wg.Add(1)
-			time.Sleep(1 * time.Minute)
-			go initJudge(accountName)
-		}
-	}
+	// if judge == true {
+	// 	addr := queryAllSweepAddresses()
+	// 	if len(addr) <= 0 {
+	// 		wg.Add(1)
+	// 		time.Sleep(1 * time.Minute)
+	// 		go initJudge(accountName)
+	// 	}
+	// }
 
-	if judge == false {
-		time.Sleep(1 * time.Minute)
-		resp := getReserveddresses()
-		if len(resp.Addresses) > 0 {
-			for _, address := range resp.Addresses {
-				registerAddressOnForkscanner(address.ReserveAddress)
-				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
-			}
-		}
-	}
+	// if judge == false {
+	// 	time.Sleep(1 * time.Minute)
+	// 	resp := getReserveddresses()
+	// 	if len(resp.Addresses) > 0 {
+	// 		for _, address := range resp.Addresses {
+	// 			registerAddressOnForkscanner(address.ReserveAddress)
+	// 			reserveScript, _ := hex.DecodeString(address.ReserveScript)
+	// 			insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
+	// 		}
+	// 	}
+	// }
 
-	wg.Add(1)
-	time.Sleep(1 * time.Minute)
-	if judge == true {
-		go startJudge(accountName)
-	}
+	// wg.Add(1)
+	// time.Sleep(1 * time.Minute)
+	// if judge == true {
+	// 	go startJudge(accountName)
+	// }
 
-	time.Sleep(1 * time.Minute)
-	startBridge(accountName, forkscanner_url)
+	// time.Sleep(1 * time.Minute)
+	// startBridge(accountName, forkscanner_url)
 
 	wg.Wait()
 

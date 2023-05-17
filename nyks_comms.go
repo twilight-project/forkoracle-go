@@ -177,7 +177,7 @@ func getAttestationsSweepProposal() AttestaionBlockSweep {
 }
 
 func getDelegateAddresses() DelegateAddressesResp {
-	nyksd_url := "https://nyks.twilight-explorer.com/api"
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/forks/delegate_keys_all")
 	if err != nil {
 		fmt.Println("error getting delegate addresses : ", err)
@@ -217,7 +217,7 @@ func getBtcWithdrawRequest() BtcWithdrawRequestResp {
 }
 
 func getSignSweep() MsgSignSweepResp {
-	nyksd_url := "https://nyks.twilight-explorer.com/api"
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_sweep_all")
 	if err != nil {
 		fmt.Println("error getting delegate addresses : ", err)

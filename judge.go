@@ -455,7 +455,6 @@ func initJudge(accountName string) {
 		for {
 			resp := getAttestations("1")
 			if len(resp.Attestations) <= 0 {
-				fmt.Println("no attestaions (init judge)")
 				time.Sleep(30)
 				continue
 			} else {

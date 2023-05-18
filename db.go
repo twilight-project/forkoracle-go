@@ -28,7 +28,7 @@ func insertNotifications(element WatchtowerNotification) {
 		false,
 		element.Sending_txinputs[0].Address,
 		element.Receiving_vout,
-		nil,
+		-1,
 	)
 	if err != nil {
 		fmt.Println("An error occured while insert Notification query: ", err)

@@ -37,7 +37,7 @@ type WatchtowerNotification struct {
 	Archived         bool
 	Receiving_vout   uint64
 	Sending          string
-	Sending_vout     uint64
+	Sending_vout     int32
 }
 
 type Proposal struct {

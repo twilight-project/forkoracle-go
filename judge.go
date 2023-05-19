@@ -433,7 +433,7 @@ func signTx(tx *wire.MsgTx, address string) []byte {
 func registerJudge(accountName string) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgRegisterJudge{
-		Creator:          valAddr,
+		Creator:          oracleAddr,
 		JudgeAddress:     oracleAddr,
 		ValidatorAddress: valAddr,
 	}

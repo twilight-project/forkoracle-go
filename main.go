@@ -88,7 +88,7 @@ func initialize() {
 	}
 
 	valAddr = string(valAddr_)
-	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
+	valAddr = strings.ReplaceAll(valAddr, "\n", "")
 	fmt.Println("Val Address : ", valAddr)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)

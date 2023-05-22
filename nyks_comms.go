@@ -162,7 +162,7 @@ func getAttestations(limit string) AttestaionBlock {
 
 func getAttestationsSweepProposal() AttestaionBlockSweep {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=1&order_by=desc&proposal_type=2")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=20&order_by=desc&proposal_type=2")
 	if err != nil {
 		log.Fatalln(err)
 	}

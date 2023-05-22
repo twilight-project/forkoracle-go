@@ -69,7 +69,11 @@ func initialize() {
 
 	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
+	fmt.Println("Private key : ", hex.EncodeToString(privkey.Serialize()))
+
 	btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
+	fmt.Println("Public key : ", btcPubkey)
+
 	fmt.Println("Wallet initialized")
 
 	// db connection
@@ -173,5 +177,35 @@ func main() {
 	startBridge(accountName, forkscanner_url)
 
 	wg.Wait()
+
+	// privateKey, err := hex.DecodeString("")
+	// if err != nil {
+	// 	fmt.Println("Failed to generate private key:", err)
+	// 	return
+	// }
+	// privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privateKey)
+
+	// fmt.Println("Private key : ", hex.EncodeToString(privkey.Serialize()))
+
+	// btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
+	// fmt.Println("Public key : ", btcPubkey)
+
+	// // Get the corresponding public key
+	// publicKey := privkey.PubKey()
+
+	// // Sign a message using the private key
+	// message := []byte("Hello, world!")
+	// signature, err := privkey.Sign(message)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// // Verify the signature
+	// valid := signature.Verify(message, publicKey)
+	// if valid {
+	// 	fmt.Println("Signature is valid.")
+	// } else {
+	// 	fmt.Println("Signature is not valid.")
+	// }
 
 }

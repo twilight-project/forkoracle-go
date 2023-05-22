@@ -100,7 +100,7 @@ func kDeepCheck(accountName string, height uint64) {
 	confirmations, _ := strconv.ParseUint(number, 10, 64)
 	for _, a := range addresses {
 		if height-a.Height >= confirmations {
-			fmt.Println("reached height confirmations: ")
+			fmt.Println("reached height confirmations: ", height)
 			confirmBtcTransactionOnNyks(accountName, a)
 		}
 	}
@@ -114,6 +114,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	deposit_address := getDepositAddress(data.Sending)
 
 	if deposit_address.DepositAddress != data.Sending {
+		fmt.Println("addresses don't match: ", deposit_address.DepositAddress, " : ", data.Sending)
 		markProcessedNotifications(data)
 		return
 	}

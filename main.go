@@ -178,7 +178,7 @@ func main() {
 
 	wg.Wait()
 
-	// privateKey, err := hex.DecodeString("")
+	// privateKey, err := hex.DecodeString("0488ade40160943cd60000000051572cba86b040b908d8f3f5bc322918528bbf11f5824833195a3daed1a058f400486e733ea901f662ea94a179bace684218a0d6d94bad97f24917b8b47a3b097a8d1e38a9")
 	// if err != nil {
 	// 	fmt.Println("Failed to generate private key:", err)
 	// 	return

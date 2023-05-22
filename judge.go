@@ -345,8 +345,8 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 
 		for i := 0; i < len(sweeptx.TxIn); i++ {
 			witness := wire.TxWitness{}
-			dummy := []byte{0}
-			witness = append(witness, dummy)
+			// dummy := []byte{0}
+			// witness = append(witness, dummy)
 			for j := 0; j < len(dataSig); j++ {
 				witness = append(witness, dataSig[j])
 			}
@@ -363,6 +363,13 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 
 		return signedTx.Bytes(), nil
 	}
+}
+
+func reverseArray(arr []MsgSignSweep) []MsgSignSweep {
+	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+	return arr
 }
 
 func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSignSweep {
@@ -385,7 +392,9 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 		}
 	}
 
-	return orderedSignSweep
+	fmt.Println("ordered Signatures Sweep : ", reverseArray(orderedSignSweep))
+
+	return reverseArray(orderedSignSweep)
 }
 
 func encodeSignatures(signatures [][]byte) string {

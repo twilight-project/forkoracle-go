@@ -32,6 +32,8 @@ func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Cl
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
 		fmt.Println("error in confirm deposit transaction : ", err)
+	} else {
+		fmt.Println("btc deposit confirmation sent")
 	}
 }
 

@@ -104,6 +104,7 @@ func kDeepCheck(accountName string, height uint64) {
 			confirmBtcTransactionOnNyks(accountName, a)
 		}
 	}
+	fmt.Println("finishing k deep check for height : ", height)
 }
 
 func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {

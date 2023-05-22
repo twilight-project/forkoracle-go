@@ -312,8 +312,8 @@ func createTxFromHex(txHex string) (*wire.MsgTx, error) {
 
 func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx) ([]byte, error) {
 
-	// number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
-	// noOfValidators, _ := strconv.Atoi(number)
+	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
+	noOfValidators, _ := strconv.Atoi(number)
 	for {
 		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
@@ -323,16 +323,12 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			continue
 		}
 
-		// minSignsRequired := noOfValidators * 2 / 3
+		minSignsRequired := noOfValidators * 2 / 3
 
-		// fmt.Println("INFO: ", "noOfValidators", noOfValidators)
-		// fmt.Println("INFO: ", "minSignsRequired", minSignsRequired)
-		// fmt.Println("INFO: ", "len(filteredSweepSignatures)", len(filteredSweepSignatures))
-
-		// if len(filteredSweepSignatures)/minSignsRequired < 1 {
-		// 	fmt.Println("INFO: ", "not enough signatures")
-		// 	continue
-		// }
+		if len(filteredSweepSignatures)/minSignsRequired < 1 {
+			fmt.Println("INFO: ", "not enough signatures")
+			continue
+		}
 		dataSig := make([][]byte, 0)
 
 		for _, sig := range filteredSweepSignatures {
@@ -347,12 +343,9 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			witness := wire.TxWitness{}
 			// dummy := []byte{0}
 			// witness = append(witness, dummy)
-			// for j := 0; j < len(dataSig); j++ {
-			// 	witness = append(witness, dataSig[j])
-			// }
-
-			fmt.Println("Size of preimage : ", len(preimage))
-			fmt.Println("hash 160 of preimage : ", hash160(preimage))
+			for j := 0; j < len(dataSig); j++ {
+				witness = append(witness, dataSig[j])
+			}
 			witness = append(witness, preimage)
 			witness = append(witness, script)
 			sweeptx.TxIn[i].Witness = witness

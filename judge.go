@@ -350,6 +350,9 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			// for j := 0; j < len(dataSig); j++ {
 			// 	witness = append(witness, dataSig[j])
 			// }
+
+			fmt.Println("Size of preimage : ", len(preimage))
+			fmt.Println("hash 160 of preimage : ", hash160(preimage))
 			witness = append(witness, preimage)
 			witness = append(witness, script)
 			sweeptx.TxIn[i].Witness = witness

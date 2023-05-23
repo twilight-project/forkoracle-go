@@ -3,8 +3,10 @@ package main
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/cosmos/btcutil"
@@ -35,7 +37,7 @@ func preimage() ([]byte, error) {
 
 func BuildScript(preimage []byte) ([]byte, error) {
 
-	// delegateAddresses := getDelegateAddresses()
+	delegateAddresses := getDelegateAddresses()
 	payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_SIZE)
@@ -43,32 +45,32 @@ func BuildScript(preimage []byte) ([]byte, error) {
 	builder.AddOp(txscript.OP_EQUALVERIFY)
 	builder.AddOp(txscript.OP_HASH160)
 	builder.AddData(payment_hash)
-	builder.AddOp(txscript.OP_EQUAL)
+	builder.AddOp(txscript.OP_EQUALVERIFY)
 
-	// required := int64(len(delegateAddresses.Addresses) * 2 / 3)
+	required := int64(len(delegateAddresses.Addresses) * 2 / 3)
 
-	// if required == 0 {
-	// 	required = 1
-	// }
+	if required == 0 {
+		required = 1
+	}
 
-	// builder.AddInt64(required)
-	// for _, element := range delegateAddresses.Addresses {
+	builder.AddInt64(required)
+	for _, element := range delegateAddresses.Addresses {
 
-	// 	pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
+		pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+		if err != nil {
+			panic(err)
+		}
 
-	// 	// Deserialize the public key bytes into a *btcec.PublicKey
-	// 	pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
+		// Deserialize the public key bytes into a *btcec.PublicKey
+		pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+		if err != nil {
+			panic(err)
+		}
 
-	// 	builder.AddData(pubKey.SerializeCompressed())
-	// }
-	// builder.AddInt64(int64(len(delegateAddresses.Addresses)))
-	// builder.AddOp(txscript.OP_CHECKMULTISIG)
+		builder.AddData(pubKey.SerializeCompressed())
+	}
+	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	builder.AddOp(txscript.OP_CHECKMULTISIG)
 
 	redeemScript, err := builder.Script()
 	if err != nil {

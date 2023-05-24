@@ -390,7 +390,7 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 
 	fmt.Println("ordered Signatures Sweep : ", reverseArray(orderedSignSweep))
 
-	return reverseArray(orderedSignSweep)
+	return orderedSignSweep
 }
 
 func encodeSignatures(signatures [][]byte) string {

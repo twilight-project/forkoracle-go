@@ -38,14 +38,14 @@ func preimage() ([]byte, error) {
 func BuildScript(preimage []byte) ([]byte, error) {
 
 	delegateAddresses := getDelegateAddresses()
-	payment_hash := hash160(preimage)
+	// payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
-	builder.AddOp(txscript.OP_SIZE)
-	builder.AddInt64(32)
-	builder.AddOp(txscript.OP_EQUALVERIFY)
-	builder.AddOp(txscript.OP_HASH160)
-	builder.AddData(payment_hash)
-	builder.AddOp(txscript.OP_EQUALVERIFY)
+	// builder.AddOp(txscript.OP_SIZE)
+	// builder.AddInt64(32)
+	// builder.AddOp(txscript.OP_EQUALVERIFY)
+	// builder.AddOp(txscript.OP_HASH160)
+	// builder.AddData(payment_hash)
+	// builder.AddOp(txscript.OP_EQUALVERIFY)
 
 	required := int64(len(delegateAddresses.Addresses) * 2 / 3)
 

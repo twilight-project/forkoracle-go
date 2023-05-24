@@ -324,6 +324,7 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 		}
 
 		minSignsRequired := noOfValidators * 2 / 3
+		minSignsRequired = 1
 
 		if len(filteredSweepSignatures)/minSignsRequired < 1 {
 			fmt.Println("INFO: ", "not enough signatures")

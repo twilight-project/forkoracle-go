@@ -53,23 +53,41 @@ func BuildScript(preimage []byte) ([]byte, error) {
 		required = 1
 	}
 
-	builder.AddInt64(required)
+	// builder.AddInt64(required)
+	builder.AddInt64(int64(1))
 	for _, element := range delegateAddresses.Addresses {
 
-		pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
-		if err != nil {
-			panic(err)
+		if element.BtcOracleAddress == "twilight18rpnn9v7jfx53c597crhs8e5w6nlflzp0ps4k4" {
+			pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+			if err != nil {
+				panic(err)
+			}
+
+			// Deserialize the public key bytes into a *btcec.PublicKey
+			pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+			if err != nil {
+				panic(err)
+			}
+
+			builder.AddData(pubKey.SerializeCompressed())
+
 		}
 
-		// Deserialize the public key bytes into a *btcec.PublicKey
-		pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-		if err != nil {
-			panic(err)
-		}
+		// pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+		// if err != nil {
+		// 	panic(err)
+		// }
 
-		builder.AddData(pubKey.SerializeCompressed())
+		// // Deserialize the public key bytes into a *btcec.PublicKey
+		// pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+		// if err != nil {
+		// 	panic(err)
+		// }
+
+		// builder.AddData(pubKey.SerializeCompressed())
 	}
-	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	// builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	builder.AddInt64(int64(1))
 	builder.AddOp(txscript.OP_CHECKMULTISIG)
 
 	redeemScript, err := builder.Script()

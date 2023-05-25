@@ -38,14 +38,14 @@ func preimage() ([]byte, error) {
 func BuildScript(preimage []byte) ([]byte, error) {
 
 	delegateAddresses := getDelegateAddresses()
-	// payment_hash := hash160(preimage)
+	payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
-	// builder.AddOp(txscript.OP_SIZE)
-	// builder.AddInt64(32)
-	// builder.AddOp(txscript.OP_EQUALVERIFY)
-	// builder.AddOp(txscript.OP_HASH160)
-	// builder.AddData(payment_hash)
-	// builder.AddOp(txscript.OP_EQUALVERIFY)
+	builder.AddOp(txscript.OP_SIZE)
+	builder.AddInt64(32)
+	builder.AddOp(txscript.OP_EQUALVERIFY)
+	builder.AddOp(txscript.OP_HASH160)
+	builder.AddData(payment_hash)
+	builder.AddOp(txscript.OP_EQUALVERIFY)
 
 	required := int64(len(delegateAddresses.Addresses) * 2 / 3)
 
@@ -53,41 +53,41 @@ func BuildScript(preimage []byte) ([]byte, error) {
 		required = 1
 	}
 
-	// builder.AddInt64(required)
-	builder.AddInt64(int64(2))
+	builder.AddInt64(required)
+	// builder.AddInt64(int64(2))
 	for _, element := range delegateAddresses.Addresses {
 
-		if element.BtcOracleAddress == "twilight18rpnn9v7jfx53c597crhs8e5w6nlflzp0ps4k4" || element.BtcOracleAddress == "twilight16zhfrrrre9pecj2ky395t9rsnn20fjngw35r20" || element.BtcOracleAddress == "twilight17evcnflrylnw2kjtrwn5qrpz32axnmqjfmry94" {
-			pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
-			if err != nil {
-				panic(err)
-			}
+		// if element.BtcOracleAddress == "twilight18rpnn9v7jfx53c597crhs8e5w6nlflzp0ps4k4" || element.BtcOracleAddress == "twilight16zhfrrrre9pecj2ky395t9rsnn20fjngw35r20" || element.BtcOracleAddress == "twilight17evcnflrylnw2kjtrwn5qrpz32axnmqjfmry94" {
+		// 	pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
 
-			// Deserialize the public key bytes into a *btcec.PublicKey
-			pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-			if err != nil {
-				panic(err)
-			}
+		// 	// Deserialize the public key bytes into a *btcec.PublicKey
+		// 	pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
 
-			builder.AddData(pubKey.SerializeCompressed())
+		// 	builder.AddData(pubKey.SerializeCompressed())
 
+		// }
+
+		pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+		if err != nil {
+			panic(err)
 		}
 
-		// pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
-		// if err != nil {
-		// 	panic(err)
-		// }
+		// Deserialize the public key bytes into a *btcec.PublicKey
+		pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+		if err != nil {
+			panic(err)
+		}
 
-		// // Deserialize the public key bytes into a *btcec.PublicKey
-		// pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-		// if err != nil {
-		// 	panic(err)
-		// }
-
-		// builder.AddData(pubKey.SerializeCompressed())
+		builder.AddData(pubKey.SerializeCompressed())
 	}
-	// builder.AddInt64(int64(len(delegateAddresses.Addresses)))
-	builder.AddInt64(int64(3))
+	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	// builder.AddInt64(int64(3))
 	builder.AddOp(txscript.OP_CHECKMULTISIG)
 
 	redeemScript, err := builder.Script()

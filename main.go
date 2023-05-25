@@ -150,7 +150,7 @@ func main() {
 		addr := queryAllSweepAddresses()
 		if len(addr) <= 0 {
 			wg.Add(1)
-			time.Sleep(5 * time.Minute)
+			time.Sleep(2 * time.Minute)
 			go initJudge(accountName)
 		}
 	}

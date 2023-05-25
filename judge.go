@@ -338,7 +338,7 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 		}
 
 		script := querySweepAddressScript(address)
-		// preimage := querySweepAddressPreimage(address)
+		preimage := querySweepAddressPreimage(address)
 
 		for i := 0; i < len(sweeptx.TxIn); i++ {
 			witness := wire.TxWitness{}
@@ -347,7 +347,7 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			for j := 0; j < len(dataSig); j++ {
 				witness = append(witness, dataSig[j])
 			}
-			// witness = append(witness, preimage)
+			witness = append(witness, preimage)
 			witness = append(witness, script)
 			sweeptx.TxIn[i].Witness = witness
 		}

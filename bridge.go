@@ -161,6 +161,7 @@ func processSweepTx(accountName string) {
 
 				signature := signTx(sweeptx, reserveAddress)
 				hexSignature := hex.EncodeToString(signature)
+				fmt.Println("Sweep Signature : ", hexSignature)
 				sendSweepSign(hexSignature, reserveAddress, accountName)
 				markSweepAddressSigned(reserveAddress)
 			}

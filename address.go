@@ -54,10 +54,10 @@ func BuildScript(preimage []byte) ([]byte, error) {
 	}
 
 	// builder.AddInt64(required)
-	builder.AddInt64(int64(1))
+	builder.AddInt64(int64(2))
 	for _, element := range delegateAddresses.Addresses {
 
-		if element.BtcOracleAddress == "twilight18rpnn9v7jfx53c597crhs8e5w6nlflzp0ps4k4" {
+		if element.BtcOracleAddress == "twilight18rpnn9v7jfx53c597crhs8e5w6nlflzp0ps4k4" || element.BtcOracleAddress == "twilight17evcnflrylnw2kjtrwn5qrpz32axnmqjfmry94" || element.BtcOracleAddress == "twilight1lst9l67t5dyhwk7pwjurzgjmlphqkf64nk9unu" {
 			pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
 			if err != nil {
 				panic(err)
@@ -87,7 +87,7 @@ func BuildScript(preimage []byte) ([]byte, error) {
 		// builder.AddData(pubKey.SerializeCompressed())
 	}
 	// builder.AddInt64(int64(len(delegateAddresses.Addresses)))
-	builder.AddInt64(int64(1))
+	builder.AddInt64(int64(3))
 	builder.AddOp(txscript.OP_CHECKMULTISIG)
 
 	redeemScript, err := builder.Script()

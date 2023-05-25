@@ -312,8 +312,8 @@ func createTxFromHex(txHex string) (*wire.MsgTx, error) {
 
 func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx) ([]byte, error) {
 
-	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
-	noOfValidators, _ := strconv.Atoi(number)
+	// number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
+	// noOfValidators, _ := strconv.Atoi(number)
 	for {
 		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
@@ -323,8 +323,8 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			continue
 		}
 
-		minSignsRequired := noOfValidators * 2 / 3
-		minSignsRequired = 1
+		// minSignsRequired := noOfValidators * 2 / 3
+		minSignsRequired := 2
 
 		if len(filteredSweepSignatures)/minSignsRequired < 1 {
 			fmt.Println("INFO: ", "not enough signatures")
@@ -389,7 +389,7 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 		}
 	}
 
-	fmt.Println("ordered Signatures Sweep : ", reverseArray(orderedSignSweep))
+	fmt.Println("ordered Signatures Sweep : ", orderedSignSweep)
 
 	return orderedSignSweep
 }

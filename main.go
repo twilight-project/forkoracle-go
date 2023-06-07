@@ -175,6 +175,6 @@ func main() {
 	// time.Sleep(1 * time.Minute)
 	startBridge(accountName, forkscanner_url)
 
-	wg.Wait()
+	// wg.Wait()
 
 }

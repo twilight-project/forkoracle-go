@@ -172,7 +172,7 @@ func processSweepTx(accountName string) {
 
 func startBridge(accountName string, forkscanner_url url.URL) {
 	fmt.Println("starting bridge")
-	go watchAddress(forkscanner_url)
+	watchAddress(forkscanner_url)
 	// go kDeepService(accountName)
 	// go processSweepTx(accountName)
 }

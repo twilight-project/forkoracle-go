@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	_ "github.com/lib/pq"
@@ -140,41 +141,41 @@ func main() {
 	if accountName == "validator-sfo" {
 		judge = true
 	}
-	// time.Sleep(1 * time.Minute)
+	time.Sleep(1 * time.Minute)
 
-	// wg.Add(1)
-	// go orchestrator(accountName, forkscanner_url)
+	wg.Add(1)
+	go orchestrator(accountName, forkscanner_url)
 
-	// if judge == true {
-	// 	addr := queryAllSweepAddresses()
-	// 	if len(addr) <= 0 {
-	// 		wg.Add(1)
-	// 		time.Sleep(2 * time.Minute)
-	// 		go initJudge(accountName)
-	// 	}
-	// }
+	if judge == true {
+		addr := queryAllSweepAddresses()
+		if len(addr) <= 0 {
+			wg.Add(1)
+			time.Sleep(2 * time.Minute)
+			go initJudge(accountName)
+		}
+	}
 
-	// if judge == false {
-	// 	time.Sleep(1 * time.Minute)
-	// 	resp := getReserveddresses()
-	// 	if len(resp.Addresses) > 0 {
-	// 		for _, address := range resp.Addresses {
-	// 			registerAddressOnForkscanner(address.ReserveAddress)
-	// 			reserveScript, _ := hex.DecodeString(address.ReserveScript)
-	// 			insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
-	// 		}
-	// 	}
-	// }
+	if judge == false {
+		time.Sleep(1 * time.Minute)
+		resp := getReserveddresses()
+		if len(resp.Addresses) > 0 {
+			for _, address := range resp.Addresses {
+				registerAddressOnForkscanner(address.ReserveAddress)
+				reserveScript, _ := hex.DecodeString(address.ReserveScript)
+				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
+			}
+		}
+	}
 
-	// wg.Add(1)
-	// time.Sleep(1 * time.Minute)
-	// if judge == true {
-	// 	go startJudge(accountName)
-	// }
+	wg.Add(1)
+	time.Sleep(1 * time.Minute)
+	if judge == true {
+		go startJudge(accountName)
+	}
 
-	// time.Sleep(1 * time.Minute)
+	time.Sleep(1 * time.Minute)
 	startBridge(accountName, forkscanner_url)
 
-	// wg.Wait()
+	wg.Wait()
 
 }

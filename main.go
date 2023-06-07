@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	_ "github.com/lib/pq"
@@ -141,71 +140,41 @@ func main() {
 	if accountName == "validator-sfo" {
 		judge = true
 	}
-	time.Sleep(1 * time.Minute)
+	// time.Sleep(1 * time.Minute)
 
-	wg.Add(1)
-	go orchestrator(accountName, forkscanner_url)
+	// wg.Add(1)
+	// go orchestrator(accountName, forkscanner_url)
 
-	if judge == true {
-		addr := queryAllSweepAddresses()
-		if len(addr) <= 0 {
-			wg.Add(1)
-			time.Sleep(2 * time.Minute)
-			go initJudge(accountName)
-		}
-	}
+	// if judge == true {
+	// 	addr := queryAllSweepAddresses()
+	// 	if len(addr) <= 0 {
+	// 		wg.Add(1)
+	// 		time.Sleep(2 * time.Minute)
+	// 		go initJudge(accountName)
+	// 	}
+	// }
 
-	if judge == false {
-		time.Sleep(1 * time.Minute)
-		resp := getReserveddresses()
-		if len(resp.Addresses) > 0 {
-			for _, address := range resp.Addresses {
-				registerAddressOnForkscanner(address.ReserveAddress)
-				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
-			}
-		}
-	}
+	// if judge == false {
+	// 	time.Sleep(1 * time.Minute)
+	// 	resp := getReserveddresses()
+	// 	if len(resp.Addresses) > 0 {
+	// 		for _, address := range resp.Addresses {
+	// 			registerAddressOnForkscanner(address.ReserveAddress)
+	// 			reserveScript, _ := hex.DecodeString(address.ReserveScript)
+	// 			insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0)
+	// 		}
+	// 	}
+	// }
 
-	wg.Add(1)
-	time.Sleep(1 * time.Minute)
-	if judge == true {
-		go startJudge(accountName)
-	}
+	// wg.Add(1)
+	// time.Sleep(1 * time.Minute)
+	// if judge == true {
+	// 	go startJudge(accountName)
+	// }
 
-	time.Sleep(1 * time.Minute)
+	// time.Sleep(1 * time.Minute)
 	startBridge(accountName, forkscanner_url)
 
 	wg.Wait()
-
-	// privateKey, err := hex.DecodeString("0488ade40160943cd60000000051572cba86b040b908d8f3f5bc322918528bbf11f5824833195a3daed1a058f400486e733ea901f662ea94a179bace684218a0d6d94bad97f24917b8b47a3b097a8d1e38a9")
-	// if err != nil {
-	// 	fmt.Println("Failed to generate private key:", err)
-	// 	return
-	// }
-	// privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privateKey)
-
-	// fmt.Println("Private key : ", hex.EncodeToString(privkey.Serialize()))
-
-	// btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
-	// fmt.Println("Public key : ", btcPubkey)
-
-	// // Get the corresponding public key
-	// publicKey := privkey.PubKey()
-
-	// // Sign a message using the private key
-	// message := []byte("Hello, world!")
-	// signature, err := privkey.Sign(message)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// // Verify the signature
-	// valid := signature.Verify(message, publicKey)
-	// if valid {
-	// 	fmt.Println("Signature is valid.")
-	// } else {
-	// 	fmt.Println("Signature is not valid.")
-	// }
 
 }

@@ -46,7 +46,7 @@ func watchAddress(url url.URL) {
 			log.Println("error in address watcher: ", err)
 			return
 		}
-		//save in DB
+
 		fmt.Printf("recv watchtower noti: %s", message)
 
 		c := WatchtowerResponse{}
@@ -70,7 +70,7 @@ func watchAddress(url url.URL) {
 
 }
 
-func kDeepService(accountName string, url url.URL) {
+func kDeepService(accountName string) {
 	fmt.Println("running k deep service")
 	for {
 		resp := getAttestations("5")
@@ -173,6 +173,6 @@ func processSweepTx(accountName string) {
 func startBridge(accountName string, forkscanner_url url.URL) {
 	fmt.Println("starting bridge")
 	go watchAddress(forkscanner_url)
-	go kDeepService(accountName, forkscanner_url)
-	go processSweepTx(accountName)
+	// go kDeepService(accountName)
+	// go processSweepTx(accountName)
 }

@@ -116,7 +116,7 @@ func generateRefundTx(txHex string) (string, error) {
 	return hexTx, nil
 }
 
-func generateSignedSweepTx(address string, accountName string, sweepTx *wire.MsgTx, refundTx *wire.MsgTx) ([]byte, []byte, error) {
+func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, refundTx *wire.MsgTx) ([]byte, []byte, error) {
 
 	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
 	noOfValidators, _ := strconv.Atoi(number)
@@ -151,7 +151,7 @@ func generateSignedSweepTx(address string, accountName string, sweepTx *wire.Msg
 		minSignsRequired := noOfValidators * 2 / 3
 
 		// remove this when I redo the chain
-		minSignsRequired = 3
+		// minSignsRequired = 3
 
 		if len(filteredSweepSignatures)/minSignsRequired < 1 {
 			fmt.Println("INFO: ", "not enough sweep signatures")
@@ -330,7 +330,7 @@ func startJudge(accountName string) {
 					fmt.Println(err)
 				}
 
-				signedSweepTx, signedRefundTx, err := generateSignedSweepTx(sweepAddress.Address, accountName, sweeptx, refundTx)
+				signedSweepTx, signedRefundTx, err := generateSignedTxs(sweepAddress.Address, accountName, sweeptx, refundTx)
 				if err != nil {
 					fmt.Println(err)
 				}

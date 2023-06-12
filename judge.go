@@ -3,173 +3,16 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/spf13/viper"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
-	volttypes "github.com/twilight-project/nyks/x/volt/types"
 )
 
-func registerReserveAddressOnNyks(accountName string, address string, script []byte) {
-
-	cosmos := getCosmosClient()
-
-	reserveScript := hex.EncodeToString(script)
-
-	msg := &bridgetypes.MsgRegisterReserveAddress{
-		ReserveScript:  reserveScript,
-		ReserveAddress: address,
-		JudgeAddress:   oracleAddr,
-	}
-
-	// store response in txResp
-	txResp, err := cosmos.BroadcastTx(accountName, msg)
-	if err != nil {
-		fmt.Println("error in registering reserve address : ", err)
-	}
-
-	// print response from broadcasting a transaction
-	fmt.Println("MsgRegisterReserveAddress : ")
-	fmt.Println(txResp)
-}
-
-func registerAddressOnForkscanner(address string) {
-	dt := time.Now().UTC()
-	dt = dt.AddDate(1, 0, 0)
-
-	request_body := map[string]interface{}{
-		"method":  "add_watched_addresses",
-		"id":      1,
-		"jsonrpc": "2.0",
-		"params": map[string]interface{}{
-			"add": []interface{}{
-				map[string]string{
-					"address":     address,
-					"watch_until": dt.Format(time.RFC3339),
-				},
-			},
-		},
-	}
-
-	data, err := json.Marshal(request_body)
-	if err != nil {
-		log.Fatalf("Post: %v", err)
-	}
-	fmt.Println(string(data))
-
-	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
-	if err != nil {
-		log.Fatalf("Post: %v", err)
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("ReadAll: %v", err)
-	}
-	result := make(map[string]interface{})
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
-	}
-	log.Println(result)
-
-}
-
-func removeAddressOnForkscanner(address string) {
-	dt := time.Now().UTC()
-	dt = dt.AddDate(1, 0, 0)
-
-	request_body := map[string]interface{}{
-		"method":  "remove_watched_addresses",
-		"id":      1,
-		"jsonrpc": "2.0",
-		"params": map[string]interface{}{
-			"add": []interface{}{
-				map[string]string{
-					"address":     address,
-					"watch_until": dt.Format(time.RFC3339),
-				},
-			},
-		},
-	}
-
-	data, err := json.Marshal(request_body)
-	if err != nil {
-		log.Fatalf("Post: %v", err)
-	}
-	fmt.Println(string(data))
-
-	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
-	if err != nil {
-		log.Fatalf("Post: %v", err)
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("ReadAll: %v", err)
-	}
-	result := make(map[string]interface{})
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
-	}
-	log.Println(result)
-
-}
-
-func CreateTxOut(addr string, amount int64) (*wire.TxOut, error) {
-	// Decode the Bitcoin address.
-	address, err := btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
-	if err != nil {
-		fmt.Println("Error decoding address:", err)
-		return nil, err
-	}
-
-	// Generate the pay-to-address script.
-	destinationAddrByte, err := txscript.PayToAddrScript(address)
-	if err != nil {
-		fmt.Println("Error generating pay-to-address script:", err)
-		return nil, err
-	}
-	TxOut := wire.NewTxOut(amount, destinationAddrByte)
-	return TxOut, nil
-
-}
-
-func CreateTxIn(utxo Utxo) (*wire.TxIn, error) {
-	utxoHash, err := chainhash.NewHashFromStr(utxo.Txid)
-	if err != nil {
-		log.Println("error with UTXO")
-		return nil, err
-	}
-	outPoint := wire.NewOutPoint(utxoHash, utxo.Vout)
-	txIn := wire.NewTxIn(outPoint, nil, nil)
-	return txIn, nil
-}
-
-func generateAndRegisterNewAddress(accountName string, height int) string {
-	newSweepAddress, reserveScript := generateAddress(height)
-	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript)
-	registerAddressOnForkscanner(newSweepAddress)
-	return newSweepAddress
-}
-
-func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) (string, []BtcWithdrawRequest, uint64, error) {
+func generateSweepTx(sweepAddress SweepAddress, accountName string, height int, withdrawals []BtcWithdrawRequest) (string, uint64, error) {
 	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
 	noOfMultisigs, _ := strconv.Atoi(number)
 
@@ -178,158 +21,148 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int) 
 
 	utxos := queryUtxo(sweepAddress.Address)
 	if len(utxos) <= 0 {
-		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs)
+		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ")
-		return "", nil, 0, nil
+		return "", 0, nil
 	}
-	withdrawals := getBtcWithdrawRequest()
+
 	totalAmountTxIn := uint64(0)
 	totalAmountTxOut := uint64(0)
 
-	redeemTx := wire.NewMsgTx(wire.TxVersion)
+	sweepTx := wire.NewMsgTx(wire.TxVersion)
 	for _, utxo := range utxos {
 		txIn, err := CreateTxIn(utxo)
 		if err != nil {
 			fmt.Println("error while add tx in : ", err)
-			return "", nil, 0, err
+			return "", 0, err
 		}
 		totalAmountTxIn = totalAmountTxIn + utxo.Amount
 		txIn.Sequence = wire.MaxTxInSequenceNum - 10
-		redeemTx.AddTxIn(txIn)
+		sweepTx.AddTxIn(txIn)
 	}
 
-	withdrawRequests := make([]BtcWithdrawRequest, 0)
-	for _, withdrawal := range withdrawals.WithdrawRequest {
-		if withdrawal.ReserveAddress == sweepAddress.Address {
-			amount, err := strconv.Atoi(withdrawal.WithdrawAmount)
-			txOut, err := CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
-			if err != nil {
-				fmt.Println("error while txout : ", err)
-				return "", nil, 0, err
-			}
-			totalAmountTxOut = totalAmountTxOut + uint64(amount)
-			redeemTx.AddTxOut(txOut)
-			withdrawRequests = append(withdrawRequests, withdrawal)
+	for _, withdrawal := range withdrawals {
+		amount, err := strconv.Atoi(withdrawal.WithdrawAmount)
+		txOut, err := CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
+		if err != nil {
+			fmt.Println("error while txout : ", err)
+			return "", 0, err
 		}
+		totalAmountTxOut = totalAmountTxOut + uint64(amount)
+		sweepTx.AddTxOut(txOut)
 	}
+
+	// need to be worked on
 
 	fee := 5000
 
-	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
+	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), sweepAddress.Address)
 
 	if int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)) > 0 {
 		txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
 		if err != nil {
 			log.Println("error with txout", err)
-			return "", nil, 0, err
+			return "", 0, err
 		}
-		redeemTx.AddTxOut(txOut)
+		sweepTx.AddTxOut(txOut)
 	}
 
-	var signedTx bytes.Buffer
-	redeemTx.Serialize(&signedTx)
-	hexTx := hex.EncodeToString(signedTx.Bytes())
+	var UnsignedTx bytes.Buffer
+	sweepTx.Serialize(&UnsignedTx)
+	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
 	fmt.Println("transaction UnSigned: ", hexTx)
 
-	return hexTx, withdrawRequests, totalAmountTxIn, nil
+	return hexTx, totalAmountTxIn, nil
 }
 
-func createAndSendSweepProposal(tx string, address string, withdrawals []BtcWithdrawRequest, accountName string, total uint64) {
-
-	fmt.Println("inside sending sweep proposal")
-
-	twilightIndividualAccounts := make([]*volttypes.IndividualTwilightReserveAccount, 0)
-	for _, withdrawal := range withdrawals {
-		amount, _ := strconv.Atoi(withdrawal.WithdrawAmount)
-		individualAccount := volttypes.IndividualTwilightReserveAccount{
-			TwilightAddress: withdrawal.WithdrawAddress,
-			BtcValue:        uint64(amount),
-		}
-		twilightIndividualAccounts = append(twilightIndividualAccounts, &individualAccount)
-	}
-
-	cosmos := getCosmosClient()
-
-	msg := &bridgetypes.MsgSweepProposal{
-
-		ReserveId:                        1,
-		ReserveAddress:                   address,
-		JudgeAddress:                     oracleAddr,
-		BtcRelayCapacityValue:            0,
-		TotalValue:                       total,
-		PrivatePoolValue:                 0,
-		PublicValue:                      0,
-		FeePool:                          0,
-		IndividualTwilightReserveAccount: twilightIndividualAccounts,
-		BtcRefundTx:                      tx, // change to refund tx
-		BtcSweepTx:                       tx,
-	}
-
-	sendTransactionSweepProposal(accountName, cosmos, msg)
-}
-
-func sendSweepSign(hexSignatures string, address string, accountName string) {
-	cosmos := getCosmosClient()
-	msg := &bridgetypes.MsgSignSweep{
-		ReserveAddress:   address,
-		SignerAddress:    address, // no idea what this is
-		SweepSignature:   hexSignatures,
-		BtcOracleAddress: oracleAddr,
-	}
-
-	sendTransactionSignSweep(accountName, cosmos, msg)
-}
-
-func broadcastSweeptxNYKS(sweepTxHex string, refundTxHex string, accountName string) {
-	cosmos := getCosmosClient()
-	msg := &bridgetypes.MsgBroadcastTxSweep{
-		SignedRefundTx: refundTxHex,
-		SignedSweepTx:  sweepTxHex,
-		JudgeAddress:   oracleAddr,
-	}
-
-	sendTransactionBroadcastSweeptx(accountName, cosmos, msg)
-}
-
-func createTxFromHex(txHex string) (*wire.MsgTx, error) {
-	// Decode the transaction hex string
-	txBytes, err := hex.DecodeString(txHex)
+func generateRefundTx(txHex string) (string, error) {
+	sweepTx, err := createTxFromHex(txHex)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode hex string: %v", err)
+		fmt.Println("error decoding tx : ", err)
 	}
 
-	// Create a new transaction object
-	tx := wire.NewMsgTx(wire.TxVersion)
+	inputTx := sweepTx.TxHash().String()
+	vout := len(sweepTx.TxOut) - 1
 
-	// Deserialize the transaction bytes
-	err = tx.Deserialize(bytes.NewReader(txBytes))
+	utxo := Utxo{
+		inputTx,
+		uint32(vout),
+		0,
+	}
+	refundTx := wire.NewMsgTx(wire.TxVersion)
+	txIn, err := CreateTxIn(utxo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize transaction: %v", err)
+		fmt.Println("error while add tx in : ", err)
+		return "", err
+	}
+	txIn.Sequence = wire.MaxTxInSequenceNum - 10
+	refundTx.AddTxIn(txIn)
+
+	txout, err := CreateTxOut("bc1q49kzd05aqxs8q7r4rnnxc35cdk6783sf0khepr", 5000)
+	if err != nil {
+		fmt.Println("error while add tx out : ", err)
+		return "", err
 	}
 
-	return tx, nil
+	refundTx.AddTxOut(txout)
+	locktime := uint32(144)
+	refundTx.LockTime = locktime
+
+	var UnsignedTx bytes.Buffer
+	sweepTx.Serialize(&UnsignedTx)
+	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
+	fmt.Println("transaction UnSigned: ", hexTx)
+
+	return hexTx, nil
 }
 
-func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx) ([]byte, error) {
+func generateSignedSweepTx(address string, accountName string, sweepTx *wire.MsgTx, refundTx *wire.MsgTx) ([]byte, []byte, error) {
 
 	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
 	noOfValidators, _ := strconv.Atoi(number)
 	for {
 		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
-		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, address)
+		receiveRefundSignatures := getSignRefund()
+
+		addrs := querySweepAddress(address)
+		if len(addrs) <= 0 {
+			continue
+		}
+		currentReserveAddress := addrs[0]
+
+		addrs = querySweepAddressByParentAddress(currentReserveAddress.Address)
+		if len(addrs) <= 0 {
+			continue
+		}
+		newReserveAddress := addrs[0]
+
+		filteredSweepSignatures := filterSignSweep(receiveSweepSignatures, currentReserveAddress.Address)
+		filteredRefundSignatures := filterSignRefund(receiveRefundSignatures, newReserveAddress.Address)
 
 		if len(filteredSweepSignatures) <= 0 {
 			continue
 		}
 
+		if len(filteredRefundSignatures) <= 0 {
+			continue
+		}
+
 		minSignsRequired := noOfValidators * 2 / 3
+
+		// remove this when I redo the chain
 		minSignsRequired = 3
 
 		if len(filteredSweepSignatures)/minSignsRequired < 1 {
-			fmt.Println("INFO: ", "not enough signatures")
+			fmt.Println("INFO: ", "not enough sweep signatures")
 			continue
 		}
+
+		if len(filteredRefundSignatures)/minSignsRequired < 1 {
+			fmt.Println("INFO: ", "not enough refund signatures")
+			continue
+		}
+
 		dataSig := make([][]byte, 0)
 
 		for _, sig := range filteredSweepSignatures {
@@ -337,10 +170,10 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			dataSig = append(dataSig, sig)
 		}
 
-		script := querySweepAddressScript(address)
-		preimage := querySweepAddressPreimage(address)
+		script := currentReserveAddress.Script
+		preimage := currentReserveAddress.Preimage
 
-		for i := 0; i < len(sweeptx.TxIn); i++ {
+		for i := 0; i < len(sweepTx.TxIn); i++ {
 			witness := wire.TxWitness{}
 			dummy := []byte{}
 			witness = append(witness, dummy)
@@ -349,107 +182,59 @@ func generate_signed_tx(address string, accountName string, sweeptx *wire.MsgTx)
 			}
 			witness = append(witness, preimage)
 			witness = append(witness, script)
-			sweeptx.TxIn[i].Witness = witness
+			sweepTx.TxIn[i].Witness = witness
 		}
-
-		var signedTx bytes.Buffer
-		err := sweeptx.Serialize(&signedTx)
+		var signedSweepTx bytes.Buffer
+		err := sweepTx.Serialize(&signedSweepTx)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		return signedTx.Bytes(), nil
-	}
-}
+		dataSig = make([][]byte, 0)
 
-func reverseArray(arr []MsgSignSweep) []MsgSignSweep {
-	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
-		arr[i], arr[j] = arr[j], arr[i]
-	}
-	return arr
-}
-
-func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSignSweep {
-	signSweep := make([]MsgSignSweep, 0)
-
-	for _, sig := range sweepSignatures.SignSweepMsg {
-		if sig.ReserveAddress == address {
-			signSweep = append(signSweep, sig)
+		for _, sig := range filteredRefundSignatures {
+			sig, _ := hex.DecodeString(sig.RefundSignature)
+			dataSig = append(dataSig, sig)
 		}
-	}
 
-	delegateAddresses := getDelegateAddresses()
-	orderedSignSweep := make([]MsgSignSweep, 0)
+		script = newReserveAddress.Script
+		preimage = newReserveAddress.Preimage
 
-	for _, oracleAddr := range delegateAddresses.Addresses {
-		for _, sweepSig := range signSweep {
-			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
-				orderedSignSweep = append(orderedSignSweep, sweepSig)
+		for i := 0; i < len(refundTx.TxIn); i++ {
+			witness := wire.TxWitness{}
+			dummy := []byte{}
+			witness = append(witness, dummy)
+			for j := 0; j < minSignsRequired; j++ {
+				witness = append(witness, dataSig[j])
 			}
+			witness = append(witness, preimage)
+			witness = append(witness, script)
+			refundTx.TxIn[i].Witness = witness
 		}
+
+		var signedRefundTx bytes.Buffer
+		err = refundTx.Serialize(&signedRefundTx)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return signedSweepTx.Bytes(), signedRefundTx.Bytes(), nil
 	}
-
-	fmt.Println("ordered Signatures Sweep : ", orderedSignSweep)
-
-	return orderedSignSweep
-}
-
-func encodeSignatures(signatures [][]byte) string {
-	hexsignatures := make([]string, 0)
-	for _, sig := range signatures {
-		hexSig := hex.EncodeToString(sig)
-		hexsignatures = append(hexsignatures, hexSig)
-	}
-
-	allsignatures := strings.Join(hexsignatures, " ")
-	return allsignatures
-}
-
-func decodeSignatures(signatures string) [][]byte {
-	signaturesbyte := make([][]byte, 0)
-	hexsignatures := strings.Split(signatures, " ")
-	for _, hexSig := range hexsignatures {
-		sig, _ := hex.DecodeString(hexSig)
-		signaturesbyte = append(signaturesbyte, sig)
-	}
-
-	return signaturesbyte
-}
-
-func signTx(tx *wire.MsgTx, address string) []byte {
-	amount := queryAmount(tx.TxIn[0].PreviousOutPoint.Index, tx.TxIn[0].PreviousOutPoint.Hash.String())
-	sighashes := txscript.NewTxSigHashes(tx)
-	script := querySweepAddressScript(address)
-
-	privkeybytes, err := masterPrivateKey.Serialize()
-	if err != nil {
-		fmt.Println("Error: converting private key to bytes : ", err)
-	}
-
-	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-
-	signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	return signature
-}
-
-func registerJudge(accountName string) {
-	cosmos := getCosmosClient()
-	msg := &bridgetypes.MsgRegisterJudge{
-		Creator:          oracleAddr,
-		JudgeAddress:     oracleAddr,
-		ValidatorAddress: valAddr,
-	}
-
-	sendTransactionRegisterJudge(accountName, cosmos, msg)
-	fmt.Println("registered Judge")
 }
 
 func initJudge(accountName string) {
 	fmt.Println("init judge")
+	if judge == true {
+		addr := queryAllSweepAddresses()
+		if len(addr) <= 0 {
+			time.Sleep(2 * time.Minute)
+			initReserve(accountName)
+		}
+	}
+}
+
+func initReserve(accountName string) {
+	fmt.Println("init reserve")
 	height := 0
 	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
 	noOfMultisigs, _ := strconv.Atoi(number)
@@ -457,7 +242,11 @@ func initJudge(accountName string) {
 	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
-	registerJudge(accountName)
+	judges := getRegisteredJudges()
+	if len(judges.Judges) == 0 {
+		registerJudge(accountName)
+	}
+
 	for {
 		resp := getAttestations("1")
 		if len(resp.Attestations) <= 0 {
@@ -478,7 +267,7 @@ func initJudge(accountName string) {
 	if height > 0 {
 
 		for i := 1; i <= noOfMultisigs; i++ {
-			_ = generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks))
+			_ = generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), "")
 			height = height + 1
 		}
 	}
@@ -508,38 +297,58 @@ func startJudge(accountName string) {
 				continue
 			} else {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
-				address := addresses[0]
+				sweepAddress := addresses[0]
 
-				tx, withdrawals, total, err := generateSweepTx(address, accountName, height)
+				withdrawals := getBtcWithdrawRequestForAddress(sweepAddress)
+
+				sweepTxHex, total, err := generateSweepTx(sweepAddress, accountName, height, withdrawals)
 				if err != nil {
 					fmt.Println("Error in generating a Sweep transaction: ", err)
 					continue
 				}
-				if tx == "" {
+				if sweepTxHex == "" {
 					fmt.Println("INFO: ", "no sweep tx generated because no funds in current address")
 					time.Sleep(1 * time.Minute)
 					continue
 				}
 
-				createAndSendSweepProposal(tx, address.Address, withdrawals, accountName, total)
+				refundTxHex, err := generateRefundTx(sweepTxHex)
+
+				createAndSendSweepProposal(sweepTxHex, refundTxHex, sweepAddress.Address, withdrawals, accountName, total)
 
 				time.Sleep(1 * time.Minute)
 
-				sweeptx, err := createTxFromHex(tx)
+				sweeptx, err := createTxFromHex(sweepTxHex)
 				if err != nil {
 					fmt.Println("error decoding sweep tx : inside judge")
 					fmt.Println(err)
 				}
-				signedTx, err := generate_signed_tx(address.Address, accountName, sweeptx)
+
+				refundTx, err := createTxFromHex(refundTxHex)
+				if err != nil {
+					fmt.Println("error decoding refund tx : inside judge")
+					fmt.Println(err)
+				}
+
+				signedSweepTx, signedRefundTx, err := generateSignedSweepTx(sweepAddress.Address, accountName, sweeptx, refundTx)
 				if err != nil {
 					fmt.Println(err)
 				}
 
-				signedTxHex := hex.EncodeToString(signedTx)
-				fmt.Println("Signed P2WSH transaction with preimage:", signedTxHex)
+				signedSweepTxHex := hex.EncodeToString(signedSweepTx)
+				fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
 
-				broadcastSweeptxNYKS(signedTxHex, signedTxHex, accountName)
-				markProcessedSweepAddress(address.Address)
+				signedRefundTxHex := hex.EncodeToString(signedRefundTx)
+				fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
+
+				broadcastSweeptxNYKS(signedSweepTxHex, signedRefundTxHex, accountName)
+				markProcessedSweepAddress(sweepAddress.Address)
+
+				wireTransaction, err := createTxFromHex(signedSweepTxHex)
+				if err != nil {
+					fmt.Println("error decodeing signed transaction : ", err)
+				}
+				broadcastBtcTransaction(wireTransaction)
 			}
 
 		}

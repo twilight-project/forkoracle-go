@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -137,42 +136,18 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 
 }
 
-func processSweepTx(accountName string) {
-
+func updatereserveaddresses() {
 	for {
-		SweepProposal := getAttestationsSweepProposal()
-
-		for _, attestation := range SweepProposal.Attestations {
-			sweeptxHex := attestation.Proposal.BtcSweepTx
-			reserveAddress := attestation.Proposal.ReserveAddress
-			addrs := querySweepAddress(reserveAddress)
-			if len(addrs) <= 0 {
-				continue
-			}
-
-			addr := addrs[0]
-
-			if addr.Signed == false {
-				sweeptx, err := createTxFromHex(sweeptxHex)
-				if err != nil {
-					fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
-					log.Fatal(err)
-				}
-
-				signature := signTx(sweeptx, reserveAddress)
-				hexSignature := hex.EncodeToString(signature)
-				fmt.Println("Sweep Signature : ", hexSignature)
-				sendSweepSign(hexSignature, reserveAddress, accountName)
-				markSweepAddressSigned(reserveAddress)
-			}
-		}
-		time.Sleep(1 * time.Minute)
+		time.Sleep(2 * time.Minute)
+		registerAddressOnValidators()
 	}
 }
 
 func startBridge(accountName string, forkscanner_url url.URL) {
 	fmt.Println("starting bridge")
+	if judge == false {
+		go updatereserveaddresses()
+	}
 	go watchAddress(forkscanner_url)
-	go kDeepService(accountName)
-	go processSweepTx(accountName)
+	kDeepService(accountName)
 }

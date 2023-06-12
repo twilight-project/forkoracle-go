@@ -118,12 +118,13 @@ type ErrorResp struct {
 }
 
 type SweepAddress struct {
-	Address       string
-	Script        []byte
-	Preimage      []byte
-	Unlock_height int64
-	Archived      bool
-	Signed        bool
+	Address        string
+	Script         []byte
+	Preimage       []byte
+	Unlock_height  int64
+	Parent_address string
+	Archived       bool
+	Signed         bool
 }
 
 type Utxo struct {
@@ -162,4 +163,25 @@ type ReserveAddress struct {
 
 type ReserveAddressResp struct {
 	Addresses []ReserveAddress
+}
+
+type RegisteredJudge struct {
+	Creator          string
+	JudgeAddress     string
+	ValidatorAddress string
+}
+
+type RegisteredJudgeResp struct {
+	Judges []RegisteredJudge
+}
+
+type MsgSignRefund struct {
+	ReserveAddress   string
+	SignerAddress    string
+	RefundSignature  string
+	BtcOracleAddress string
+}
+
+type MsgSignRefundResp struct {
+	SignRefundMsg []MsgSignRefund
 }

@@ -63,6 +63,14 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 	}
 }
 
+func sendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignRefund) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err == nil {
+		fmt.Println("Refund Signature sent")
+	}
+}
+
 func sendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
 
 	_, err := cosmos.BroadcastTx(accountName, data)
@@ -238,6 +246,26 @@ func getSignSweep() MsgSignSweepResp {
 	return a
 }
 
+func getSignRefund() MsgSignRefundResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_sweep_all")
+	if err != nil {
+		fmt.Println("error getting refund signature : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting refund signature body : ", err)
+	}
+
+	a := MsgSignRefundResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling refund signature : ", err)
+	}
+	return a
+}
+
 func getReserveddresses() ReserveAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_reserve_addresses")
@@ -254,6 +282,26 @@ func getReserveddresses() ReserveAddressResp {
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling deposit addresses : ", err)
+	}
+	return a
+}
+
+func getRegisteredJudges() RegisteredJudgeResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_judges")
+	if err != nil {
+		fmt.Println("error getting registered judges : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting registered judges body : ", err)
+	}
+
+	a := RegisteredJudgeResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling registered judges : ", err)
 	}
 	return a
 }

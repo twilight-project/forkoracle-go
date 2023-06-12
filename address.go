@@ -35,7 +35,7 @@ func preimage() ([]byte, error) {
 	return preimage, nil
 }
 
-func BuildScript(preimage []byte) ([]byte, error) {
+func buildScript(preimage []byte) ([]byte, error) {
 
 	delegateAddresses := getDelegateAddresses()
 	payment_hash := hash160(preimage)
@@ -81,21 +81,21 @@ func BuildScript(preimage []byte) ([]byte, error) {
 	return redeemScript, nil
 }
 
-func BuildWitnessScript(redeemScript []byte) []byte {
+func buildWitnessScript(redeemScript []byte) []byte {
 	WitnessScript := sha256.Sum256(redeemScript)
 	return WitnessScript[:]
 }
 
-func generateAddress(unlock_height int) (string, []byte) {
+func generateAddress(unlock_height int, oldReserveAddress string) (string, []byte) {
 	preimage, err := preimage()
 	if err != nil {
 		fmt.Println(err)
 	}
-	redeemScript, err := BuildScript(preimage)
+	redeemScript, err := buildScript(preimage)
 	if err != nil {
 		fmt.Println(err)
 	}
-	WitnessScript := BuildWitnessScript(redeemScript)
+	WitnessScript := buildWitnessScript(redeemScript)
 	address, err := btcutil.NewAddressWitnessScriptHash(WitnessScript, &chaincfg.MainNetParams)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -105,7 +105,7 @@ func generateAddress(unlock_height int) (string, []byte) {
 	addressStr := address.String()
 	fmt.Println("new address generated : ", addressStr)
 
-	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height)+1000)
+	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height)+1000, oldReserveAddress)
 
 	return addressStr, redeemScript
 }

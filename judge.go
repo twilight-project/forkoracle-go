@@ -105,7 +105,7 @@ func generateRefundTx(txHex string) (string, error) {
 	}
 
 	refundTx.AddTxOut(txout)
-	locktime := uint32(144)
+	locktime := uint32(5)
 	refundTx.LockTime = locktime
 
 	var UnsignedTx bytes.Buffer

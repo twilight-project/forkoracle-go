@@ -54,7 +54,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int, 
 
 	// need to be worked on
 
-	fee := 5000
+	fee := 15000
 
 	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), sweepAddress.Address)
 

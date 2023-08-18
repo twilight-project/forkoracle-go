@@ -364,7 +364,7 @@ func startJudge(accountName string) {
 				signedRefundTxHex := hex.EncodeToString(signedRefundTx)
 				fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
 
-				broadcastSweeptxNYKS(signedSweepTxHex, signedRefundTxHex, accountName)
+				broadcastSweeptxNYKS(signedSweepTxHex, accountName)
 
 				wireTransaction, err := createTxFromHex(signedSweepTxHex)
 				if err != nil {

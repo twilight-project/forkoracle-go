@@ -368,16 +368,25 @@ func sendRefundSign(hexSignatures string, address string, accountName string) {
 	sendTransactionSignRefund(accountName, cosmos, msg)
 }
 
-func broadcastSweeptxNYKS(sweepTxHex string, refundTxHex string, accountName string) {
+func broadcastSweeptxNYKS(sweepTxHex string, accountName string) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgBroadcastTxSweep{
-		SignedRefundTx: refundTxHex,
-		SignedSweepTx:  sweepTxHex,
-		JudgeAddress:   oracleAddr,
+		SignedSweepTx: sweepTxHex,
+		JudgeAddress:  oracleAddr,
 	}
 
 	sendTransactionBroadcastSweeptx(accountName, cosmos, msg)
 }
+
+// func broadcastRefundtxNYKS(refundTxHex string, accountName string) {
+// 	cosmos := getCosmosClient()
+// 	msg := &bridgetypes.MsgBroadcastTxRefund{
+// 		SignedRefundTx: refundTxHex,
+// 		JudgeAddress:   oracleAddr,
+// 	}
+
+// 	sendTransactionBroadcastRefundtx(accountName, cosmos, msg)
+// }
 
 func generateAndRegisterNewAddress(accountName string, height int, oldReserveAddress string) string {
 	newSweepAddress, reserveScript := generateAddress(height, oldReserveAddress)

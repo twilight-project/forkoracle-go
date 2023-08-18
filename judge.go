@@ -12,18 +12,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-func generateSweepTx(sweepAddress SweepAddress, accountName string, height int, withdrawals []BtcWithdrawRequest) (string, uint64, error) {
-	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
-	noOfMultisigs, _ := strconv.Atoi(number)
-
-	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
-	unlockingTimeInBlocks, _ := strconv.Atoi(number)
-
+func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountName string, withdrawals []BtcWithdrawRequest) (string, string, uint64, error) {
 	utxos := queryUtxo(sweepAddress.Address)
 	if len(utxos) <= 0 {
+		// need to decide if this needs to be enabled
 		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ")
-		return "", 0, nil
+		markAddressSignedRefund(sweepAddress.Address)
+		markAddressSignedSweep(sweepAddress.Address)
+		return "", "", 0, nil
 	}
 
 	totalAmountTxIn := uint64(0)
@@ -34,7 +31,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int, 
 		txIn, err := CreateTxIn(utxo)
 		if err != nil {
 			fmt.Println("error while add tx in : ", err)
-			return "", 0, err
+			return "", "", 0, err
 		}
 		totalAmountTxIn = totalAmountTxIn + utxo.Amount
 		txIn.Sequence = wire.MaxTxInSequenceNum - 10
@@ -46,7 +43,7 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int, 
 		txOut, err := CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
 		if err != nil {
 			fmt.Println("error while txout : ", err)
-			return "", 0, err
+			return "", "", 0, err
 		}
 		totalAmountTxOut = totalAmountTxOut + uint64(amount)
 		sweepTx.AddTxOut(txOut)
@@ -56,26 +53,30 @@ func generateSweepTx(sweepAddress SweepAddress, accountName string, height int, 
 
 	fee := 15000
 
-	newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), sweepAddress.Address)
-
 	if int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)) > 0 {
 		txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
 		if err != nil {
 			log.Println("error with txout", err)
-			return "", 0, err
+			return "", "", 0, err
 		}
 		sweepTx.AddTxOut(txOut)
 	}
 
+	script := querySweepAddressScript(sweepAddress.Address)
+	witness := wire.TxWitness{}
+	witness = append(witness, script)
+	sweepTx.TxIn[0].Witness = witness
+
 	var UnsignedTx bytes.Buffer
 	sweepTx.Serialize(&UnsignedTx)
 	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
-	fmt.Println("transaction UnSigned: ", hexTx)
+	fmt.Println("transaction UnSigned Sweep: ", hexTx)
+	txid := sweepTx.TxHash().String()
 
-	return hexTx, totalAmountTxIn, nil
+	return hexTx, txid, totalAmountTxIn, nil
 }
 
-func generateRefundTx(txHex string) (string, error) {
+func generateRefundTx(txHex string, address string) (string, error) {
 	sweepTx, err := createTxFromHex(txHex)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
@@ -98,6 +99,7 @@ func generateRefundTx(txHex string) (string, error) {
 	txIn.Sequence = wire.MaxTxInSequenceNum - 10
 	refundTx.AddTxIn(txIn)
 
+	// need to be decided
 	txout, err := CreateTxOut("bc1q49kzd05aqxs8q7r4rnnxc35cdk6783sf0khepr", 5000)
 	if err != nil {
 		fmt.Println("error while add tx out : ", err)
@@ -108,10 +110,15 @@ func generateRefundTx(txHex string) (string, error) {
 	locktime := uint32(5)
 	refundTx.LockTime = locktime
 
+	script := querySweepAddressScript(address)
+	witness := wire.TxWitness{}
+	witness = append(witness, script)
+	refundTx.TxIn[0].Witness = witness
+
 	var UnsignedTx bytes.Buffer
-	sweepTx.Serialize(&UnsignedTx)
+	refundTx.Serialize(&UnsignedTx)
 	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
-	fmt.Println("transaction UnSigned: ", hexTx)
+	fmt.Println("transaction UnSigned Refund: ", hexTx)
 
 	return hexTx, nil
 }
@@ -175,12 +182,12 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 
 		for i := 0; i < len(sweepTx.TxIn); i++ {
 			witness := wire.TxWitness{}
+			witness = append(witness, preimage)
 			dummy := []byte{}
 			witness = append(witness, dummy)
 			for j := 0; j < minSignsRequired; j++ {
 				witness = append(witness, dataSig[j])
 			}
-			witness = append(witness, preimage)
 			witness = append(witness, script)
 			sweepTx.TxIn[i].Witness = witness
 		}
@@ -198,16 +205,17 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 		}
 
 		script = newReserveAddress.Script
-		preimage = newReserveAddress.Preimage
+		judgeSign := signByJudge(refundTx, script)
 
 		for i := 0; i < len(refundTx.TxIn); i++ {
+
 			witness := wire.TxWitness{}
+			witness = append(witness, judgeSign)
 			dummy := []byte{}
 			witness = append(witness, dummy)
 			for j := 0; j < minSignsRequired; j++ {
 				witness = append(witness, dataSig[j])
 			}
-			witness = append(witness, preimage)
 			witness = append(witness, script)
 			refundTx.TxIn[i].Witness = witness
 		}
@@ -220,6 +228,12 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 
 		return signedSweepTx.Bytes(), signedRefundTx.Bytes(), nil
 	}
+}
+
+//temp use function judge sign
+
+func signByJudge(tx *wire.MsgTx, script []byte) []byte {
+	return signTx(tx, script)
 }
 
 func initJudge(accountName string) {
@@ -242,6 +256,7 @@ func initReserve(accountName string) {
 	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
+	//TODO Need to change this for multi judge setup
 	judges := getRegisteredJudges()
 	if len(judges.Judges) == 0 {
 		registerJudge(accountName)
@@ -277,6 +292,11 @@ func initReserve(accountName string) {
 
 func startJudge(accountName string) {
 	fmt.Println("starting judge")
+	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
+	noOfMultisigs, _ := strconv.Atoi(number)
+
+	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 	for {
 		resp := getAttestations("20")
 		if len(resp.Attestations) <= 0 {
@@ -299,9 +319,9 @@ func startJudge(accountName string) {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
 				sweepAddress := addresses[0]
 
+				newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), sweepAddress.Address)
 				withdrawals := getBtcWithdrawRequestForAddress(sweepAddress)
-
-				sweepTxHex, total, err := generateSweepTx(sweepAddress, accountName, height, withdrawals)
+				sweepTxHex, sweepTxId, _, err := generateSweepTx(sweepAddress, newSweepAddress, accountName, withdrawals)
 				if err != nil {
 					fmt.Println("Error in generating a Sweep transaction: ", err)
 					continue
@@ -312,10 +332,13 @@ func startJudge(accountName string) {
 					continue
 				}
 
-				refundTxHex, err := generateRefundTx(sweepTxHex)
+				refundTxHex, err := generateRefundTx(sweepTxHex, newSweepAddress)
 
-				createAndSendSweepProposal(sweepTxHex, refundTxHex, sweepAddress.Address, withdrawals, accountName, total)
+				reserve := getReserveForAddress(sweepAddress.Address)
+				sendUnsignedSweepTx(sweepTxHex, sweepTxId, accountName)
+				sendUnsignedRefundTx(refundTxHex, uint64(reserve.ReserveId), accountName)
 
+				// sleep time so that other validators can sign
 				time.Sleep(1 * time.Minute)
 
 				sweeptx, err := createTxFromHex(sweepTxHex)
@@ -342,7 +365,6 @@ func startJudge(accountName string) {
 				fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
 
 				broadcastSweeptxNYKS(signedSweepTxHex, signedRefundTxHex, accountName)
-				markProcessedSweepAddress(sweepAddress.Address)
 
 				wireTransaction, err := createTxFromHex(signedSweepTxHex)
 				if err != nil {

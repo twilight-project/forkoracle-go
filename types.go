@@ -123,8 +123,8 @@ type SweepAddress struct {
 	Preimage       []byte
 	Unlock_height  int64
 	Parent_address string
-	Archived       bool
-	Signed         bool
+	Signed_refund  bool
+	Signed_sweep   bool
 }
 
 type Utxo struct {
@@ -184,4 +184,39 @@ type MsgSignRefund struct {
 
 type MsgSignRefundResp struct {
 	SignRefundMsg []MsgSignRefund
+}
+
+type BtcReserveResp struct {
+	BtcReserves []BtcReserve
+}
+
+type BtcReserve struct {
+	ReserveId             uint8
+	ReserveAddress        string
+	JudgeAddress          string
+	BtcRelayCapacityValue uint8
+	TotalValue            uint8
+	PrivatePoolValue      uint8
+	PublicValue           uint8
+	FeePool               uint8
+}
+
+type UnsignedTxSweepResp struct {
+	UnsignedTxSweepMsgs []UnsignedTxSweep
+}
+
+type UnsignedTxSweep struct {
+	TxId               string
+	BtcUnsignedSweepTx string
+	JudgeAddress       string
+}
+
+type UnsignedTxRefundResp struct {
+	UnsignedTxRefundMsgs []UnsignedTxRefund
+}
+
+type UnsignedTxRefund struct {
+	TxId                string
+	BtcUnsignedRefundTx string
+	JudgeAddress        string
 }

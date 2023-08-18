@@ -37,13 +37,33 @@ func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Cl
 	}
 }
 
-func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
+// func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
+
+// 	_, err := cosmos.BroadcastTx(accountName, data)
+// 	if err != nil {
+// 		fmt.Println("error in sending sweep transaction proposal : ", err)
+// 	} else {
+// 		fmt.Println("Sweep Transaction sent")
+// 	}
+// }
+
+func sendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxSweep) {
 
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {
-		fmt.Println("error in sending sweep transaction proposal : ", err)
+		fmt.Println("error in sending unsigned sweep transaction : ", err)
 	} else {
-		fmt.Println("Sweep Transaction sent")
+		fmt.Println("unsigned Sweep Transaction sent")
+	}
+}
+
+func sendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxRefund) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in sending unsigned Refund transaction : ", err)
+	} else {
+		fmt.Println("unsigned Refund Transaction sent")
 	}
 }
 
@@ -168,9 +188,27 @@ func getAttestations(limit string) AttestaionBlock {
 	return a
 }
 
-func getAttestationsSweepProposal() AttestaionBlockSweep {
+// func getAttestationsSweepProposal() AttestaionBlockSweep {
+// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=20&order_by=desc&proposal_type=2")
+// 	if err != nil {
+// 		log.Fatalln(err)
+// 	}
+// 	//We Read the response body on the line below.
+// 	body, err := ioutil.ReadAll(resp.Body)
+// 	if err != nil {
+// 		log.Fatalln(err)
+// 	}
+
+// 	a := AttestaionBlockSweep{}
+// 	err = json.Unmarshal(body, &a)
+
+// 	return a
+// }
+
+func getUnsignedSweepTx() UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/nyks/attestations?limit=20&order_by=desc&proposal_type=2")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=20")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -180,7 +218,25 @@ func getAttestationsSweepProposal() AttestaionBlockSweep {
 		log.Fatalln(err)
 	}
 
-	a := AttestaionBlockSweep{}
+	a := UnsignedTxSweepResp{}
+	err = json.Unmarshal(body, &a)
+
+	return a
+}
+
+func getUnsignedRefundTx() UnsignedTxRefundResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=20")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	a := UnsignedTxRefundResp{}
 	err = json.Unmarshal(body, &a)
 
 	return a
@@ -248,7 +304,7 @@ func getSignSweep() MsgSignSweepResp {
 
 func getSignRefund() MsgSignRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_sweep_all")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_refund_all")
 	if err != nil {
 		fmt.Println("error getting refund signature : ", err)
 	}
@@ -299,6 +355,26 @@ func getRegisteredJudges() RegisteredJudgeResp {
 	}
 
 	a := RegisteredJudgeResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling registered judges : ", err)
+	}
+	return a
+}
+
+func getBtcReserves() BtcReserveResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/volt/btc_reserve")
+	if err != nil {
+		fmt.Println("error getting registered judges : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting registered judges body : ", err)
+	}
+
+	a := BtcReserveResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling registered judges : ", err)

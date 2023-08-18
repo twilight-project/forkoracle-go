@@ -5,11 +5,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/cosmos/btcutil"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -35,18 +37,15 @@ func preimage() ([]byte, error) {
 	return preimage, nil
 }
 
-func buildScript(preimage []byte) ([]byte, error) {
-
+func buildScript(preimage []byte, unlockHeight int) ([]byte, error) {
+	var judgeBtcPK *btcec.PublicKey
+	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	delayPeriod, _ := strconv.Atoi(number)
 	delegateAddresses := getDelegateAddresses()
 	payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
-	builder.AddOp(txscript.OP_SIZE)
-	builder.AddInt64(32)
-	builder.AddOp(txscript.OP_EQUALVERIFY)
-	builder.AddOp(txscript.OP_HASH160)
-	builder.AddData(payment_hash)
-	builder.AddOp(txscript.OP_EQUAL)
-	builder.AddOp(txscript.OP_IF)
+
+	// adding multisig check
 
 	required := int64(len(delegateAddresses.Addresses) * 2 / 3)
 
@@ -55,8 +54,8 @@ func buildScript(preimage []byte) ([]byte, error) {
 	}
 
 	builder.AddInt64(required)
-	for _, element := range delegateAddresses.Addresses {
 
+	for _, element := range delegateAddresses.Addresses {
 		pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
 		if err != nil {
 			panic(err)
@@ -69,9 +68,34 @@ func buildScript(preimage []byte) ([]byte, error) {
 		}
 
 		builder.AddData(pubKey.SerializeCompressed())
+
+		//TODO: might need to change this for multi judge setup
+		if element.BtcOracleAddress == oracleAddr {
+			judgeBtcPK = pubKey
+		}
 	}
 	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
 	builder.AddOp(txscript.OP_CHECKMULTISIG)
+
+	// adding preimage check if multisig passes
+	builder.AddOp(txscript.OP_IF)
+	builder.AddOp(txscript.OP_SIZE)
+	builder.AddInt64(32)
+	builder.AddOp(txscript.OP_EQUALVERIFY)
+	builder.AddOp(txscript.OP_HASH160)
+	builder.AddData(payment_hash)
+	builder.AddOp(txscript.OP_EQUAL)
+
+	// adding judge refund check
+	builder.AddOp(txscript.OP_ELSE)
+	builder.AddData(judgeBtcPK.SerializeCompressed())
+	builder.AddOp(txscript.OP_CHECKSIG)
+	builder.AddOp(txscript.OP_NOTIF)
+	builder.AddInt64(int64(unlockHeight + delayPeriod))
+	builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
+	builder.AddOp(txscript.OP_DROP)
+	builder.AddOp(txscript.OP_ENDIF)
+
 	builder.AddOp(txscript.OP_ENDIF)
 
 	redeemScript, err := builder.Script()
@@ -91,7 +115,7 @@ func generateAddress(unlock_height int, oldReserveAddress string) (string, []byt
 	if err != nil {
 		fmt.Println(err)
 	}
-	redeemScript, err := buildScript(preimage)
+	redeemScript, err := buildScript(preimage, unlock_height)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -105,7 +129,7 @@ func generateAddress(unlock_height int, oldReserveAddress string) (string, []byt
 	addressStr := address.String()
 	fmt.Println("new address generated : ", addressStr)
 
-	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height)+1000, oldReserveAddress)
+	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height), oldReserveAddress)
 
 	return addressStr, redeemScript
 }

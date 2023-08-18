@@ -121,12 +121,11 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	fmt.Println("Data for confirm BTC deposut : ", data)
 
 	msg := &types.MsgConfirmBtcDeposit{
-		DepositAddress:         data.Receiving,
+		ReserveAddress:         data.Receiving,
 		DepositAmount:          data.Satoshis,
 		Height:                 data.Height,
 		Hash:                   data.Receiving_txid,
 		TwilightDepositAddress: deposit_address.TwilightDepositAddress,
-		ReserveAddress:         data.Receiving,
 		OracleAddress:          oracleAddr,
 	}
 	fmt.Println("confirming btc transaction")

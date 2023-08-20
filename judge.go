@@ -250,10 +250,10 @@ func initJudge(accountName string) {
 func initReserve(accountName string) {
 	fmt.Println("init reserve")
 	height := 0
-	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
-	noOfMultisigs, _ := strconv.Atoi(number)
+	// number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
+	// noOfMultisigs, _ := strconv.Atoi(number)
 
-	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
 	//TODO Need to change this for multi judge setup
@@ -281,10 +281,10 @@ func initReserve(accountName string) {
 
 	if height > 0 {
 
-		for i := 1; i <= noOfMultisigs; i++ {
-			_ = generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), "")
-			height = height + 1
-		}
+		// for i := 1; i <= noOfMultisigs; i++ {
+		_ = generateAndRegisterNewAddress(accountName, height+unlockingTimeInBlocks, "")
+		// 	height = height + 1
+		// }
 	}
 
 	fmt.Println("judge initialized")
@@ -292,10 +292,10 @@ func initReserve(accountName string) {
 
 func startJudge(accountName string) {
 	fmt.Println("starting judge")
-	number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
-	noOfMultisigs, _ := strconv.Atoi(number)
+	// number := fmt.Sprintf("%v", viper.Get("no_of_Multisigs"))
+	// noOfMultisigs, _ := strconv.Atoi(number)
 
-	number = fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 	for {
 		resp := getAttestations("20")
@@ -319,7 +319,7 @@ func startJudge(accountName string) {
 				fmt.Println("INFO: sweep address found for btc height : ", attestation.Proposal.Height)
 				sweepAddress := addresses[0]
 
-				newSweepAddress := generateAndRegisterNewAddress(accountName, height+(noOfMultisigs*unlockingTimeInBlocks), sweepAddress.Address)
+				newSweepAddress := generateAndRegisterNewAddress(accountName, height+unlockingTimeInBlocks, sweepAddress.Address)
 				withdrawals := getBtcWithdrawRequestForAddress(sweepAddress)
 				sweepTxHex, sweepTxId, _, err := generateSweepTx(sweepAddress, newSweepAddress, accountName, withdrawals)
 				if err != nil {

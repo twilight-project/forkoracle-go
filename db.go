@@ -200,7 +200,7 @@ func querySweepAddressesByHeight(height uint64) []SweepAddress {
 }
 
 func querySweepAddress(addr string) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where address = $1 and unsigned_sweep = false and unsigned_refund = false", addr)
+	DB_reader, err := dbconn.Query("select * from address where address = $1 and signed_sweep = false and signed_refund = false", addr)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
@@ -229,7 +229,7 @@ func querySweepAddress(addr string) []SweepAddress {
 }
 
 func queryAllSweepAddresses() []SweepAddress {
-	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where unsigned_sweep = false and unsigned_refund = false")
+	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where signed_sweep = false and signed_refund = false")
 	if err != nil {
 		fmt.Println("An error occured while query all sweep addresses: ", err)
 	}

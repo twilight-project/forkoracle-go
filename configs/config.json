@@ -12,6 +12,6 @@
     "confirmation_limit": "3",
     "wallet_passphrase": "the correct horse battery staple",
     "no_of_Multisigs": "1",
-    "unlocking_time": "144",
+    "unlocking_time": "6",
     "no_of_Validators": "6"
 }

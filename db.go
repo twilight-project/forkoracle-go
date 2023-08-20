@@ -373,3 +373,25 @@ func querySweepAddressByParentAddress(address string) []SweepAddress {
 	}
 	return addresses
 }
+
+func querySweepAddressOnly() []string {
+	DB_reader, err := dbconn.Query("select address from address where signed_sweep = false and signed_refund = false")
+	if err != nil {
+		fmt.Println("An error occured while query address: ", err)
+	}
+
+	defer DB_reader.Close()
+	addresses := make([]string, 0)
+
+	for DB_reader.Next() {
+		address := ""
+		err := DB_reader.Scan(
+			&address,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		addresses = append(addresses, address)
+	}
+	return addresses
+}

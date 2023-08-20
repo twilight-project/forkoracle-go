@@ -109,12 +109,16 @@ func broadcastBtcTransaction(tx *wire.MsgTx) {
 }
 
 func registerAddressOnValidators() {
+	// {add check to see if the address already exists}
+	savedAddress := querySweepAddressOnly()
 	resp := getReserveddresses()
 	if len(resp.Addresses) > 0 {
 		for _, address := range resp.Addresses {
-			registerAddressOnForkscanner(address.ReserveAddress)
-			reserveScript, _ := hex.DecodeString(address.ReserveScript)
-			insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0, "")
+			if stringInSlice(address.ReserveAddress, savedAddress) == false {
+				registerAddressOnForkscanner(address.ReserveAddress)
+				reserveScript, _ := hex.DecodeString(address.ReserveScript)
+				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0, "")
+			}
 		}
 	}
 }
@@ -258,6 +262,15 @@ func reverseArray(arr []MsgSignSweep) []MsgSignSweep {
 		arr[i], arr[j] = arr[j], arr[i]
 	}
 	return arr
+}
+
+func stringInSlice(str string, slice []string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
 
 func CreateTxOut(addr string, amount int64) (*wire.TxOut, error) {

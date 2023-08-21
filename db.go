@@ -228,6 +228,7 @@ func querySweepAddress(addr string) []SweepAddress {
 			&address.Parent_address,
 			&address.Signed_refund,
 			&address.Signed_sweep,
+			&address.Archived,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -283,6 +284,7 @@ func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
 			&address.Parent_address,
 			&address.Signed_refund,
 			&address.Signed_sweep,
+			&address.Archived,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -312,6 +314,7 @@ func queryUnsignedRefundAddressByScript(script []byte) []SweepAddress {
 			&address.Parent_address,
 			&address.Signed_refund,
 			&address.Signed_sweep,
+			&address.Archived,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -404,6 +407,7 @@ func querySweepAddressByParentAddress(address string) []SweepAddress {
 			&address.Parent_address,
 			&address.Signed_refund,
 			&address.Signed_sweep,
+			&address.Archived,
 		)
 		if err != nil {
 			fmt.Println(err)

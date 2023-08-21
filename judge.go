@@ -183,7 +183,7 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 		for i := 0; i < len(sweepTx.TxIn); i++ {
 			witness := wire.TxWitness{}
 			witness = append(witness, preimage)
-			dummy := []byte{}
+			dummy := []byte{0x00}
 			witness = append(witness, dummy)
 			for j := 0; j < minSignsRequired; j++ {
 				witness = append(witness, dataSig[j])

@@ -191,7 +191,7 @@ type BtcReserveResp struct {
 }
 
 type BtcReserve struct {
-	ReserveId             uint8
+	ReserveId             string
 	ReserveAddress        string
 	JudgeAddress          string
 	BtcRelayCapacityValue uint8

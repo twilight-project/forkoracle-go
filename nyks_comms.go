@@ -379,13 +379,13 @@ func getBtcReserves() BtcReserveResp {
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting registered judges body : ", err)
+		fmt.Println("error getting registered reserves body : ", err)
 	}
 
 	a := BtcReserveResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling registered judges : ", err)
+		fmt.Println("error unmarshalling registered reserves : ", err)
 	}
 	return a
 }

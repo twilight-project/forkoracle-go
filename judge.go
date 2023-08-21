@@ -332,11 +332,17 @@ func startJudge(accountName string) {
 					continue
 				}
 
+				reserve := getReserveForAddress(sweepAddress.Address)
+				reserveID, err := strconv.Atoi(reserve.ReserveId)
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
 				refundTxHex, err := generateRefundTx(sweepTxHex, newSweepAddress)
 
-				reserve := getReserveForAddress(sweepAddress.Address)
 				sendUnsignedSweepTx(sweepTxHex, sweepTxId, accountName)
-				sendUnsignedRefundTx(refundTxHex, uint64(reserve.ReserveId), accountName)
+				sendUnsignedRefundTx(refundTxHex, uint64(reserveID), accountName)
 
 				// sleep time so that other validators can sign
 				time.Sleep(1 * time.Minute)

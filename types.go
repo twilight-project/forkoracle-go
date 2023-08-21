@@ -125,6 +125,7 @@ type SweepAddress struct {
 	Parent_address string
 	Signed_refund  bool
 	Signed_sweep   bool
+	Archived       bool
 }
 
 type Utxo struct {

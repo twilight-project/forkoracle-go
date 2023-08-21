@@ -377,6 +377,8 @@ func startJudge(accountName string) {
 					fmt.Println("error decodeing signed transaction : ", err)
 				}
 				broadcastBtcTransaction(wireTransaction)
+				markAddressArchived(sweepAddress.Address)
+
 			}
 
 		}

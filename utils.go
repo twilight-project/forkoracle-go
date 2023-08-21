@@ -110,7 +110,7 @@ func broadcastBtcTransaction(tx *wire.MsgTx) {
 
 func registerAddressOnValidators() {
 	// {add check to see if the address already exists}
-	savedAddress := querySweepAddressOnly()
+	savedAddress := queryAllAddressOnly()
 	resp := getReserveddresses()
 	if len(resp.Addresses) > 0 {
 		for _, address := range resp.Addresses {
@@ -121,6 +121,13 @@ func registerAddressOnValidators() {
 			}
 		}
 	}
+}
+
+func markAddressProcessed(addr SweepAddress) {
+	if addr.Signed_refund == true && addr.Signed_sweep == true {
+		markAddressArchived(addr.Address)
+	}
+
 }
 
 func getReserveForAddress(address string) BtcReserve {

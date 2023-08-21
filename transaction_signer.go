@@ -34,6 +34,9 @@ func processTxSigning(accountName string) {
 			sendSweepSign(hexSweepSignature, reserveAddress.Address, accountName)
 
 			markAddressSignedSweep(reserveAddress.Address)
+			if judge == false {
+				markAddressArchived(reserveAddress.Address)
+			}
 		}
 
 		for _, tx := range refundTxs.UnsignedTxRefundMsgs {
@@ -42,7 +45,7 @@ func processTxSigning(accountName string) {
 				fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
 				log.Fatal(err)
 			}
-			addresses := queryUnsignedSweepAddressByScript(refundTx.TxIn[0].Witness[0])
+			addresses := queryUnsignedRefundAddressByScript(refundTx.TxIn[0].Witness[0])
 			if len(addresses) <= 0 {
 				continue
 			}
@@ -57,6 +60,9 @@ func processTxSigning(accountName string) {
 			fmt.Println("Refund Signature : ", hexRefundSignature)
 			sendRefundSign(hexRefundSignature, reserveAddress.Address, accountName)
 			markAddressSignedRefund(reserveAddress.Address)
+			if judge == false {
+				markAddressArchived(reserveAddress.Address)
+			}
 		}
 
 		time.Sleep(1 * time.Minute)

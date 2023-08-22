@@ -195,11 +195,11 @@ type BtcReserve struct {
 	ReserveId             string
 	ReserveAddress        string
 	JudgeAddress          string
-	BtcRelayCapacityValue uint8
-	TotalValue            uint8
-	PrivatePoolValue      uint8
-	PublicValue           uint8
-	FeePool               uint8
+	BtcRelayCapacityValue string
+	TotalValue            string
+	PrivatePoolValue      string
+	PublicValue           string
+	FeePool               string
 }
 
 type UnsignedTxSweepResp struct {
@@ -220,4 +220,15 @@ type UnsignedTxRefund struct {
 	TxId                string
 	BtcUnsignedRefundTx string
 	JudgeAddress        string
+}
+
+type WatchedTxs struct {
+	Txs []WatchedTx
+}
+
+type WatchedTx struct {
+	Txid    string
+	Address string
+	Reserve uint16
+	Watched bool
 }

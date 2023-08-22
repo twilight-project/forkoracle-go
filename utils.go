@@ -82,9 +82,9 @@ func setDelegator(btcPubkey string) {
 
 func getBitcoinRpcClient() *rpcclient.Client {
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:8332",
-		User:         "rpcuser",
-		Pass:         "rpcpass",
+		Host:         "143.244.138.170:8332",
+		User:         "bitcoin",
+		Pass:         "Persario",
 		HTTPPostMode: true,
 		DisableTLS:   true,
 	}

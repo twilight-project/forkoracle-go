@@ -37,6 +37,8 @@ func processTxSigning(accountName string) {
 			if judge == false {
 				markAddressArchived(reserveAddress.Address)
 			}
+
+			insertTransaction(sweepTx.TxHash().String(), reserveAddress.Address, 0)
 		}
 
 		for _, tx := range refundTxs.UnsignedTxRefundMsgs {

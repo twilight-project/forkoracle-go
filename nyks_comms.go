@@ -37,15 +37,15 @@ func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Cl
 	}
 }
 
-// func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
+func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
 
-// 	_, err := cosmos.BroadcastTx(accountName, data)
-// 	if err != nil {
-// 		fmt.Println("error in sending sweep transaction proposal : ", err)
-// 	} else {
-// 		fmt.Println("Sweep Transaction sent")
-// 	}
-// }
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in sending sweep transaction proposal : ", err)
+	} else {
+		fmt.Println("Sweep Transaction sent")
+	}
+}
 
 func sendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxSweep) {
 

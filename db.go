@@ -438,3 +438,48 @@ func queryAllAddressOnly() []string {
 	}
 	return addresses
 }
+
+func insertTransaction(txid string, address string, reserve int16) {
+	_, err := dbconn.Exec("INSERT into trnasaction VALUES ($1, $2, $3)",
+		txid,
+		address,
+		reserve,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing insert watched transaction query: ", err)
+	}
+}
+
+func queryWatchedTransactions() []WatchedTx {
+	DB_reader, err := dbconn.Query("select * from trnasaction where watched = true;")
+	if err != nil {
+		fmt.Println("An error occured while query address: ", err)
+	}
+
+	defer DB_reader.Close()
+	txs := make([]WatchedTx, 0)
+
+	for DB_reader.Next() {
+		tx := WatchedTx{}
+		err := DB_reader.Scan(
+			&tx.Txid,
+			&tx.Address,
+			&tx.Reserve,
+			&tx.Watched,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		txs = append(txs, tx)
+	}
+	return txs
+}
+
+func markTransactionProcessed(txid string) {
+	_, err := dbconn.Exec("update transaction set watched = false where txid = $2",
+		txid,
+	)
+	if err != nil {
+		fmt.Println("An error occured while mark tx id processed: ", err)
+	}
+}

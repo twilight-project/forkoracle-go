@@ -451,9 +451,9 @@ func insertTransaction(txid string, address string, reserve int16) {
 }
 
 func queryWatchedTransactions() []WatchedTx {
-	DB_reader, err := dbconn.Query("select * from trnasaction where watched = true;")
+	DB_reader, err := dbconn.Query("select * from transaction where watched = true;")
 	if err != nil {
-		fmt.Println("An error occured while query address: ", err)
+		fmt.Println("An error occured while query transactions: ", err)
 	}
 
 	defer DB_reader.Close()

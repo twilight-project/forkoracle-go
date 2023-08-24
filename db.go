@@ -440,7 +440,7 @@ func queryAllAddressOnly() []string {
 }
 
 func insertTransaction(txid string, address string, reserve int16) {
-	_, err := dbconn.Exec("INSERT into trnasaction VALUES ($1, $2, $3)",
+	_, err := dbconn.Exec("INSERT into transaction VALUES ($1, $2, $3)",
 		txid,
 		address,
 		reserve,

@@ -84,7 +84,7 @@ func getBitcoinRpcClient() *rpcclient.Client {
 	connCfg := &rpcclient.ConnConfig{
 		Host:         "143.244.138.170:8332",
 		User:         "bitcoin",
-		Pass:         "Persario",
+		Pass:         "Persario_1",
 		HTTPPostMode: true,
 		DisableTLS:   true,
 	}

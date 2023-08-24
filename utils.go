@@ -447,7 +447,7 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 		}
 	}
 
-	fmt.Println("ordered Signatures Sweep : ", orderedSignSweep)
+	fmt.Println("Signatures Sweep : ", len(orderedSignSweep))
 
 	return orderedSignSweep
 }
@@ -472,7 +472,7 @@ func filterSignRefund(refundSignatures MsgSignRefundResp, address string) []MsgS
 		}
 	}
 
-	fmt.Println("ordered Signatures Sweep : ", orderedSignRefund)
+	fmt.Println("Signatures refund : ", len(orderedSignRefund))
 
 	return orderedSignRefund
 }

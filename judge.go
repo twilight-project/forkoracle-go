@@ -20,6 +20,7 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ")
 		markAddressSignedRefund(sweepAddress.Address)
 		markAddressSignedSweep(sweepAddress.Address)
+		markAddressArchived(sweepAddress.Address)
 		return "", "", 0, nil
 	}
 

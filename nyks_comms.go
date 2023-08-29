@@ -80,8 +80,6 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err == nil {
 		fmt.Println("Sweep Signature sent")
-	} else {
-		fmt.Println(err)
 	}
 }
 
@@ -90,8 +88,6 @@ func sendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, d
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err == nil {
 		fmt.Println("Refund Signature sent")
-	} else {
-		fmt.Println(err)
 	}
 }
 

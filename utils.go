@@ -123,13 +123,6 @@ func registerAddressOnValidators() {
 	}
 }
 
-func markAddressProcessed(addr SweepAddress) {
-	if addr.Signed_refund == true && addr.Signed_sweep == true {
-		markAddressArchived(addr.Address)
-	}
-
-}
-
 func getReserveForAddress(address string) BtcReserve {
 	btcReserves := getBtcReserves()
 	for _, reserve := range btcReserves.BtcReserves {

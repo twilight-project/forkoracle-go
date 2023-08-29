@@ -365,8 +365,6 @@ func startJudge(accountName string) {
 					fmt.Println(err)
 				}
 
-				markAddressArchived(sweepAddress.Address)
-
 				signedSweepTxHex := hex.EncodeToString(signedSweepTx)
 				fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
 
@@ -380,6 +378,7 @@ func startJudge(accountName string) {
 					fmt.Println("error decodeing signed transaction : ", err)
 				}
 				broadcastBtcTransaction(wireTransaction)
+				markAddressArchived(sweepAddress.Address)
 
 			}
 

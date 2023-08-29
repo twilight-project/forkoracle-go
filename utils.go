@@ -218,23 +218,27 @@ func createTxFromHex(txHex string) (*wire.MsgTx, error) {
 	return tx, nil
 }
 
-func signTx(tx *wire.MsgTx, script []byte) []byte {
-	amount := queryAmount(tx.TxIn[0].PreviousOutPoint.Index, tx.TxIn[0].PreviousOutPoint.Hash.String())
-	sighashes := txscript.NewTxSigHashes(tx)
+func signTx(tx *wire.MsgTx, script []byte) string {
+	sweepSignatures := ""
+	for _, input := range tx.TxIn {
+		amount := queryAmount(input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
+		sighashes := txscript.NewTxSigHashes(tx)
+		privkeybytes, err := masterPrivateKey.Serialize()
+		if err != nil {
+			fmt.Println("Error: converting private key to bytes : ", err)
+		}
 
-	privkeybytes, err := masterPrivateKey.Serialize()
-	if err != nil {
-		fmt.Println("Error: converting private key to bytes : ", err)
+		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
+
+		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		hexSweepSignature := hex.EncodeToString(signature)
+
+		sweepSignatures = sweepSignatures + "++" + hexSweepSignature
 	}
-
-	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-
-	signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	return signature
+	return sweepSignatures
 }
 
 // func signTx(tx *wire.MsgTx, address string) []byte {

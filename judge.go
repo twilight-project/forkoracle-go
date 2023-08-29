@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/wire"
@@ -174,27 +173,15 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 
 		dataSig := make([][]byte, 0)
 
-		for _, sweepSigMsg := range filteredSweepSignatures {
-			inputSignatures := strings.Split(sweepSigMsg.SweepSignature, "++")
-			for _, sig := range inputSignatures {
-				sigBytes, _ := hex.DecodeString(sig)
-				dataSig = append(dataSig, sigBytes)
-			}
-
+		for _, sig := range filteredSweepSignatures {
+			sig, _ := hex.DecodeString(sig.SweepSignature)
+			dataSig = append(dataSig, sig)
 		}
 
 		script := currentReserveAddress.Script
 		preimage := currentReserveAddress.Preimage
 
 		for i := 0; i < len(sweepTx.TxIn); i++ {
-			dataSig := make([][]byte, 0)
-
-			for _, sweepSigMsg := range filteredSweepSignatures {
-				inputSignatures := strings.Split(sweepSigMsg.SweepSignature, "++")
-				sigBytes, _ := hex.DecodeString(inputSignatures[i])
-				dataSig = append(dataSig, sigBytes)
-			}
-
 			witness := wire.TxWitness{}
 			witness = append(witness, preimage)
 			dummy := []byte{}
@@ -220,16 +207,11 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 
 		script = newReserveAddress.Script
 		judgeSign := signByJudge(refundTx, script)
-		judgeSign = strings.ReplaceAll(judgeSign, "++", "")
-		signBytes, err := hex.DecodeString(judgeSign)
-		if err != nil {
-			log.Fatal(err)
-		}
 
 		for i := 0; i < len(refundTx.TxIn); i++ {
 
 			witness := wire.TxWitness{}
-			witness = append(witness, signBytes)
+			witness = append(witness, judgeSign)
 			dummy := []byte{}
 			witness = append(witness, dummy)
 			for j := 0; j < minSignsRequired; j++ {
@@ -251,7 +233,7 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 
 //temp use function judge sign
 
-func signByJudge(tx *wire.MsgTx, script []byte) string {
+func signByJudge(tx *wire.MsgTx, script []byte) []byte {
 	return signTx(tx, script)
 }
 

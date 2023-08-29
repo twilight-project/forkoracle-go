@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -26,8 +27,9 @@ func processTxSigning(accountName string) {
 			if reserveAddress.Signed_sweep == true {
 				continue
 			}
-			hexSweepSignature := signTx(sweepTx, reserveAddress.Script)
+			sweepSignature := signTx(sweepTx, reserveAddress.Script)
 
+			hexSweepSignature := hex.EncodeToString(sweepSignature)
 			fmt.Println("Sweep Signature : ", hexSweepSignature)
 			sendSweepSign(hexSweepSignature, reserveAddress.Address, accountName)
 
@@ -54,8 +56,9 @@ func processTxSigning(accountName string) {
 			if reserveAddress.Signed_refund == true {
 				continue
 			}
-			hexRefundSignature := signTx(refundTx, reserveAddress.Script)
+			refundSignature := signTx(refundTx, reserveAddress.Script)
 
+			hexRefundSignature := hex.EncodeToString(refundSignature)
 			fmt.Println("Refund Signature : ", hexRefundSignature)
 			sendRefundSign(hexRefundSignature, reserveAddress.Address, accountName)
 			markAddressSignedRefund(reserveAddress.Address)

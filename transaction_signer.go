@@ -62,9 +62,6 @@ func processTxSigning(accountName string) {
 			fmt.Println("Refund Signature : ", hexRefundSignature)
 			sendRefundSign(hexRefundSignature, reserveAddress.Address, accountName)
 			markAddressSignedRefund(reserveAddress.Address)
-			if judge == false {
-				markAddressArchived(reserveAddress.Address)
-			}
 		}
 
 		time.Sleep(1 * time.Minute)

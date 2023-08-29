@@ -120,12 +120,15 @@ func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
 }
 
 func insertSweepAddress(address string, script []byte, preimage []byte, unlock_height int64, parent_address string) {
-	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5)",
+	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
 		address,
 		script,
 		preimage,
 		unlock_height,
 		parent_address,
+		false,
+		false,
+		false,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing insert sweep address query: ", err)
@@ -476,7 +479,7 @@ func queryWatchedTransactions() []WatchedTx {
 }
 
 func markTransactionProcessed(txid string) {
-	_, err := dbconn.Exec("update transaction set watched = false where txid = $2",
+	_, err := dbconn.Exec("update transaction set watched = false where txid = $1",
 		txid,
 	)
 	if err != nil {

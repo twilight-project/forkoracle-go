@@ -52,7 +52,7 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 
 	// need to be worked on
 
-	fee := 30000
+	fee := 15000
 
 	if int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)) > 0 {
 		txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))

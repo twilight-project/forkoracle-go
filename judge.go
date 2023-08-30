@@ -152,9 +152,10 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 			continue
 		}
 
-		if len(filteredRefundSignatures) <= 0 {
-			continue
-		}
+		//todo commenting for now
+		// if len(filteredRefundSignatures) <= 0 {
+		// 	continue
+		// }
 
 		minSignsRequired := noOfValidators * 2 / 3
 

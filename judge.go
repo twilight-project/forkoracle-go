@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/wire"
@@ -178,11 +177,8 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 		for i, _ := range sweepTx.TxIn {
 			dataSig := make([][]byte, 0)
 			for _, sig := range filteredSweepSignatures {
-				signatures := strings.Split(sig.SweepSignature, ",")
-				for _, signature := range signatures {
-					sig, _ := hex.DecodeString(signature)
-					dataSig = append(dataSig, sig)
-				}
+				sig, _ := hex.DecodeString(sig.SweepSignature[i])
+				dataSig = append(dataSig, sig)
 			}
 			witness := wire.TxWitness{}
 			witness = append(witness, preimage)

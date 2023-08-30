@@ -298,18 +298,18 @@ func getSignSweep() MsgSignSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_sweep_all")
 	if err != nil {
-		fmt.Println("error getting delegate addresses : ", err)
+		fmt.Println("error getting sign sweep : ", err)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting delegate addresses body : ", err)
+		fmt.Println("error getting sign sweep body : ", err)
 	}
 
 	a := MsgSignSweepResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling deposit addresses : ", err)
+		fmt.Println("error unmarshallin sign sweep : ", err)
 	}
 	return a
 }
@@ -338,18 +338,18 @@ func getReserveddresses() ReserveAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_reserve_addresses")
 	if err != nil {
-		fmt.Println("error getting delegate addresses : ", err)
+		fmt.Println("error getting reserve addresses : ", err)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting delegate addresses body : ", err)
+		fmt.Println("error getting reserve addresses body : ", err)
 	}
 
 	a := ReserveAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling deposit addresses : ", err)
+		fmt.Println("error unmarshalling reserve addresses : ", err)
 	}
 	return a
 }

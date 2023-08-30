@@ -148,7 +148,7 @@ type BtcWithdrawRequest struct {
 type MsgSignSweep struct {
 	ReserveAddress   string
 	SignerAddress    string
-	SweepSignature   string
+	SweepSignature   []string
 	BtcOracleAddress string
 }
 

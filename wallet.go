@@ -204,3 +204,17 @@ func initWallet() string {
 	return btcPubkey
 
 }
+
+func getBtcPublicKey() string {
+	privkeybytes, err := masterPrivateKey.Serialize()
+	if err != nil {
+		fmt.Println("Error: converting private key to bytes : ", err)
+	}
+
+	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
+
+	fmt.Println("Private key : ", hex.EncodeToString(privkey.Serialize()))
+
+	btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
+	return btcPubkey
+}

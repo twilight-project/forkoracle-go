@@ -370,7 +370,7 @@ func sendSweepSign(hexSignatures []string, address string, accountName string) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignSweep{
 		ReserveAddress:   address,
-		SignerPublicKey:  masterPrivateKey.PublicKey().String(), // no idea what this is
+		SignerPublicKey:  getBtcPublicKey(), // no idea what this is
 		SweepSignature:   hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}
@@ -382,7 +382,7 @@ func sendRefundSign(hexSignatures string, address string, accountName string) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignRefund{
 		ReserveAddress:   address,
-		SignerPublicKey:  masterPrivateKey.PublicKey().String(), // no idea what this is
+		SignerPublicKey:  getBtcPublicKey(), // no idea what this is
 		RefundSignature:  hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}

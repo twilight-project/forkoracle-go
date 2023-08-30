@@ -218,23 +218,32 @@ func createTxFromHex(txHex string) (*wire.MsgTx, error) {
 	return tx, nil
 }
 
-func signTx(tx *wire.MsgTx, script []byte) []byte {
-	amount := queryAmount(tx.TxIn[0].PreviousOutPoint.Index, tx.TxIn[0].PreviousOutPoint.Hash.String())
-	sighashes := txscript.NewTxSigHashes(tx)
+func signTx(tx *wire.MsgTx, script []byte) []string {
+	signatures := []string{}
 
-	privkeybytes, err := masterPrivateKey.Serialize()
-	if err != nil {
-		fmt.Println("Error: converting private key to bytes : ", err)
+	for _, input := range tx.TxIn {
+
+		amount := queryAmount(input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
+		sighashes := txscript.NewTxSigHashes(tx)
+
+		privkeybytes, err := masterPrivateKey.Serialize()
+		if err != nil {
+			fmt.Println("Error: converting private key to bytes : ", err)
+		}
+
+		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
+
+		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		hexSignature := hex.EncodeToString(signature)
+
+		signatures = append(signatures, hexSignature)
 	}
 
-	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-
-	signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	return signature
+	return signatures
 }
 
 // func signTx(tx *wire.MsgTx, address string) []byte {
@@ -357,11 +366,11 @@ func sendUnsignedRefundTx(refundTx string, reserveId uint64, accountName string)
 // 	sendTransactionSweepProposal(accountName, cosmos, msg)
 // }
 
-func sendSweepSign(hexSignatures string, address string, accountName string) {
+func sendSweepSign(hexSignatures []string, address string, accountName string) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignSweep{
 		ReserveAddress:   address,
-		SignerAddress:    address, // no idea what this is
+		SignerPublicKey:  masterPrivateKey.PublicKey().String(), // no idea what this is
 		SweepSignature:   hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}
@@ -373,7 +382,7 @@ func sendRefundSign(hexSignatures string, address string, accountName string) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignRefund{
 		ReserveAddress:   address,
-		SignerAddress:    address, // no idea what this is
+		SignerPublicKey:  masterPrivateKey.PublicKey().String(), // no idea what this is
 		RefundSignature:  hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}

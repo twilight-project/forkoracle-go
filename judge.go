@@ -166,11 +166,11 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 			fmt.Println("INFO: ", "not enough sweep signatures")
 			continue
 		}
-
-		if len(filteredRefundSignatures)/minSignsRequired < 1 {
-			fmt.Println("INFO: ", "not enough refund signatures")
-			continue
-		}
+		// todo
+		// if len(filteredRefundSignatures)/minSignsRequired < 1 {
+		// 	fmt.Println("INFO: ", "not enough refund signatures")
+		// 	continue
+		// }
 
 		script := currentReserveAddress.Script
 		preimage := currentReserveAddress.Preimage

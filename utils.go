@@ -233,7 +233,7 @@ func signTx(tx *wire.MsgTx, script []byte) []string {
 
 		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
-		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
+		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll, privkey)
 		if err != nil {
 			fmt.Println("Error:", err)
 		}

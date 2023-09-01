@@ -162,7 +162,7 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 		// remove this when I redo the chain
 		// minSignsRequired = 3
 
-		if len(filteredSweepSignatures)/minSignsRequired < 1 {
+		if len(filteredSweepSignatures)/minSignsRequired <= 1 {
 			fmt.Println("INFO: ", "not enough sweep signatures")
 			continue
 		}

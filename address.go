@@ -41,13 +41,13 @@ func buildScript(preimage []byte, unlockHeight int) ([]byte, error) {
 	var judgeBtcPK *btcec.PublicKey
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	delayPeriod, _ := strconv.Atoi(number)
-	delegateAddresses := getDelegateAddresses()
+	// delegateAddresses := getDelegateAddresses()
 	payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
 
 	// adding multisig check
 
-	required := int64(len(delegateAddresses.Addresses) * 2 / 3)
+	required := int64(2) //int64(len(delegateAddresses.Addresses) * 2 / 3)
 
 	if required == 0 {
 		required = 1
@@ -55,26 +55,43 @@ func buildScript(preimage []byte, unlockHeight int) ([]byte, error) {
 
 	builder.AddInt64(required)
 
-	for _, element := range delegateAddresses.Addresses {
-		pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
-		if err != nil {
-			panic(err)
-		}
+	// for _, element := range delegateAddresses.Addresses {
+	// 	pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
 
-		// Deserialize the public key bytes into a *btcec.PublicKey
-		pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-		if err != nil {
-			panic(err)
-		}
+	// 	// Deserialize the public key bytes into a *btcec.PublicKey
+	// 	pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
 
-		builder.AddData(pubKey.SerializeCompressed())
+	// 	builder.AddData(pubKey.SerializeCompressed())
 
-		//TODO: might need to change this for multi judge setup
-		if element.BtcOracleAddress == oracleAddr {
-			judgeBtcPK = pubKey
-		}
+	// 	//TODO: might need to change this for multi judge setup
+	// 	if element.BtcOracleAddress == oracleAddr {
+	// 		judgeBtcPK = pubKey
+	// 	}
+	// }
+
+	btckey, _ := hex.DecodeString("02ca505bf28698f0b6c26114a725f757b88d65537dd52a5b6455a9cac9581f1055")
+	pubKey, err := btcec.ParsePubKey(btckey, btcec.S256())
+	if err != nil {
+		panic(err)
 	}
-	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	judgeBtcPK = pubKey
+	builder.AddData(pubKey.SerializeCompressed())
+
+	btckey2, _ := hex.DecodeString("033e72f302ba2133eddd0c7416943d4fed4e7c60db32e6b8c58895d3b26e24f927")
+	pubKey2, err := btcec.ParsePubKey(btckey2, btcec.S256())
+	if err != nil {
+		panic(err)
+	}
+	builder.AddData(pubKey2.SerializeCompressed())
+
+	// builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	builder.AddInt64(int64(2))
 	builder.AddOp(txscript.OP_CHECKMULTISIG)
 
 	// adding preimage check if multisig passes

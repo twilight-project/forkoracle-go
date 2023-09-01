@@ -429,6 +429,7 @@ func registerJudge(accountName string) {
 	fmt.Println("registered Judge")
 }
 
+// filters signatures based on address and orders them based on validators
 func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSignSweep {
 	signSweep := make([]MsgSignSweep, 0)
 
@@ -438,14 +439,18 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 		}
 	}
 
-	delegateAddresses := getDelegateAddresses()
+	// delegateAddresses := getDelegateAddresses()
 	orderedSignSweep := make([]MsgSignSweep, 0)
 
-	for _, oracleAddr := range delegateAddresses.Addresses {
-		for _, sweepSig := range signSweep {
-			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
-				orderedSignSweep = append(orderedSignSweep, sweepSig)
-			}
+	for _, sweepSig := range signSweep {
+		if "twilight1umtvprep9heqa5nkhnlyz0uf4wr4kk76p62vy4" == sweepSig.BtcOracleAddress {
+			orderedSignSweep = append(orderedSignSweep, sweepSig)
+		}
+	}
+
+	for _, sweepSig := range signSweep {
+		if "twilight126hlnwwt3aesvxznv6h8jden0cm60zrn6epjpa" == sweepSig.BtcOracleAddress {
+			orderedSignSweep = append(orderedSignSweep, sweepSig)
 		}
 	}
 

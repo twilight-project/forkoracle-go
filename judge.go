@@ -126,8 +126,8 @@ func generateRefundTx(txHex string, address string) (string, error) {
 
 func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, refundTx *wire.MsgTx) ([]byte, []byte, error) {
 
-	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
-	noOfValidators, _ := strconv.Atoi(number)
+	// number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
+	// noOfValidators, _ := strconv.Atoi(number)
 	for {
 		time.Sleep(30 * time.Second)
 		receiveSweepSignatures := getSignSweep()
@@ -157,7 +157,7 @@ func generateSignedTxs(address string, accountName string, sweepTx *wire.MsgTx, 
 		// 	continue
 		// }
 
-		minSignsRequired := noOfValidators * 2 / 3
+		minSignsRequired := 2 //noOfValidators * 2 / 3
 
 		// remove this when I redo the chain
 		// minSignsRequired = 3

@@ -443,13 +443,13 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 	orderedSignSweep := make([]MsgSignSweep, 0)
 
 	for _, sweepSig := range signSweep {
-		if "twilight1umtvprep9heqa5nkhnlyz0uf4wr4kk76p62vy4" == sweepSig.BtcOracleAddress {
+		if "twilight1jv7pwck9lsdhlywmwlapunxs5dx4pr6h6m2fyk" == sweepSig.BtcOracleAddress {
 			orderedSignSweep = append(orderedSignSweep, sweepSig)
 		}
 	}
 
 	for _, sweepSig := range signSweep {
-		if "twilight126hlnwwt3aesvxznv6h8jden0cm60zrn6epjpa" == sweepSig.BtcOracleAddress {
+		if "twilight1pv3d4pv4gkjplurtvgtdyesvpz90k2plclq6df" == sweepSig.BtcOracleAddress {
 			orderedSignSweep = append(orderedSignSweep, sweepSig)
 		}
 	}

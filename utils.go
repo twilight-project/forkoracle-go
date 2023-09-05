@@ -221,7 +221,7 @@ func createTxFromHex(txHex string) (*wire.MsgTx, error) {
 func signTx(tx *wire.MsgTx, script []byte) []string {
 	signatures := []string{}
 
-	for _, input := range tx.TxIn {
+	for i, input := range tx.TxIn {
 
 		amount := queryAmount(input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
 		sighashes := txscript.NewTxSigHashes(tx)
@@ -233,7 +233,7 @@ func signTx(tx *wire.MsgTx, script []byte) []string {
 
 		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
-		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll, privkey)
+		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, i, int64(amount), script, txscript.SigHashAll, privkey)
 		if err != nil {
 			fmt.Println("Error:", err)
 		}

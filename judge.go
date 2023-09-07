@@ -52,16 +52,32 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 
 	// need to be worked on
 
-	fee := 5000
-
-	if int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)) > 0 {
-		txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut-uint64(fee)))
+	if int64(totalAmountTxIn-totalAmountTxOut) > 0 {
+		txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut))
 		if err != nil {
 			log.Println("error with txout", err)
 			return "", "", 0, err
 		}
 		sweepTx.AddTxOut(txOut)
 	}
+
+	feeRate := getBtcFeeRate()
+	baseSize := sweepTx.SerializeSizeStripped()
+	totalSize := sweepTx.SerializeSize()
+	weight := (baseSize * 3) + totalSize
+	vsize := (weight + 3) / 4
+
+	// Calculate the required fee
+	requiredFee := vsize * feeRate.Regular
+
+	lastOutput := sweepTx.TxOut[len(sweepTx.TxOut)-1]
+	if lastOutput.Value < int64(requiredFee) {
+		log.Fatalf("Change output is smaller than required fee")
+	}
+
+	// Deduct the fee from the change output
+	lastOutput.Value -= int64(requiredFee)
+	sweepTx.TxOut[len(sweepTx.TxOut)-1] = lastOutput
 
 	script := querySweepAddressScript(sweepAddress.Address)
 	witness := wire.TxWitness{}

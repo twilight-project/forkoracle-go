@@ -491,3 +491,20 @@ func getBtcWithdrawRequestForAddress(sweepAddress SweepAddress) []BtcWithdrawReq
 
 	return withdrawRequests
 }
+
+func getBtcFeeRate() FeeRate {
+	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	a := FeeRate{}
+	err = json.Unmarshal(body, &a)
+
+	return a
+}

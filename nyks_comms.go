@@ -18,6 +18,16 @@ import (
 	forktypes "github.com/twilight-project/nyks/x/forks/types"
 )
 
+func sendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgProposeSweepAddress) {
+
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in sending sweep address proposal : ", err)
+	} else {
+		fmt.Println("Sweep Address propose Transaction sent")
+	}
+}
+
 func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err != nil {

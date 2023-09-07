@@ -232,3 +232,14 @@ type WatchedTx struct {
 	Reserve uint16
 	Watched bool
 }
+
+type FeeLimits struct {
+	Min int `json:"min"`
+	Max int `json:"max"`
+}
+
+type FeeRate struct {
+	Limits   FeeLimits `json:"limits"`
+	Regular  int       `json:"regular"`
+	Priority int       `json:"priority"`
+}

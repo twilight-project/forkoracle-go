@@ -134,16 +134,16 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	cosmos := getCosmosClient()
 
 	depositAddresses := getAllDepositAddress()
-	var depositAddress *DepositAddress
+	var depositAddress []DepositAddress
 	for _, deposit := range depositAddresses.Addresses {
 		if deposit.DepositAddress == data.Sending {
-			depositAddress = &deposit
+			depositAddress = append(depositAddress, deposit)
 			break
 		}
 	}
 
-	if &depositAddress.DepositAddress == nil {
-		fmt.Println("addresses don't match: ", &depositAddress.DepositAddress, " : ", data.Sending)
+	if len(depositAddress) == 0 {
+		fmt.Println("addresses don't match: ", depositAddress[0].DepositAddress, " : ", data.Sending)
 		markProcessedNotifications(data)
 		return
 	}
@@ -155,7 +155,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 		DepositAmount:          data.Satoshis,
 		Height:                 data.Height,
 		Hash:                   data.Receiving_txid,
-		TwilightDepositAddress: depositAddress.TwilightDepositAddress,
+		TwilightDepositAddress: depositAddress[0].TwilightDepositAddress,
 		OracleAddress:          oracleAddr,
 	}
 	fmt.Println("confirming btc transaction")

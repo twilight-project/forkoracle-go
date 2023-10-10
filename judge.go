@@ -475,7 +475,6 @@ func processSweep(accountName string) {
 
 			addresses := querySweepAddressesByHeight(uint64(height + sweepInitateBlockHeight))
 			if len(addresses) <= 0 {
-				fmt.Println("INFO: sweep address not found for btc height : ", height+sweepInitateBlockHeight)
 				continue
 			}
 
@@ -608,7 +607,6 @@ func processSweepSigning(accountName string) {
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
 
 		if len(sweepTxs.UnsignedTxSweepMsgs) == 0 {
-			fmt.Println("unsigned tx not found: sweep signing not initiated")
 			continue
 		}
 
@@ -677,7 +675,6 @@ func processRefundSigning(accountName string) {
 		refundTxs := getUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
 
 		if len(refundTxs.UnsignedTxRefundMsgs) == 0 {
-			fmt.Println("unRefund tx not found: refund signing not initiated")
 			continue
 		}
 

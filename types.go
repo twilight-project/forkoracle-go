@@ -200,6 +200,8 @@ type BtcReserve struct {
 	PrivatePoolValue      string
 	PublicValue           string
 	FeePool               string
+	UnlockHeight          string
+	RoundId               string
 }
 
 type UnsignedTxSweepResp struct {
@@ -210,6 +212,8 @@ type UnsignedTxSweep struct {
 	TxId               string
 	BtcUnsignedSweepTx string
 	JudgeAddress       string
+	RoundId            string
+	ReserveId          string
 }
 
 type UnsignedTxRefundResp struct {
@@ -220,6 +224,8 @@ type UnsignedTxRefund struct {
 	TxId                string
 	BtcUnsignedRefundTx string
 	JudgeAddress        string
+	RoundId             string
+	ReserveId           string
 }
 
 type WatchedTxs struct {
@@ -233,6 +239,12 @@ type WatchedTx struct {
 	Watched bool
 }
 
+type ProposedAddress struct {
+	Current      string
+	Proposed     string
+	UnlockHeight int64
+}
+
 type FeeLimits struct {
 	Min int `json:"min"`
 	Max int `json:"max"`
@@ -242,4 +254,34 @@ type FeeRate struct {
 	Limits   FeeLimits `json:"limits"`
 	Regular  int       `json:"regular"`
 	Priority int       `json:"priority"`
+}
+
+type ProposedAddressesResp struct {
+	Addresses []ProposedAddresses
+}
+
+type ProposedAddresses struct {
+	BtcAddress   string
+	BtcScript    string
+	ReserveId    string
+	JudgeAddress string
+	RoundID      string
+}
+
+type ReserveClearingAccountsAll struct {
+	TwilightAddress              string
+	BtcDepositAddress            string
+	BtcDepositAddressIdentifier  int64
+	BtcWithdrawAddress           string
+	BtcWithdrawAddressIdentifier int64
+	ReserveAccountBalances       []ReserveAccountBalances
+}
+
+type ReserveAccountBalances struct {
+	ReserveId string
+	Amount    string
+}
+
+type ClearingAccountResp struct {
+	ReserveClearingAccountsAll []ReserveClearingAccountsAll
 }

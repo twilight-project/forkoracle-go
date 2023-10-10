@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -312,15 +313,15 @@ func CreateTxIn(utxo Utxo) (*wire.TxIn, error) {
 	return txIn, nil
 }
 
-func sendUnsignedSweepTx(sweepTx string, sweeptxId string, accountName string) {
+func sendUnsignedSweepTx(reserveId uint64, roundId uint64, sweepTx string, sweeptxId string, accountName string) {
 	cosmos := getCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxSweep(sweeptxId, sweepTx, oracleAddr)
+	msg := bridgetypes.NewMsgUnsignedTxSweep(sweeptxId, sweepTx, reserveId, roundId, oracleAddr)
 	sendTransactionUnsignedSweepTx(accountName, cosmos, msg)
 }
 
-func sendUnsignedRefundTx(refundTx string, reserveId uint64, accountName string) {
+func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, accountName string) {
 	cosmos := getCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxRefund(reserveId, refundTx, oracleAddr)
+	msg := bridgetypes.NewMsgUnsignedTxRefund(reserveId, roundId, refundTx, oracleAddr)
 	sendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 }
 
@@ -366,10 +367,11 @@ func sendUnsignedRefundTx(refundTx string, reserveId uint64, accountName string)
 // 	sendTransactionSweepProposal(accountName, cosmos, msg)
 // }
 
-func sendSweepSign(hexSignatures []string, address string, accountName string) {
+func sendSweepSign(hexSignatures []string, address string, accountName string, reserveId uint64, roundId uint64) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignSweep{
-		ReserveAddress:   address,
+		ReserveId:        reserveId,
+		RoundId:          roundId,
 		SignerPublicKey:  getBtcPublicKey(), // no idea what this is
 		SweepSignature:   hexSignatures,
 		BtcOracleAddress: oracleAddr,
@@ -378,10 +380,11 @@ func sendSweepSign(hexSignatures []string, address string, accountName string) {
 	sendTransactionSignSweep(accountName, cosmos, msg)
 }
 
-func sendRefundSign(hexSignatures string, address string, accountName string) {
+func sendRefundSign(hexSignatures string, address string, accountName string, reserveId uint64, roundId uint64) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignRefund{
-		ReserveAddress:   address,
+		ReserveId:        reserveId,
+		RoundId:          roundId,
 		SignerPublicKey:  getBtcPublicKey(), // no idea what this is
 		RefundSignature:  hexSignatures,
 		BtcOracleAddress: oracleAddr,
@@ -390,31 +393,59 @@ func sendRefundSign(hexSignatures string, address string, accountName string) {
 	sendTransactionSignRefund(accountName, cosmos, msg)
 }
 
-func broadcastSweeptxNYKS(sweepTxHex string, accountName string) {
+func broadcastSweeptxNYKS(sweepTxHex string, accountName string, reserveId uint64, roundId uint64) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgBroadcastTxSweep{
 		SignedSweepTx: sweepTxHex,
 		JudgeAddress:  oracleAddr,
+		ReserveId:     reserveId,
+		RoundId:       roundId,
 	}
 
 	sendTransactionBroadcastSweeptx(accountName, cosmos, msg)
 }
 
-// func broadcastRefundtxNYKS(refundTxHex string, accountName string) {
-// 	cosmos := getCosmosClient()
-// 	msg := &bridgetypes.MsgBroadcastTxRefund{
-// 		SignedRefundTx: refundTxHex,
-// 		JudgeAddress:   oracleAddr,
-// 	}
+func broadcastRefundtxNYKS(refundTxHex string, accountName string, reserveId uint64, roundId uint64) {
+	cosmos := getCosmosClient()
+	msg := &bridgetypes.MsgBroadcastTxRefund{
+		SignedRefundTx: refundTxHex,
+		JudgeAddress:   oracleAddr,
+		ReserveId:      reserveId,
+		RoundId:        roundId,
+	}
 
-// 	sendTransactionBroadcastRefundtx(accountName, cosmos, msg)
-// }
+	sendTransactionBroadcastRefundtx(accountName, cosmos, msg)
+}
 
-func generateAndRegisterNewAddress(accountName string, height int, oldReserveAddress string) string {
-	newSweepAddress, reserveScript := generateAddress(height, oldReserveAddress)
+func generateAndRegisterNewBtcReserveAddress(accountName string, height int64) string {
+	newSweepAddress, reserveScript := generateAddress(height, "")
 	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript)
 	registerAddressOnForkscanner(newSweepAddress)
+
+	BtcReserves := getBtcReserves()
+	var currentReserve BtcReserve
+	for _, reserve := range BtcReserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentReserve = reserve
+		}
+	}
+
+	reserveId, _ := strconv.Atoi(currentReserve.ReserveId)
+
+	if reserveId == 1 {
+		UpdateAddressUnlockHeight(newSweepAddress, height+int64(144))
+	} else if reserveId == 2 {
+		UpdateAddressUnlockHeight(newSweepAddress, height+int64(72))
+	}
+
 	return newSweepAddress
+}
+
+func generateAndRegisterNewProposedAddress(accountName string, height int64, oldReserveAddress string) (string, string) {
+	newSweepAddress, script := generateAddress(height, oldReserveAddress)
+	registerAddressOnForkscanner(newSweepAddress)
+	hexScript := hex.EncodeToString(script)
+	return newSweepAddress, hexScript
 }
 
 func registerJudge(accountName string) {
@@ -429,20 +460,12 @@ func registerJudge(accountName string) {
 	fmt.Println("registered Judge")
 }
 
-func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSignSweep {
-	signSweep := make([]MsgSignSweep, 0)
-
-	for _, sig := range sweepSignatures.SignSweepMsg {
-		if sig.ReserveAddress == address {
-			signSweep = append(signSweep, sig)
-		}
-	}
-
+func orderSignSweep(sweepSignatures MsgSignSweepResp) []MsgSignSweep {
 	delegateAddresses := getDelegateAddresses()
 	orderedSignSweep := make([]MsgSignSweep, 0)
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
-		for _, sweepSig := range signSweep {
+		for _, sweepSig := range sweepSignatures.SignSweepMsg {
 			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
 				orderedSignSweep = append(orderedSignSweep, sweepSig)
 			}
@@ -454,29 +477,34 @@ func filterSignSweep(sweepSignatures MsgSignSweepResp, address string) []MsgSign
 	return orderedSignSweep
 }
 
-func filterSignRefund(refundSignatures MsgSignRefundResp, address string) []MsgSignRefund {
-	signRefund := make([]MsgSignRefund, 0)
+func OrderSignRefund(refundSignatures MsgSignRefundResp, address string) ([]MsgSignRefund, MsgSignRefund) {
+	delegateAddresses := getDelegateAddresses()
+	//needs to change for multi judge > 2 with staking in place
+	registeredJudges := getRegisteredJudges()
+	var otherJudgeAddress RegisteredJudge
 
-	for _, sig := range refundSignatures.SignRefundMsg {
-		if sig.ReserveAddress == address {
-			signRefund = append(signRefund, sig)
+	for _, judge := range registeredJudges.Judges {
+		if judge.JudgeAddress != oracleAddr {
+			otherJudgeAddress = judge
 		}
 	}
 
-	delegateAddresses := getDelegateAddresses()
 	orderedSignRefund := make([]MsgSignRefund, 0)
+	var judgeSign MsgSignRefund
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
-		for _, refundSig := range signRefund {
+		for _, refundSig := range refundSignatures.SignRefundMsg {
 			if oracleAddr.BtcOracleAddress == refundSig.BtcOracleAddress {
 				orderedSignRefund = append(orderedSignRefund, refundSig)
 			}
+			if otherJudgeAddress.JudgeAddress == refundSig.BtcOracleAddress {
+				judgeSign = refundSig
+			}
 		}
 	}
-
 	fmt.Println("Signatures refund : ", len(orderedSignRefund))
 
-	return orderedSignRefund
+	return orderedSignRefund, judgeSign
 }
 
 func getBtcWithdrawRequestForAddress(sweepAddress SweepAddress) []BtcWithdrawRequest {

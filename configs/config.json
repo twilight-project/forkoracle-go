@@ -11,7 +11,9 @@
     "nyksd_url": "https://nyks.twilight-explorer.com/api",
     "confirmation_limit": "3",
     "wallet_passphrase": "the correct horse battery staple",
-    "no_of_Multisigs": "1",
-    "unlocking_time": "6",
-    "no_of_Validators": "6"
+    "unlocking_time": "144",
+    "no_of_Validators": "6",
+    "csv_delay": "10",
+    "sweep_preblock": "10",
+    "height_diff_between_judges" : "20"
 }

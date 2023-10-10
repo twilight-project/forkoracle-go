@@ -175,6 +175,16 @@ func markAddressArchived(address string) {
 	}
 }
 
+func UpdateAddressUnlockHeight(address string, height int64) {
+	_, err := dbconn.Exec("update address set unlock_height = $1 where address = $2",
+		height,
+		address,
+	)
+	if err != nil {
+		fmt.Println("An error occured while mark sweep address signed query: ", err)
+	}
+}
+
 func markAddressSignedRefund(address string) {
 	_, err := dbconn.Exec("update address set signed_refund = $1 where address = $2",
 		true,
@@ -202,6 +212,36 @@ func querySweepAddressesByHeight(height uint64) []SweepAddress {
 			&address.Script,
 			&address.Preimage,
 			&address.Parent_address,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses
+}
+
+func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
+	DB_reader, err := dbconn.Query("select * from address ORDER BY unlock_height DESC where archived = false limit $1", limit)
+	if err != nil {
+		fmt.Println("An error occured while query sweep address: ", err)
+	}
+
+	defer DB_reader.Close()
+	addresses := make([]SweepAddress, 0)
+
+	for DB_reader.Next() {
+		address := SweepAddress{}
+		err := DB_reader.Scan(
+			&address.Address,
+			&address.Script,
+			&address.Preimage,
+			&address.Unlock_height,
+			&address.Parent_address,
+			&address.Signed_refund,
+			&address.Signed_sweep,
+			&address.Archived,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -485,4 +525,48 @@ func markTransactionProcessed(txid string) {
 	if err != nil {
 		fmt.Println("An error occured while mark tx id processed: ", err)
 	}
+}
+
+func insertProposedAddress(current string, proposed string, unlock_height int64, roundID int64, reserveID int64) {
+	_, err := dbconn.Exec("INSERT into proposed_address VALUES ($1, $2, $3, $4, $5)",
+		current,
+		proposed,
+		unlock_height,
+		roundID,
+		reserveID,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing insert watched transaction query: ", err)
+	}
+}
+
+// func checkIfAddressIsProposed(roundID int64, reserveID int64) int {
+// 	DB_reader, err := dbconn.Query("select sum(proposed) from proposed_address where round_id = $1, reserve_id = $2;", roundID, reserveID)
+// 	if err != nil {
+// 		fmt.Println("An error occured while query proposed addresses: ", err)
+// 	}
+
+// 	defer DB_reader.Close()
+// 	var length int
+
+// 	for DB_reader.Next() {
+// 		err := DB_reader.Scan(
+// 			&length,
+// 		)
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 	}
+// 	return length
+// }
+
+func checkIfAddressIsProposed(roundID int64, reserveID int64) bool {
+	DB_reader, err := dbconn.Query("SELECT 1 FROM address WHERE round_id = $1 AND reserve_id = $2 LIMIT 1;", roundID, reserveID)
+	if err != nil {
+		fmt.Println("An error occurred while querying proposed addresses:", err)
+		return false // Return false on error
+	}
+	defer DB_reader.Close()
+
+	return DB_reader.Next() // Return true if there is at least one result row
 }

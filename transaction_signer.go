@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 )
 
 func processTxSigning(accountName string) {
 	for {
-		SweepTxs := getUnsignedSweepTx()
-		refundTxs := getUnsignedRefundTx()
+		SweepTxs := getAllUnsignedSweepTx()
+		refundTxs := getAllUnsignedRefundTx()
 
 		for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
 			sweepTx, err := createTxFromHex(tx.BtcUnsignedSweepTx)
@@ -28,8 +29,11 @@ func processTxSigning(accountName string) {
 			}
 			sweepSignatures := signTx(sweepTx, reserveAddress.Script)
 
+			reserveId, _ := strconv.Atoi(tx.ReserveId)
+			roundId, _ := strconv.Atoi(tx.RoundId)
+
 			fmt.Println("Sweep Signature : ", sweepSignatures)
-			sendSweepSign(sweepSignatures, reserveAddress.Address, accountName)
+			sendSweepSign(sweepSignatures, reserveAddress.Address, accountName, uint64(reserveId), uint64(roundId))
 
 			markAddressSignedSweep(reserveAddress.Address)
 			if judge == false {
@@ -56,8 +60,11 @@ func processTxSigning(accountName string) {
 			}
 			refundSignature := signTx(refundTx, reserveAddress.Script)
 
+			reserveId, _ := strconv.Atoi(tx.ReserveId)
+			roundId, _ := strconv.Atoi(tx.RoundId)
+
 			fmt.Println("Refund Signature : ", refundSignature)
-			sendRefundSign(refundSignature[0], reserveAddress.Address, accountName)
+			sendRefundSign(refundSignature[0], reserveAddress.Address, accountName, uint64(reserveId), uint64(roundId))
 			markAddressSignedRefund(reserveAddress.Address)
 		}
 

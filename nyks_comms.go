@@ -113,13 +113,13 @@ func sendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Cli
 	}
 }
 
-// func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxRefund) {
+func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxRefund) {
 
-// 	_, err := cosmos.BroadcastTx(accountName, data)
-// 	if err != nil {
-// 		fmt.Println("error in Boradcasting Sweep Tx transaction : ", err)
-// 	}
-// }
+	_, err := cosmos.BroadcastTx(accountName, data)
+	if err != nil {
+		fmt.Println("error in Boradcasting Sweep Tx transaction : ", err)
+	}
+}
 
 func getCosmosClient() cosmosclient.Client {
 	home, err := os.UserHomeDir()
@@ -228,9 +228,10 @@ func getAttestations(limit string) AttestaionBlock {
 // 	return a
 // }
 
-func getUnsignedSweepTx() UnsignedTxSweepResp {
+func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=20")
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep/%d/%d", reserveId, roundId)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -246,7 +247,45 @@ func getUnsignedSweepTx() UnsignedTxSweepResp {
 	return a
 }
 
-func getUnsignedRefundTx() UnsignedTxRefundResp {
+func getAllUnsignedSweepTx() UnsignedTxSweepResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=20")
+	resp, err := http.Get(nyksd_url + path)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	a := UnsignedTxSweepResp{}
+	err = json.Unmarshal(body, &a)
+
+	return a
+}
+
+func getUnsignedRefundTx(reserveId int64, roundId int64) UnsignedTxRefundResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_refund/%d/%d", reserveId, roundId)
+	resp, err := http.Get(nyksd_url + path)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	a := UnsignedTxRefundResp{}
+	err = json.Unmarshal(body, &a)
+
+	return a
+}
+
+func getAllUnsignedRefundTx() UnsignedTxRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=20")
 	if err != nil {
@@ -304,9 +343,10 @@ func getBtcWithdrawRequest() BtcWithdrawRequestResp {
 	return a
 }
 
-func getSignSweep() MsgSignSweepResp {
+func getSignSweep(reserveId uint64, roundId uint64) MsgSignSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_sweep_all")
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/sign_sweep/%d/%d", reserveId, roundId)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		fmt.Println("error getting sign sweep : ", err)
 	}
@@ -324,9 +364,10 @@ func getSignSweep() MsgSignSweepResp {
 	return a
 }
 
-func getSignRefund() MsgSignRefundResp {
+func getSignRefund(reserveId uint64, roundId uint64) MsgSignRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/sign_refund_all")
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/sign_refund/%d/%d", reserveId, roundId)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		fmt.Println("error getting refund signature : ", err)
 	}
@@ -388,18 +429,80 @@ func getBtcReserves() BtcReserveResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/volt/btc_reserve")
 	if err != nil {
-		fmt.Println("error getting registered judges : ", err)
+		fmt.Println("error getting btcreserves : ", err)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting registered reserves body : ", err)
+		fmt.Println("error getting btcreserves body : ", err)
 	}
 
 	a := BtcReserveResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling registered reserves : ", err)
+		fmt.Println("error unmarshalling  btcreserves: ", err)
+	}
+	return a
+}
+
+func getProposedSweepAddresses() ProposedAddressesResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/24")
+	if err != nil {
+		fmt.Println("error getting proposed address : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting proposed address body : ", err)
+	}
+
+	a := ProposedAddressesResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling proposed address : ", err)
+	}
+	return a
+}
+
+func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressesResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/propose_sweep_address/%d/%d", reserveId, roundId)
+	resp, err := http.Get(nyksd_url + path)
+	if err != nil {
+		fmt.Println("error getting proposed address : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting proposed address body : ", err)
+	}
+
+	a := ProposedAddressesResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling proposed address : ", err)
+	}
+	return a
+}
+
+func getClearingAccounts(reserveId uint64) ClearingAccountResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/volt/reserve_clearing_accounts_all/%d", reserveId)
+	resp, err := http.Get(nyksd_url + path)
+	if err != nil {
+		fmt.Println("error getting clearing accounts : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting clearing accounts body : ", err)
+	}
+
+	a := ClearingAccountResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling clearing accounts : ", err)
 	}
 	return a
 }

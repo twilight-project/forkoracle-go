@@ -561,7 +561,7 @@ func insertProposedAddress(current string, proposed string, unlock_height int64,
 // }
 
 func checkIfAddressIsProposed(roundID int64, reserveID int64) bool {
-	DB_reader, err := dbconn.Query("SELECT 1 FROM address WHERE round_id = $1 AND reserve_id = $2 LIMIT 1;", roundID, reserveID)
+	DB_reader, err := dbconn.Query("SELECT 1 FROM address WHERE roundId = $1 AND reserveId = $2 LIMIT 1;", roundID, reserveID)
 	if err != nil {
 		fmt.Println("An error occurred while querying proposed addresses:", err)
 		return false // Return false on error

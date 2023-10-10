@@ -85,8 +85,8 @@ type AttestaionBlockSweep struct {
 }
 
 type DepositAddress struct {
-	DepositAddress         string
-	TwilightDepositAddress string
+	BtcDepositAddress string
+	TwilightAddress   string
 }
 
 type QueryDepositAddressResp struct {

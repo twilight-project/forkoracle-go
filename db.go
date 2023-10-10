@@ -223,7 +223,7 @@ func querySweepAddressesByHeight(height uint64) []SweepAddress {
 }
 
 func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address ORDER BY unlock_height DESC where archived = false limit $1", limit)
+	DB_reader, err := dbconn.Query("SELECT * FROM address WHERE archived = false ORDER BY unlock_height DESC LIMIT $1", limit)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}

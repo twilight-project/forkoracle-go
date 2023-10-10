@@ -377,13 +377,15 @@ func addressProposer(accountName string) {
 	heightDiffBetweenJudges, _ := strconv.Atoi(number)
 
 	for {
-		time.Sleep(10 * time.Minute)
+		time.Sleep(5 * time.Minute)
 
 		var latestProposedAddress SweepAddress
 		addresses := querySweepAddressesOrderByHeight(1)
-		if len(addresses) <= 0 {
-			latestProposedAddress = addresses[0]
+		if len(addresses) == 0 {
+			continue
 		}
+
+		latestProposedAddress = addresses[0]
 
 		var currentJudgeReserves []BtcReserve
 		btcReserves := getBtcReserves()

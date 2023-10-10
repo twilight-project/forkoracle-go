@@ -136,13 +136,15 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	depositAddresses := getAllDepositAddress()
 	var depositAddress []DepositAddress
 	for _, deposit := range depositAddresses.Addresses {
-		if deposit.DepositAddress == data.Sending {
+		if deposit.BtcDepositAddress == data.Sending {
+			fmt.Println("inside equal address check")
 			depositAddress = append(depositAddress, deposit)
 			break
 		}
 	}
 
 	if len(depositAddress) == 0 {
+		fmt.Println("addresses not equal bridge")
 		markProcessedNotifications(data)
 		return
 	}
@@ -154,7 +156,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 		DepositAmount:          data.Satoshis,
 		Height:                 data.Height,
 		Hash:                   data.Receiving_txid,
-		TwilightDepositAddress: depositAddress[0].TwilightDepositAddress,
+		TwilightDepositAddress: depositAddress[0].TwilightAddress,
 		OracleAddress:          oracleAddr,
 	}
 	fmt.Println("confirming btc transaction")

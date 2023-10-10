@@ -420,7 +420,13 @@ func addressProposer(accountName string) {
 
 		RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
 
+		fmt.Println("+++++++++++++++++++++")
+		fmt.Println(RoundId)
+		fmt.Println(reserveIdForProposal)
+		fmt.Println("+++++++++++++++++++++")
+
 		proposed := checkIfAddressIsProposed(int64(RoundId+1), int64(reserveIdForProposal))
+		fmt.Println(proposed)
 		if proposed == true {
 			continue
 		}

@@ -143,7 +143,6 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	}
 
 	if len(depositAddress) == 0 {
-		fmt.Println("addresses don't match: ", depositAddress[0].DepositAddress, " : ", data.Sending)
 		markProcessedNotifications(data)
 		return
 	}

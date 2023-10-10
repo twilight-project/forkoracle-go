@@ -133,22 +133,29 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	fmt.Println("inside confirm btc transaction")
 	cosmos := getCosmosClient()
 
-	deposit_address := getDepositAddress(data.Sending)
+	depositAddresses := getAllDepositAddress()
+	var depositAddress *DepositAddress
+	for _, deposit := range depositAddresses.Addresses {
+		if deposit.DepositAddress == data.Sending {
+			depositAddress = &deposit
+			break
+		}
+	}
 
-	if deposit_address.DepositAddress != data.Sending {
-		fmt.Println("addresses don't match: ", deposit_address.DepositAddress, " : ", data.Sending)
+	if &depositAddress.DepositAddress == nil {
+		fmt.Println("addresses don't match: ", &depositAddress.DepositAddress, " : ", data.Sending)
 		markProcessedNotifications(data)
 		return
 	}
 
-	fmt.Println("Data for confirm BTC deposut : ", data)
+	fmt.Println("Data for confirm BTC deposit : ", data)
 
 	msg := &types.MsgConfirmBtcDeposit{
 		ReserveAddress:         data.Receiving,
 		DepositAmount:          data.Satoshis,
 		Height:                 data.Height,
 		Hash:                   data.Receiving_txid,
-		TwilightDepositAddress: deposit_address.TwilightDepositAddress,
+		TwilightDepositAddress: depositAddress.TwilightDepositAddress,
 		OracleAddress:          oracleAddr,
 	}
 	fmt.Println("confirming btc transaction")

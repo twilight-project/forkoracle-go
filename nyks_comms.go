@@ -191,6 +191,24 @@ func getDepositAddress(address string) DepositAddress {
 	return a
 }
 
+func getAllDepositAddress() QueryDepositAddressResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
+	if err != nil {
+		fmt.Println("error getting deposit addresses : ", err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting deposit addresses body : ", err)
+	}
+	a := QueryDepositAddressResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling deposit addresses : ", err)
+	}
+	return a
+}
+
 func getAttestations(limit string) AttestaionBlock {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	req_url := fmt.Sprintf("%s/twilight-project/nyks/nyks/attestations?limit=%s&order_by=desc", nyksd_url, limit)

@@ -257,7 +257,7 @@ type FeeRate struct {
 }
 
 type ProposedAddressesResp struct {
-	Addresses []ProposedAddresses
+	ProposeSweepAddressMsgs []ProposedAddresses
 }
 
 type ProposedAddresses struct {

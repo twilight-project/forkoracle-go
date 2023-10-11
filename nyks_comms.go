@@ -483,10 +483,10 @@ func getProposedSweepAddresses() ProposedAddressesResp {
 	return a
 }
 
-func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressesResp {
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressResp {
+	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/propose_sweep_address/%d/%d", reserveId, roundId)
-	resp, err := http.Get(nyksd_url + path)
+	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
 	if err != nil {
 		fmt.Println("error getting proposed address : ", err)
 	}
@@ -496,7 +496,7 @@ func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddresses
 		fmt.Println("error getting proposed address body : ", err)
 	}
 
-	a := ProposedAddressesResp{}
+	a := ProposedAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling proposed address : ", err)

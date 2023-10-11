@@ -244,11 +244,11 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	noOfValidators, _ := strconv.Atoi(number)
 
 	addrs := getProposedSweepAddress(reserveId, roundId)
-	if len(addrs.ProposeSweepAddressMsgs) == 0 {
+	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
 		return nil, nil
 	}
 
-	addresses := querySweepAddress(addrs.ProposeSweepAddressMsgs[0].BtcAddress)
+	addresses := querySweepAddress(addrs.ProposeSweepAddressMsg.BtcAddress)
 	if len(addresses) <= 0 {
 		fmt.Println("address not found in DB")
 		return nil, nil
@@ -505,12 +505,12 @@ func processSweep(accountName string) {
 
 			for {
 				sweepAddresses := getProposedSweepAddress(uint64(currentReserveId), uint64(currentRoundId+1))
-				if len(sweepAddresses.ProposeSweepAddressMsgs) == 0 {
+				if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
 					fmt.Println("no proposed sweep address found ")
 					time.Sleep(2 * time.Minute)
 					continue
 				}
-				newSweepAddress = &sweepAddresses.ProposeSweepAddressMsgs[0].BtcAddress
+				newSweepAddress = &sweepAddresses.ProposeSweepAddressMsg.BtcAddress
 				break
 			}
 
@@ -578,11 +578,11 @@ func processRefund(accountName string) {
 		sweeptx := sweepTxs.UnsignedTxSweepMsgs[0]
 
 		sweepAddresses := getProposedSweepAddress(uint64(reserveIdForRefund), uint64(currentRoundId+1))
-		if len(sweepAddresses.ProposeSweepAddressMsgs) == 0 {
+		if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
 			continue
 		}
 
-		refundTxHex, _ := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsgs[0].BtcScript, uint64(reserveIdForRefund))
+		refundTxHex, _ := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
 		sendUnsignedRefundTx(refundTxHex, uint64(reserveIdForRefund), uint64(currentRoundId+1), accountName)
 	}
 }

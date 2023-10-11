@@ -260,12 +260,16 @@ type ProposedAddressesResp struct {
 	ProposeSweepAddressMsgs []ProposedAddresses
 }
 
+type ProposedAddressResp struct {
+	ProposeSweepAddressMsg ProposedAddresses
+}
+
 type ProposedAddresses struct {
-	BtcAddress   string
-	BtcScript    string
-	ReserveId    string
-	JudgeAddress string
-	RoundID      string
+	BtcAddress   string `json:"btcddress"`
+	BtcScript    string `json:"btScript"`
+	ReserveId    string `json:"rserveId"`
+	RoundId      string `json:"rundId"`
+	JudgeAddress string `json:"jdgeAddress"`
 }
 
 type ReserveClearingAccountsAll struct {

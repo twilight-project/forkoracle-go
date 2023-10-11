@@ -151,7 +151,7 @@ func generateAddress(unlock_height int64, oldReserveAddress string) (string, []b
 	addressStr := address.String()
 	fmt.Println("new address generated : ", addressStr)
 
-	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height), oldReserveAddress)
+	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height), oldReserveAddress, true)
 
 	return addressStr, redeemScript
 }

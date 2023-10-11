@@ -118,7 +118,7 @@ func registerAddressOnValidators() {
 			if stringInSlice(address.ReserveAddress, savedAddress) == false {
 				registerAddressOnForkscanner(address.ReserveAddress)
 				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0, "")
+				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0, "", false)
 			}
 		}
 	}

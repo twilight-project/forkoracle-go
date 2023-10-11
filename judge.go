@@ -476,9 +476,10 @@ func processSweep(accountName string) {
 
 			addresses := querySweepAddressesByHeight(uint64(height + sweepInitateBlockHeight))
 			if len(addresses) <= 0 {
-				fmt.Println("no sweep address found")
 				continue
 			}
+
+			fmt.Println("sweep address found")
 
 			currentSweepAddress := addresses[0]
 			var newSweepAddress *string

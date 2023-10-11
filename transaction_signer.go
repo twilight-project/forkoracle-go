@@ -18,15 +18,22 @@ func processTxSigning(accountName string) {
 				fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
 				log.Fatal(err)
 			}
+
+			fmt.Println("signing sweep tx")
+
 			addresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
 			if len(addresses) <= 0 {
+				fmt.Println("signing no address")
 				continue
 			}
+
+			fmt.Println("signing found address")
 			reserveAddress := addresses[0]
 
 			if reserveAddress.Signed_sweep == true {
 				continue
 			}
+
 			sweepSignatures := signTx(sweepTx, reserveAddress.Script)
 
 			reserveId, _ := strconv.Atoi(tx.ReserveId)
@@ -45,6 +52,8 @@ func processTxSigning(accountName string) {
 				fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
 				log.Fatal(err)
 			}
+
+			fmt.Println("signing refund tx")
 			addresses := queryUnsignedRefundAddressByScript(refundTx.TxIn[0].Witness[0])
 			if len(addresses) <= 0 {
 				continue

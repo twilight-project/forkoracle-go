@@ -265,11 +265,11 @@ type ProposedAddressResp struct {
 }
 
 type ProposedAddresses struct {
-	BtcAddress   string `json:"btcddress"`
-	BtcScript    string `json:"btScript"`
-	ReserveId    string `json:"rserveId"`
-	RoundId      string `json:"rundId"`
-	JudgeAddress string `json:"jdgeAddress"`
+	BtcAddress   string `json:"btcAddress"`
+	BtcScript    string `json:"btcScript"`
+	ReserveId    string `json:"reserveId"`
+	RoundId      string `json:"roundId"`
+	JudgeAddress string `json:"judgeAddress"`
 }
 
 type ReserveClearingAccountsAll struct {

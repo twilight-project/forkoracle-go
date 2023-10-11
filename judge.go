@@ -476,6 +476,7 @@ func processSweep(accountName string) {
 
 			addresses := querySweepAddressesByHeight(uint64(height + sweepInitateBlockHeight))
 			if len(addresses) <= 0 {
+				fmt.Println("no sweep address found")
 				continue
 			}
 
@@ -496,9 +497,15 @@ func processSweep(accountName string) {
 			currentRoundId, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
 			currentReserveId, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
 
+			fmt.Println("===============")
+			fmt.Println(currentRoundId)
+			fmt.Println(currentReserveId)
+			fmt.Println("===============")
+
 			for {
-				sweepAddresses := getProposedSweepAddress(uint64(currentReserveId), uint64(currentRoundId))
+				sweepAddresses := getProposedSweepAddress(uint64(currentReserveId), uint64(currentRoundId+1))
 				if len(sweepAddresses.Addresses) == 0 {
+					fmt.Println("no proposed sweep address found ")
 					time.Sleep(2 * time.Minute)
 					continue
 				}

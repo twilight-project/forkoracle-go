@@ -174,7 +174,7 @@ func generateRefundTx(txHex string, script string, reserveId uint64) (string, er
 	return hexTx, nil
 }
 
-func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64) []byte {
+func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress SweepAddress) []byte {
 
 	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
 	noOfValidators, _ := strconv.Atoi(number)
@@ -194,15 +194,6 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			fmt.Println("INFO: ", "not enough sweep signatures")
 			continue
 		}
-
-		reserveAddresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
-
-		if len(reserveAddresses) == 0 {
-			fmt.Println("No address found")
-			return nil
-		}
-
-		currentReserveAddress := reserveAddresses[0]
 
 		script := currentReserveAddress.Script
 		preimage := currentReserveAddress.Preimage
@@ -498,11 +489,6 @@ func processSweep(accountName string) {
 			currentRoundId, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
 			currentReserveId, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
 
-			fmt.Println("===============")
-			fmt.Println(currentRoundId)
-			fmt.Println(currentReserveId)
-			fmt.Println("===============")
-
 			for {
 				sweepAddresses := getProposedSweepAddress(uint64(currentReserveId), uint64(currentRoundId+1))
 				if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
@@ -527,6 +513,7 @@ func processSweep(accountName string) {
 			}
 
 			sendUnsignedSweepTx(uint64(currentReserveId), uint64(currentRoundId+1), sweepTxHex, sweepTxId, accountName)
+			markAddressArchived(currentSweepAddress.Address)
 		}
 	}
 }
@@ -626,7 +613,19 @@ func processSweepSigning(accountName string) {
 			fmt.Println(err)
 		}
 
-		signedSweepTx := generateSignedSweepTx(accountName, sweepTx, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
+		reserveAddresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
+
+		if len(reserveAddresses) == 0 {
+			fmt.Println("No address found")
+			continue
+		}
+		currentReserveAddress := reserveAddresses[0]
+
+		if currentReserveAddress.BroadcastSweep == true {
+			continue
+		}
+
+		signedSweepTx := generateSignedSweepTx(accountName, sweepTx, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx), currentReserveAddress)
 
 		signedSweepTxHex := hex.EncodeToString(signedSweepTx)
 		fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
@@ -638,6 +637,7 @@ func processSweepSigning(accountName string) {
 			fmt.Println("error decodeing signed transaction : ", err)
 		}
 		broadcastBtcTransaction(wireTransaction)
+		markAddressBroadcastedSweep(currentReserveAddress.Address)
 		time.Sleep(3 * time.Minute)
 	}
 }

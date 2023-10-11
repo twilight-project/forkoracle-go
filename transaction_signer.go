@@ -36,10 +36,6 @@ func processTxSigning(accountName string) {
 			sendSweepSign(sweepSignatures, reserveAddress.Address, accountName, uint64(reserveId), uint64(roundId))
 
 			markAddressSignedSweep(reserveAddress.Address)
-			if judge == false {
-				markAddressArchived(reserveAddress.Address)
-			}
-
 			insertTransaction(sweepTx.TxHash().String(), reserveAddress.Address, 0)
 		}
 

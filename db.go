@@ -120,12 +120,14 @@ func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
 }
 
 func insertSweepAddress(address string, script []byte, preimage []byte, unlock_height int64, parent_address string) {
-	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, &10)",
 		address,
 		script,
 		preimage,
 		unlock_height,
 		parent_address,
+		false,
+		false,
 		false,
 		false,
 		false,
@@ -157,6 +159,26 @@ func insertSweepAddress(address string, script []byte, preimage []byte, unlock_h
 
 func markAddressSignedSweep(address string) {
 	_, err := dbconn.Exec("update address set signed_sweep = $1 where address = $2",
+		true,
+		address,
+	)
+	if err != nil {
+		fmt.Println("An error occured while mark sweep address signed query: ", err)
+	}
+}
+
+func markAddressBroadcastedSweep(address string) {
+	_, err := dbconn.Exec("update address set broadcast_sweep = $1 where address = $2",
+		true,
+		address,
+	)
+	if err != nil {
+		fmt.Println("An error occured while mark sweep address signed query: ", err)
+	}
+}
+
+func markAddressBroadcastedRefund(address string) {
+	_, err := dbconn.Exec("update address set broadcast_refund = $1 where address = $2",
 		true,
 		address,
 	)
@@ -242,6 +264,8 @@ func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
 			&address.Signed_refund,
 			&address.Signed_sweep,
 			&address.Archived,
+			&address.BroadcastSweep,
+			&address.BroadcastRefund,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -253,7 +277,7 @@ func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
 }
 
 func querySweepAddress(addr string) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where address = $1 and archived = false", addr)
+	DB_reader, err := dbconn.Query("select * from address where address = $1")
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
@@ -272,6 +296,8 @@ func querySweepAddress(addr string) []SweepAddress {
 			&address.Signed_refund,
 			&address.Signed_sweep,
 			&address.Archived,
+			&address.BroadcastSweep,
+			&address.BroadcastRefund,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -309,7 +335,7 @@ func queryAllSweepAddresses() []SweepAddress {
 }
 
 func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where script = $1 and signed_sweep = false and archived = false", script)
+	DB_reader, err := dbconn.Query("select * from address where script = $", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}

@@ -118,14 +118,16 @@ type ErrorResp struct {
 }
 
 type SweepAddress struct {
-	Address        string
-	Script         []byte
-	Preimage       []byte
-	Unlock_height  int64
-	Parent_address string
-	Signed_refund  bool
-	Signed_sweep   bool
-	Archived       bool
+	Address         string
+	Script          []byte
+	Preimage        []byte
+	Unlock_height   int64
+	Parent_address  string
+	Signed_refund   bool
+	Signed_sweep    bool
+	Archived        bool
+	BroadcastSweep  bool
+	BroadcastRefund bool
 }
 
 type Utxo struct {

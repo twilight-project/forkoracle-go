@@ -198,9 +198,7 @@ func updatereserveaddresses() {
 
 func startBridge(accountName string, forkscanner_url url.URL) {
 	fmt.Println("starting bridge")
-	if judge == false {
-		go updatereserveaddresses()
-	}
+	go updatereserveaddresses()
 	go watchAddress(forkscanner_url)
 	go kDeepService(accountName)
 }

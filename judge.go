@@ -229,20 +229,20 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 	}
 }
 
-func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64) ([]byte, error) {
+func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64) ([]byte, error, SweepAddress) {
 
 	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
 	noOfValidators, _ := strconv.Atoi(number)
 
 	addrs := getProposedSweepAddress(reserveId, roundId)
 	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
-		return nil, nil
+		return nil, nil, SweepAddress{}
 	}
 
 	addresses := querySweepAddress(addrs.ProposeSweepAddressMsg.BtcAddress)
 	if len(addresses) <= 0 {
 		fmt.Println("address not found in DB")
-		return nil, nil
+		return nil, nil, SweepAddress{}
 	}
 	newReserveAddress := addresses[0]
 
@@ -292,7 +292,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 			log.Fatal(err)
 		}
 
-		return signedRefundTx.Bytes(), nil
+		return signedRefundTx.Bytes(), nil, newReserveAddress
 	}
 }
 
@@ -694,12 +694,13 @@ func processRefundSigning(accountName string) {
 			fmt.Println(err)
 		}
 
-		signedRefundTx, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
+		signedRefundTx, _, newReserveAddress := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
 
 		signedRefundTxHex := hex.EncodeToString(signedRefundTx)
 		fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
 
 		broadcastRefundtxNYKS(signedRefundTxHex, accountName, uint64(currentReserveId), uint64(currentRoundId+1))
+		markAddressBroadcastedRefund(newReserveAddress.Address)
 
 		// add tapscript inscription here
 

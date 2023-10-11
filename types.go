@@ -128,6 +128,7 @@ type SweepAddress struct {
 	Archived        bool
 	BroadcastSweep  bool
 	BroadcastRefund bool
+	Owned           bool
 }
 
 type Utxo struct {

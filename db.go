@@ -120,7 +120,7 @@ func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
 }
 
 func insertSweepAddress(address string, script []byte, preimage []byte, unlock_height int64, parent_address string) {
-	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, &10)",
+	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, &10, &11)",
 		address,
 		script,
 		preimage,
@@ -131,6 +131,7 @@ func insertSweepAddress(address string, script []byte, preimage []byte, unlock_h
 		false,
 		false,
 		false,
+		true,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing insert sweep address query: ", err)
@@ -219,7 +220,7 @@ func markAddressSignedRefund(address string) {
 
 func querySweepAddressesByHeight(height uint64) []SweepAddress {
 	// fmt.Println("getting address for height: ", height)
-	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where unlock_height = $1 and archived = false", height)
+	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where unlock_height = $1 and archived = false and owned = true", height)
 	if err != nil {
 		fmt.Println("An error occured while query address by height: ", err)
 	}
@@ -266,6 +267,7 @@ func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
 			&address.Archived,
 			&address.BroadcastSweep,
 			&address.BroadcastRefund,
+			&address.Owned,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -298,6 +300,7 @@ func querySweepAddress(addr string) []SweepAddress {
 			&address.Archived,
 			&address.BroadcastSweep,
 			&address.BroadcastRefund,
+			&address.Owned,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -354,6 +357,9 @@ func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
 			&address.Signed_refund,
 			&address.Signed_sweep,
 			&address.Archived,
+			&address.BroadcastSweep,
+			&address.BroadcastRefund,
+			&address.Owned,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -384,6 +390,9 @@ func queryUnsignedRefundAddressByScript(script []byte) []SweepAddress {
 			&address.Signed_refund,
 			&address.Signed_sweep,
 			&address.Archived,
+			&address.BroadcastSweep,
+			&address.BroadcastRefund,
+			&address.Owned,
 		)
 		if err != nil {
 			fmt.Println(err)
@@ -477,6 +486,9 @@ func querySweepAddressByParentAddress(address string) []SweepAddress {
 			&address.Signed_refund,
 			&address.Signed_sweep,
 			&address.Archived,
+			&address.BroadcastSweep,
+			&address.BroadcastRefund,
+			&address.Owned,
 		)
 		if err != nil {
 			fmt.Println(err)

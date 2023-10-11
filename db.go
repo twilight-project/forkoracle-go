@@ -338,7 +338,7 @@ func queryAllSweepAddresses() []SweepAddress {
 }
 
 func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where script = $", script)
+	DB_reader, err := dbconn.Query("select * from address where script = $1", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
@@ -371,7 +371,7 @@ func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
 }
 
 func queryUnsignedRefundAddressByScript(script []byte) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where script = $1 and signed_refund = false  and archived = false", script)
+	DB_reader, err := dbconn.Query("select * from address where script = $1 and signed_refund = false and archived = false", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}

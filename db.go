@@ -120,7 +120,7 @@ func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
 }
 
 func insertSweepAddress(address string, script []byte, preimage []byte, unlock_height int64, parent_address string, owned bool) {
-	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, &10, &11)",
+	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
 		address,
 		script,
 		preimage,

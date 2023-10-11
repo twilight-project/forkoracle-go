@@ -532,8 +532,8 @@ func insertProposedAddress(current string, proposed string, unlock_height int64,
 		current,
 		proposed,
 		unlock_height,
-		roundID,
 		reserveID,
+		roundID,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing insert watched transaction query: ", err)

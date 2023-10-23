@@ -373,6 +373,7 @@ func addressProposer(accountName string) {
 		var latestProposedAddress SweepAddress
 		addresses := querySweepAddressesOrderByHeight(1)
 		if len(addresses) == 0 {
+			fmt.Println("no Sweep address found")
 			continue
 		}
 
@@ -388,6 +389,7 @@ func addressProposer(accountName string) {
 		}
 
 		if len(currentJudgeReserves) != 1 {
+			fmt.Println("current judge address not found")
 			continue
 		}
 

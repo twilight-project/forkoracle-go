@@ -167,7 +167,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 	}
 
 	if len(depositAddress) == 0 {
-		fmt.Println("addresses not equal bridge")
+		fmt.Println("zero addresses bridge")
 		markProcessedNotifications(data)
 		return
 	}

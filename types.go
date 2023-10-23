@@ -85,8 +85,12 @@ type AttestaionBlockSweep struct {
 }
 
 type DepositAddress struct {
-	BtcDepositAddress string
-	TwilightAddress   string
+	BtcDepositAddress           string
+	TwilightAddress             string
+	TwilightStakingAmount       string
+	BtcSatoshiTestAmount        string
+	IsConfirmed                 bool
+	CreationTwilightBlockHeight string
 }
 
 type QueryDepositAddressResp struct {

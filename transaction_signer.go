@@ -19,15 +19,12 @@ func processTxSigning(accountName string) {
 				log.Fatal(err)
 			}
 
-			fmt.Println("signing sweep tx")
-
 			addresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
 			if len(addresses) <= 0 {
 				fmt.Println("signing: no address")
 				continue
 			}
 
-			fmt.Println("signing: found address")
 			reserveAddress := addresses[0]
 
 			if reserveAddress.Signed_sweep == true {

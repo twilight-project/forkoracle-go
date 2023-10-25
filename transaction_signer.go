@@ -12,7 +12,7 @@ func processTxSigning(accountName string) {
 		SweepTxs := getAllUnsignedSweepTx()
 		refundTxs := getAllUnsignedRefundTx()
 
-		for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
+		for _, tx := range SweepTxs.UnsignedTxSweepMsg {
 			sweepTx, err := createTxFromHex(tx.BtcUnsignedSweepTx)
 			if err != nil {
 				fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
@@ -43,7 +43,7 @@ func processTxSigning(accountName string) {
 			insertTransaction(sweepTx.TxHash().String(), reserveAddress.Address, 0)
 		}
 
-		for _, tx := range refundTxs.UnsignedTxRefundMsgs {
+		for _, tx := range refundTxs.UnsignedTxRefundMsg {
 			refundTx, err := createTxFromHex(tx.BtcUnsignedRefundTx)
 			if err != nil {
 				fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)

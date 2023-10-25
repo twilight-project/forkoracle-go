@@ -96,13 +96,11 @@ func buildScript(preimage []byte, unlockHeight int64) ([]byte, error) {
 	}
 	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
 	builder.AddOp(txscript.OP_CHECKMULTISIGVERIFY)
-	builder.AddOp(txscript.OP_DROP)
 
 	// adding preimage check if multisig passes
 	builder.AddOp(txscript.OP_SIZE)
 	builder.AddInt64(32)
 	builder.AddOp(txscript.OP_EQUALVERIFY)
-	builder.AddOp(txscript.OP_DROP)
 	builder.AddOp(txscript.OP_HASH160)
 	builder.AddData(payment_hash)
 	builder.AddOp(txscript.OP_EQUAL)

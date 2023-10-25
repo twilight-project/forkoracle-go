@@ -563,7 +563,7 @@ func processRefund(accountName string) {
 		}
 
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
-		if sweepTxs.Code >= 0 {
+		if sweepTxs.Code > 0 {
 			continue
 		}
 
@@ -606,7 +606,7 @@ func processSweepSigning(accountName string) {
 		roundIdForSweepTx = roundIdForSweepTx + 1
 
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
-		if sweepTxs.Code >= 0 {
+		if sweepTxs.Code > 0 {
 			continue
 		}
 
@@ -692,7 +692,7 @@ func processRefundSigning(accountName string) {
 
 		refundTxs := getUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
 
-		if refundTxs.Code >= 0 {
+		if refundTxs.Code > 0 {
 			continue
 		}
 

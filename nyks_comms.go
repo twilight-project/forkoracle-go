@@ -249,8 +249,6 @@ func getAttestations(limit string) AttestaionBlock {
 func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep/%d/%d", reserveId, roundId)
-
-	fmt.Println("Path : ", path)
 	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		log.Fatalln(err)

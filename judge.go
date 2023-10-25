@@ -606,13 +606,6 @@ func processSweepSigning(accountName string) {
 
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
 
-		fmt.Println("==============================")
-		fmt.Println("current reserves : ", currentReservesForThisJudge)
-		fmt.Println("Unsigned Sweep Txs : ", sweepTxs)
-		fmt.Println("==============================")
-
-		continue
-
 		if len(sweepTxs.UnsignedTxSweepMsg) == 0 {
 			continue
 		}

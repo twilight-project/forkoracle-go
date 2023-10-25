@@ -436,6 +436,7 @@ func addressProposer(accountName string) {
 }
 
 func processSweep(accountName string) {
+	fmt.Println("Process Sweep unsigned started")
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
@@ -521,6 +522,7 @@ func processSweep(accountName string) {
 }
 
 func processRefund(accountName string) {
+	fmt.Println("Process Refund unsigned started")
 	for {
 		reserves := getBtcReserves()
 		var currentReservesForThisJudge []BtcReserve
@@ -577,7 +579,7 @@ func processRefund(accountName string) {
 }
 
 func processSweepSigning(accountName string) {
-
+	fmt.Println("Process Sweep signed started")
 	for {
 		var currentReservesForThisJudge []BtcReserve
 		reserves := getBtcReserves()
@@ -602,11 +604,18 @@ func processSweepSigning(accountName string) {
 		roundIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
 		roundIdForSweepTx = roundIdForSweepTx + 1
 
+		fmt.Println("==============================")
+		fmt.Println("Reserve Id : ", reserveIdForSweepTx)
+		fmt.Println("Round Id : ", roundIdForSweepTx)
+		fmt.Println("==============================")
+
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
 
 		if len(sweepTxs.UnsignedTxSweepMsgs) == 0 {
 			continue
 		}
+
+		fmt.Println("Signed Sweep process : Unsigned Sweep Transaction found")
 
 		unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsgs[0].BtcUnsignedSweepTx
 		sweepTx, err := createTxFromHex(unsignedSweepTxHex)
@@ -645,6 +654,7 @@ func processSweepSigning(accountName string) {
 }
 
 func processRefundSigning(accountName string) {
+	fmt.Println("Process Refund signed started")
 	for {
 		reserves := getBtcReserves()
 		var currentReservesForThisJudge []BtcReserve

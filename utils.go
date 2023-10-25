@@ -372,7 +372,7 @@ func sendSweepSign(hexSignatures []string, address string, accountName string, r
 	msg := &bridgetypes.MsgSignSweep{
 		ReserveId:        reserveId,
 		RoundId:          roundId,
-		SignerPublicKey:  getBtcPublicKey(), // no idea what this is
+		SignerPublicKey:  getBtcPublicKey(),
 		SweepSignature:   hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}
@@ -385,7 +385,7 @@ func sendRefundSign(hexSignatures string, address string, accountName string, re
 	msg := &bridgetypes.MsgSignRefund{
 		ReserveId:        reserveId,
 		RoundId:          roundId,
-		SignerPublicKey:  getBtcPublicKey(), // no idea what this is
+		SignerPublicKey:  getBtcPublicKey(),
 		RefundSignature:  hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}

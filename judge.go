@@ -185,6 +185,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		filteredSweepSignatures := orderSignSweep(receiveSweepSignatures)
 
 		if len(filteredSweepSignatures) <= 0 {
+			fmt.Println("INFO: ", "no signature found")
 			continue
 		}
 
@@ -630,6 +631,8 @@ func processSweepSigning(accountName string) {
 		if currentReserveAddress.BroadcastSweep == true {
 			continue
 		}
+
+		fmt.Println("Signed Sweep process : starting sign aggregation")
 
 		signedSweepTx := generateSignedSweepTx(accountName, sweepTx, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx), currentReserveAddress)
 

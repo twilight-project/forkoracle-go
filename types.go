@@ -212,7 +212,9 @@ type BtcReserve struct {
 }
 
 type UnsignedTxSweepResp struct {
-	UnsignedTxSweepMsg []UnsignedTxSweep
+	UnsignedTxSweepMsg  UnsignedTxSweep
+	UnsignedTxSweepMsgs []UnsignedTxSweep
+	Code                int
 }
 
 type UnsignedTxSweep struct {
@@ -224,7 +226,9 @@ type UnsignedTxSweep struct {
 }
 
 type UnsignedTxRefundResp struct {
-	UnsignedTxRefundMsg []UnsignedTxRefund
+	UnsignedTxRefundMsg  UnsignedTxRefund
+	UnsignedTxRefundMsgs []UnsignedTxRefund
+	Code                 int
 }
 
 type UnsignedTxRefund struct {

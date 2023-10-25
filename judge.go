@@ -563,11 +563,11 @@ func processRefund(accountName string) {
 		}
 
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
-		if len(sweepTxs.UnsignedTxSweepMsg) == 0 {
+		if sweepTxs.Code >= 0 {
 			continue
 		}
 
-		sweeptx := sweepTxs.UnsignedTxSweepMsg[0]
+		sweeptx := sweepTxs.UnsignedTxSweepMsg
 
 		sweepAddresses := getProposedSweepAddress(uint64(reserveIdForRefund), uint64(currentRoundId+1))
 		if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
@@ -606,14 +606,13 @@ func processSweepSigning(accountName string) {
 		roundIdForSweepTx = roundIdForSweepTx + 1
 
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
-
-		if len(sweepTxs.UnsignedTxSweepMsg) == 0 {
+		if sweepTxs.Code >= 0 {
 			continue
 		}
 
 		fmt.Println("Signed Sweep process : Unsigned Sweep Transaction found")
 
-		unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg[0].BtcUnsignedSweepTx
+		unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg.BtcUnsignedSweepTx
 		sweepTx, err := createTxFromHex(unsignedSweepTxHex)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside judge")
@@ -693,11 +692,11 @@ func processRefundSigning(accountName string) {
 
 		refundTxs := getUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
 
-		if len(refundTxs.UnsignedTxRefundMsg) == 0 {
+		if refundTxs.Code >= 0 {
 			continue
 		}
 
-		unsignedRefundTxHex := refundTxs.UnsignedTxRefundMsg[0].BtcUnsignedRefundTx
+		unsignedRefundTxHex := refundTxs.UnsignedTxRefundMsg.BtcUnsignedRefundTx
 		refundTx, err := createTxFromHex(unsignedRefundTxHex)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside judge")

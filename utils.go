@@ -369,15 +369,6 @@ func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, acc
 
 func sendSweepSign(hexSignatures []string, address string, accountName string, reserveId uint64, roundId uint64) {
 	cosmos := getCosmosClient()
-
-	fmt.Println("=====================")
-	fmt.Println("Reserve : ", reserveId)
-	fmt.Println("Round : ", roundId)
-	fmt.Println("Public Key : ", getBtcPublicKey())
-	fmt.Println("Sig : ", hexSignatures)
-	fmt.Println("oracleAddress : ", oracleAddr)
-	fmt.Println("=====================")
-
 	msg := &bridgetypes.MsgSignSweep{
 		ReserveId:        reserveId,
 		RoundId:          roundId,
@@ -385,8 +376,6 @@ func sendSweepSign(hexSignatures []string, address string, accountName string, r
 		SweepSignature:   hexSignatures,
 		BtcOracleAddress: oracleAddr,
 	}
-
-	fmt.Println(msg)
 
 	sendTransactionSignSweep(accountName, cosmos, msg)
 }

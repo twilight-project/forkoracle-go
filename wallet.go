@@ -213,8 +213,6 @@ func getBtcPublicKey() string {
 
 	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
-	fmt.Println("Private key : ", hex.EncodeToString(privkey.Serialize()))
-
 	btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())
 	return btcPubkey
 }

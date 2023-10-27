@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -422,21 +421,21 @@ func generateAndRegisterNewBtcReserveAddress(accountName string, height int64) s
 	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript)
 	registerAddressOnForkscanner(newSweepAddress)
 
-	BtcReserves := getBtcReserves()
-	var currentReserve BtcReserve
-	for _, reserve := range BtcReserves.BtcReserves {
-		if reserve.JudgeAddress == oracleAddr {
-			currentReserve = reserve
-		}
-	}
+	// BtcReserves := getBtcReserves()
+	// var currentReserve BtcReserve
+	// for _, reserve := range BtcReserves.BtcReserves {
+	// 	if reserve.JudgeAddress == oracleAddr {
+	// 		currentReserve = reserve
+	// 	}
+	// }
 
-	reserveId, _ := strconv.Atoi(currentReserve.ReserveId)
+	// reserveId, _ := strconv.Atoi(currentReserve.ReserveId)
 
-	if reserveId == 1 {
-		UpdateAddressUnlockHeight(newSweepAddress, height+int64(144))
-	} else if reserveId == 2 {
-		UpdateAddressUnlockHeight(newSweepAddress, height+int64(72))
-	}
+	// if reserveId == 1 {
+	// 	UpdateAddressUnlockHeight(newSweepAddress, height+int64(144))
+	// } else if reserveId == 2 {
+	// 	UpdateAddressUnlockHeight(newSweepAddress, height+int64(72))
+	// }
 
 	return newSweepAddress
 }

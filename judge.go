@@ -605,6 +605,11 @@ func processSweepSigning(accountName string) {
 		roundIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
 		roundIdForSweepTx = roundIdForSweepTx + 1
 
+		fmt.Println("===============")
+		fmt.Println(reserveIdForSweepTx)
+		fmt.Println(roundIdForSweepTx)
+		fmt.Println("===============")
+
 		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
 		if sweepTxs.Code > 0 {
 			continue

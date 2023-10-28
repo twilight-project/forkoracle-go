@@ -385,7 +385,7 @@ func sendRefundSign(hexSignatures string, address string, accountName string, re
 		ReserveId:        reserveId,
 		RoundId:          roundId,
 		SignerPublicKey:  getBtcPublicKey(),
-		RefundSignature:  hexSignatures,
+		RefundSignature:  []string{hexSignatures},
 		BtcOracleAddress: oracleAddr,
 	}
 

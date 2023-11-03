@@ -431,8 +431,10 @@ func addressProposer(accountName string) {
 		}
 
 		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-
 		insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
+
+		// websocket sweep proposal message
+
 	}
 }
 
@@ -525,6 +527,8 @@ func processSweep(accountName string) {
 func processRefund(accountName string) {
 	fmt.Println("Process Refund unsigned started")
 	for {
+
+		// websocket unsigned sweep tx
 		reserves := getBtcReserves()
 		var currentReservesForThisJudge []BtcReserve
 		for _, reserve := range reserves.BtcReserves {
@@ -582,6 +586,8 @@ func processRefund(accountName string) {
 func processSweepSigning(accountName string) {
 	fmt.Println("Process Sweep signed started")
 	for {
+
+		// web socket unsigned sweep tx
 		var currentReservesForThisJudge []BtcReserve
 		reserves := getBtcReserves()
 		for _, reserve := range reserves.BtcReserves {
@@ -609,8 +615,6 @@ func processSweepSigning(accountName string) {
 		if sweepTxs.Code > 0 {
 			continue
 		}
-
-		fmt.Println("Signed Sweep process : Unsigned Sweep Transaction found")
 
 		unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg.BtcUnsignedSweepTx
 		sweepTx, err := createTxFromHex(unsignedSweepTxHex)
@@ -653,6 +657,9 @@ func processSweepSigning(accountName string) {
 func processRefundSigning(accountName string) {
 	fmt.Println("Process Refund signed started")
 	for {
+
+		//web socket unsigned refund tx
+
 		reserves := getBtcReserves()
 		var currentReservesForThisJudge []BtcReserve
 		for _, reserve := range reserves.BtcReserves {

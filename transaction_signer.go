@@ -12,6 +12,8 @@ func processTxSigning(accountName string) {
 		SweepTxs := getAllUnsignedSweepTx()
 		refundTxs := getAllUnsignedRefundTx()
 
+		// websocket unsigned refund/sweep tx
+
 		for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
 			sweepTx, err := createTxFromHex(tx.BtcUnsignedSweepTx)
 			if err != nil {

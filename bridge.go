@@ -191,6 +191,8 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 
 func updatereserveaddresses() {
 	for {
+
+		// web socket reserve address
 		time.Sleep(2 * time.Minute)
 		registerAddressOnValidators()
 	}

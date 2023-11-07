@@ -189,18 +189,9 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 
 }
 
-func updatereserveaddresses() {
-	for {
-
-		// web socket reserve address
-		time.Sleep(2 * time.Minute)
-		registerAddressOnValidators()
-	}
-}
-
 func startBridge(accountName string, forkscanner_url url.URL) {
 	fmt.Println("starting bridge")
-	go updatereserveaddresses()
+	go nyksEventListener("register_reserve_address", accountName, "register_reserve_address")
 	go watchAddress(forkscanner_url)
-	go kDeepService(accountName)
+	kDeepService(accountName)
 }

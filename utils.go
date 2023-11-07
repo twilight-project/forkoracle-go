@@ -19,6 +19,7 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
+	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
@@ -534,4 +535,88 @@ func getBtcFeeRate() FeeRate {
 	err = json.Unmarshal(body, &a)
 
 	return a
+}
+
+func nyksEventListener(event string, accountName string, functionCall string) {
+	headers := make(map[string][]string)
+	headers["Content-Type"] = []string{"application/json"}
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_socket_url"))
+	conn, _, err := websocket.DefaultDialer.Dial(nyksd_url, headers)
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+	defer conn.Close()
+
+	// Set up ping/pong connection health check
+	pingPeriod := 30 * time.Second
+	pongWait := 60 * time.Second
+	stopChan := make(chan struct{}) // Create the stop channel
+
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
+				}
+			case <-stopChan: // Listen to the stop channel
+				return
+			}
+		}
+	}()
+
+	payload := `{
+        "jsonrpc": "2.0",
+        "method": "subscribe",
+        "id": 0,
+        "params": {
+            "query": "tm.event='Tx' AND message.action='%s'"
+        }
+    }`
+	payload = fmt.Sprintf(payload, event)
+
+	err = conn.WriteMessage(websocket.TextMessage, []byte(payload))
+	if err != nil {
+		fmt.Println("error in address watcher: ", err)
+		stopChan <- struct{}{} // Signal goroutine to stop
+		return
+	}
+
+	fmt.Println("registered")
+
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			fmt.Println("error in address watcher: ", err)
+			stopChan <- struct{}{} // Signal goroutine to stop
+			return
+		}
+
+		switch functionCall {
+		case "signed_sweep_process":
+			processSignedSweep(accountName)
+		case "address_propose":
+			proposeAddress(accountName)
+		case "refund_process":
+			processRefund(accountName)
+		case "signed_refund_process":
+			processSignedRefund(accountName)
+		case "register_res_addr_validators":
+			registerAddressOnValidators()
+		case "signing_sweep":
+			processTxSigningSweep(accountName)
+		case "signing_refund":
+			processTxSigningRefund(accountName)
+		default:
+			log.Println("Unknown function :", functionCall)
+		}
+	}
 }

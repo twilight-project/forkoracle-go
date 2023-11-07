@@ -267,7 +267,7 @@ func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
 
 func getAllUnsignedSweepTx() UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=20")
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=5")
 	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		log.Fatalln(err)
@@ -305,7 +305,7 @@ func getUnsignedRefundTx(reserveId int64, roundId int64) UnsignedTxRefundResp {
 
 func getAllUnsignedRefundTx() UnsignedTxRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=20")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=5")
 	if err != nil {
 		log.Fatalln(err)
 	}

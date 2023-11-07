@@ -359,8 +359,8 @@ func initReserve(accountName string) {
 	fmt.Println("judge initialized")
 }
 
-func addressProposer(accountName string) {
-	fmt.Println("starting address proposer")
+func proposeAddress(accountName string) {
+	fmt.Println("starting propose Address")
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
@@ -368,74 +368,68 @@ func addressProposer(accountName string) {
 	number = fmt.Sprintf("%v", viper.Get("height_diff_between_judges"))
 	heightDiffBetweenJudges, _ := strconv.Atoi(number)
 
-	for {
-		time.Sleep(5 * time.Minute)
-
-		var latestProposedAddress SweepAddress
-		addresses := querySweepAddressesOrderByHeight(1)
-		if len(addresses) == 0 {
-			fmt.Println("no Sweep address found")
-			continue
-		}
-
-		latestProposedAddress = addresses[0]
-
-		var currentJudgeReserves []BtcReserve
-		btcReserves := getBtcReserves()
-		for _, reserve := range btcReserves.BtcReserves {
-			if reserve.JudgeAddress == oracleAddr {
-				currentJudgeReserves = append(currentJudgeReserves, reserve)
-				break
-			}
-		}
-
-		if len(currentJudgeReserves) != 1 {
-			fmt.Println("current judge address not found")
-			continue
-		}
-
-		currentJudgeReserve := currentJudgeReserves[0]
-
-		reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
-		if reserveIdForProposal == 1 {
-			reserveIdForProposal = len(btcReserves.BtcReserves)
-		} else {
-			reserveIdForProposal = reserveIdForProposal - 1
-		}
-
-		var reserveToBeUpdated BtcReserve
-		for _, reserve := range btcReserves.BtcReserves {
-			tempId, _ := strconv.Atoi(reserve.ReserveId)
-			if tempId == reserveIdForProposal {
-				reserveToBeUpdated = reserve
-				break
-			}
-		}
-
-		RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
-		proposed := checkIfAddressIsProposed(int64(RoundId+1), int64(reserveIdForProposal))
-		if proposed == true {
-			continue
-		}
-
-		unlockHeight := latestProposedAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
-		newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, currentJudgeReserve.ReserveAddress)
-
-		cosmos_client := getCosmosClient()
-		msg := &bridgetypes.MsgProposeSweepAddress{
-			BtcScript:    hexScript,
-			BtcAddress:   newReserveAddress,
-			JudgeAddress: oracleAddr,
-			ReserveId:    uint64(reserveIdForProposal),
-			RoundId:      uint64(RoundId + 1),
-		}
-
-		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-		insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
-
-		// websocket sweep proposal message
-
+	var latestProposedAddress SweepAddress
+	addresses := querySweepAddressesOrderByHeight(1)
+	if len(addresses) == 0 {
+		fmt.Println("no Sweep address found")
+		return
 	}
+
+	latestProposedAddress = addresses[0]
+
+	var currentJudgeReserves []BtcReserve
+	btcReserves := getBtcReserves()
+	for _, reserve := range btcReserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentJudgeReserves = append(currentJudgeReserves, reserve)
+			break
+		}
+	}
+
+	if len(currentJudgeReserves) != 1 {
+		fmt.Println("current judge address not found")
+		return
+	}
+
+	currentJudgeReserve := currentJudgeReserves[0]
+
+	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
+	if reserveIdForProposal == 1 {
+		reserveIdForProposal = len(btcReserves.BtcReserves)
+	} else {
+		reserveIdForProposal = reserveIdForProposal - 1
+	}
+
+	var reserveToBeUpdated BtcReserve
+	for _, reserve := range btcReserves.BtcReserves {
+		tempId, _ := strconv.Atoi(reserve.ReserveId)
+		if tempId == reserveIdForProposal {
+			reserveToBeUpdated = reserve
+			break
+		}
+	}
+
+	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
+	proposed := checkIfAddressIsProposed(int64(RoundId+1), int64(reserveIdForProposal))
+	if proposed == true {
+		return
+	}
+
+	unlockHeight := latestProposedAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
+	newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, currentJudgeReserve.ReserveAddress)
+
+	cosmos_client := getCosmosClient()
+	msg := &bridgetypes.MsgProposeSweepAddress{
+		BtcScript:    hexScript,
+		BtcAddress:   newReserveAddress,
+		JudgeAddress: oracleAddr,
+		ReserveId:    uint64(reserveIdForProposal),
+		RoundId:      uint64(RoundId + 1),
+	}
+
+	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
+	insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
+
 }
 
 func processSweep(accountName string) {
@@ -525,210 +519,203 @@ func processSweep(accountName string) {
 }
 
 func processRefund(accountName string) {
-	fmt.Println("Process Refund unsigned started")
-	for {
+	fmt.Println("Process unsigned Refund started")
 
-		// websocket unsigned sweep tx
-		reserves := getBtcReserves()
-		var currentReservesForThisJudge []BtcReserve
-		for _, reserve := range reserves.BtcReserves {
-			if reserve.JudgeAddress == oracleAddr {
-				currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-			}
+	reserves := getBtcReserves()
+	var currentReservesForThisJudge []BtcReserve
+	for _, reserve := range reserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 		}
-
-		var reserveTobeProcessed *BtcReserve
-		minRoundId := 500
-		// Iterate through the array and find the minimum roundId
-		for _, reserve := range currentReservesForThisJudge {
-			tempRoundId, _ := strconv.Atoi(reserve.RoundId)
-			if tempRoundId < minRoundId {
-				minRoundId = tempRoundId
-				reserveTobeProcessed = &reserve
-			}
-		}
-
-		var currentRoundId int
-		var currentReserveId int
-		if reserveTobeProcessed == nil {
-			reserveTobeProcessed = &reserves.BtcReserves[len(reserves.BtcReserves)]
-			currentReserveId = 1
-		} else {
-			currentReserveId, _ = strconv.Atoi(reserveTobeProcessed.ReserveId)
-
-		}
-		currentRoundId, _ = strconv.Atoi(reserveTobeProcessed.RoundId)
-
-		var reserveIdForRefund int
-		if currentReserveId == 1 {
-			reserveIdForRefund = len(reserves.BtcReserves)
-		} else {
-			reserveIdForRefund = currentReserveId - 1
-		}
-
-		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
-		if sweepTxs.Code > 0 {
-			continue
-		}
-
-		sweeptx := sweepTxs.UnsignedTxSweepMsg
-
-		sweepAddresses := getProposedSweepAddress(uint64(reserveIdForRefund), uint64(currentRoundId+1))
-		if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
-			continue
-		}
-
-		refundTxHex, _ := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
-		sendUnsignedRefundTx(refundTxHex, uint64(reserveIdForRefund), uint64(currentRoundId+1), accountName)
 	}
+
+	var reserveTobeProcessed *BtcReserve
+	minRoundId := 500
+	// Iterate through the array and find the minimum roundId
+	for _, reserve := range currentReservesForThisJudge {
+		tempRoundId, _ := strconv.Atoi(reserve.RoundId)
+		if tempRoundId < minRoundId {
+			minRoundId = tempRoundId
+			reserveTobeProcessed = &reserve
+		}
+	}
+
+	var currentRoundId int
+	var currentReserveId int
+	if reserveTobeProcessed == nil {
+		reserveTobeProcessed = &reserves.BtcReserves[len(reserves.BtcReserves)]
+		currentReserveId = 1
+	} else {
+		currentReserveId, _ = strconv.Atoi(reserveTobeProcessed.ReserveId)
+
+	}
+	currentRoundId, _ = strconv.Atoi(reserveTobeProcessed.RoundId)
+
+	var reserveIdForRefund int
+	if currentReserveId == 1 {
+		reserveIdForRefund = len(reserves.BtcReserves)
+	} else {
+		reserveIdForRefund = currentReserveId - 1
+	}
+
+	sweepTxs := getUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
+	if sweepTxs.Code > 0 {
+		fmt.Println("no unsigned sweep tx found")
+		return
+	}
+
+	sweeptx := sweepTxs.UnsignedTxSweepMsg
+
+	sweepAddresses := getProposedSweepAddress(uint64(reserveIdForRefund), uint64(currentRoundId+1))
+	if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
+		fmt.Println("issue with sweep address while creating refund tx")
+		return
+	}
+
+	refundTxHex, _ := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
+	sendUnsignedRefundTx(refundTxHex, uint64(reserveIdForRefund), uint64(currentRoundId+1), accountName)
 }
 
-func processSweepSigning(accountName string) {
-	fmt.Println("Process Sweep signed started")
-	for {
+func processSignedSweep(accountName string) {
+	fmt.Println("Process signed sweep started")
 
-		// web socket unsigned sweep tx
-		var currentReservesForThisJudge []BtcReserve
-		reserves := getBtcReserves()
-		for _, reserve := range reserves.BtcReserves {
-			if reserve.JudgeAddress == oracleAddr {
-				currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-			}
+	var currentReservesForThisJudge []BtcReserve
+	reserves := getBtcReserves()
+	for _, reserve := range reserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 		}
-
-		var reserveTobeProcessed BtcReserve
-		minRoundId := 500
-		// Iterate through the array and find the minimum roundId
-		for _, reserve := range currentReservesForThisJudge {
-			tempRoundId, _ := strconv.Atoi(reserve.RoundId)
-			if tempRoundId < minRoundId {
-				minRoundId = tempRoundId
-				reserveTobeProcessed = reserve
-			}
-		}
-
-		reserveIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
-		roundIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
-		roundIdForSweepTx = roundIdForSweepTx + 1
-
-		sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
-		if sweepTxs.Code > 0 {
-			continue
-		}
-
-		unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg.BtcUnsignedSweepTx
-		sweepTx, err := createTxFromHex(unsignedSweepTxHex)
-		if err != nil {
-			fmt.Println("error decoding sweep tx : inside judge")
-			fmt.Println(err)
-		}
-
-		reserveAddresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
-
-		if len(reserveAddresses) == 0 {
-			fmt.Println("No address found")
-			continue
-		}
-		currentReserveAddress := reserveAddresses[0]
-
-		if currentReserveAddress.BroadcastSweep == true {
-			continue
-		}
-
-		fmt.Println("Signed Sweep process : starting sign aggregation")
-
-		signedSweepTx := generateSignedSweepTx(accountName, sweepTx, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx), currentReserveAddress)
-
-		signedSweepTxHex := hex.EncodeToString(signedSweepTx)
-		fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
-
-		broadcastSweeptxNYKS(signedSweepTxHex, accountName, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
-
-		wireTransaction, err := createTxFromHex(signedSweepTxHex)
-		if err != nil {
-			fmt.Println("error decodeing signed transaction : ", err)
-		}
-		broadcastBtcTransaction(wireTransaction)
-		markAddressBroadcastedSweep(currentReserveAddress.Address)
-		time.Sleep(3 * time.Minute)
 	}
+
+	var reserveTobeProcessed BtcReserve
+	minRoundId := 500
+	// Iterate through the array and find the minimum roundId
+	for _, reserve := range currentReservesForThisJudge {
+		tempRoundId, _ := strconv.Atoi(reserve.RoundId)
+		if tempRoundId < minRoundId {
+			minRoundId = tempRoundId
+			reserveTobeProcessed = reserve
+		}
+	}
+
+	reserveIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
+	roundIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
+	roundIdForSweepTx = roundIdForSweepTx + 1
+
+	sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
+	if sweepTxs.Code > 0 {
+		fmt.Println("No Unsigned Sweep tx found")
+		return
+	}
+
+	unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg.BtcUnsignedSweepTx
+	sweepTx, err := createTxFromHex(unsignedSweepTxHex)
+	if err != nil {
+		fmt.Println("error decoding sweep tx : inside judge")
+		fmt.Println(err)
+	}
+
+	reserveAddresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
+
+	if len(reserveAddresses) == 0 {
+		fmt.Println("No address found")
+		return
+	}
+	currentReserveAddress := reserveAddresses[0]
+
+	if currentReserveAddress.BroadcastSweep == true {
+		fmt.Println("Sweep tx already broadcasted")
+		return
+	}
+
+	fmt.Println("Signed Sweep process : starting sign aggregation")
+
+	signedSweepTx := generateSignedSweepTx(accountName, sweepTx, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx), currentReserveAddress)
+
+	signedSweepTxHex := hex.EncodeToString(signedSweepTx)
+	fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
+
+	broadcastSweeptxNYKS(signedSweepTxHex, accountName, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
+
+	wireTransaction, err := createTxFromHex(signedSweepTxHex)
+	if err != nil {
+		fmt.Println("error decodeing signed transaction : ", err)
+	}
+	broadcastBtcTransaction(wireTransaction)
+	markAddressBroadcastedSweep(currentReserveAddress.Address)
 }
 
-func processRefundSigning(accountName string) {
-	fmt.Println("Process Refund signed started")
-	for {
+func processSignedRefund(accountName string) {
+	fmt.Println("Process signed Refund started")
 
-		//web socket unsigned refund tx
-
-		reserves := getBtcReserves()
-		var currentReservesForThisJudge []BtcReserve
-		for _, reserve := range reserves.BtcReserves {
-			if reserve.JudgeAddress == oracleAddr {
-				currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-			}
+	reserves := getBtcReserves()
+	var currentReservesForThisJudge []BtcReserve
+	for _, reserve := range reserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 		}
-
-		var reserveTobeProcessed *BtcReserve
-		minRoundId := 500
-		// Iterate through the array and find the minimum roundId
-		for _, reserve := range currentReservesForThisJudge {
-			tempRoundId, _ := strconv.Atoi(reserve.RoundId)
-			if tempRoundId < minRoundId {
-				minRoundId = tempRoundId
-				reserveTobeProcessed = &reserve
-			}
-		}
-
-		var currentRoundId int
-		var currentReserveId int
-		if reserveTobeProcessed == nil {
-			reserveTobeProcessed = &reserves.BtcReserves[len(reserves.BtcReserves)]
-			currentReserveId = 1
-		} else {
-			currentReserveId, _ = strconv.Atoi(reserveTobeProcessed.ReserveId)
-
-		}
-		currentRoundId, _ = strconv.Atoi(reserveTobeProcessed.RoundId)
-
-		var reserveIdForSweep int
-		if currentReserveId == 1 {
-			reserveIdForSweep = len(reserves.BtcReserves)
-		} else {
-			reserveIdForSweep = currentReserveId - 1
-		}
-
-		refundTxs := getUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
-
-		if refundTxs.Code > 0 {
-			continue
-		}
-
-		unsignedRefundTxHex := refundTxs.UnsignedTxRefundMsg.BtcUnsignedRefundTx
-		refundTx, err := createTxFromHex(unsignedRefundTxHex)
-		if err != nil {
-			fmt.Println("error decoding sweep tx : inside judge")
-			fmt.Println(err)
-		}
-
-		signedRefundTx, _, newReserveAddress := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
-
-		signedRefundTxHex := hex.EncodeToString(signedRefundTx)
-		fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
-
-		broadcastRefundtxNYKS(signedRefundTxHex, accountName, uint64(currentReserveId), uint64(currentRoundId+1))
-		markAddressBroadcastedRefund(newReserveAddress.Address)
-
-		// add tapscript inscription here
-
-		time.Sleep(1 * time.Hour)
 	}
+
+	var reserveTobeProcessed *BtcReserve
+	minRoundId := 500
+	// Iterate through the array and find the minimum roundId
+	for _, reserve := range currentReservesForThisJudge {
+		tempRoundId, _ := strconv.Atoi(reserve.RoundId)
+		if tempRoundId < minRoundId {
+			minRoundId = tempRoundId
+			reserveTobeProcessed = &reserve
+		}
+	}
+
+	var currentRoundId int
+	var currentReserveId int
+	if reserveTobeProcessed == nil {
+		reserveTobeProcessed = &reserves.BtcReserves[len(reserves.BtcReserves)]
+		currentReserveId = 1
+	} else {
+		currentReserveId, _ = strconv.Atoi(reserveTobeProcessed.ReserveId)
+
+	}
+	currentRoundId, _ = strconv.Atoi(reserveTobeProcessed.RoundId)
+
+	var reserveIdForSweep int
+	if currentReserveId == 1 {
+		reserveIdForSweep = len(reserves.BtcReserves)
+	} else {
+		reserveIdForSweep = currentReserveId - 1
+	}
+
+	refundTxs := getUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
+
+	if refundTxs.Code > 0 {
+		fmt.Println("no unsigned refund tx found")
+		return
+	}
+
+	unsignedRefundTxHex := refundTxs.UnsignedTxRefundMsg.BtcUnsignedRefundTx
+	refundTx, err := createTxFromHex(unsignedRefundTxHex)
+	if err != nil {
+		fmt.Println("error decoding sweep tx : inside judge")
+		fmt.Println(err)
+	}
+
+	signedRefundTx, _, newReserveAddress := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
+
+	signedRefundTxHex := hex.EncodeToString(signedRefundTx)
+	fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
+
+	broadcastRefundtxNYKS(signedRefundTxHex, accountName, uint64(currentReserveId), uint64(currentRoundId+1))
+	markAddressBroadcastedRefund(newReserveAddress.Address)
+
+	// add tapscript inscription here
+
 }
 
 func startJudge(accountName string) {
 	fmt.Println("starting judge")
-	go addressProposer(accountName)
 	go processSweep(accountName)
-	go processSweepSigning(accountName)
-	go processRefund(accountName)
-	go processRefundSigning(accountName)
+	go nyksEventListener("register_reserve_address", accountName, "address_propose")
+	go nyksEventListener("unsigned_tx_sweep", accountName, "refund_process")
+	go nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")
+	nyksEventListener("unsigned_tx_sweep", accountName, "register_res_addr_validators")
 }

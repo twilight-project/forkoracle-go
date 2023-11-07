@@ -9,6 +9,7 @@
     "forkscanner_ws_port": "8340",
     "forkscanner_rpc_port": "8339",
     "nyksd_url": "https://nyks.twilight-explorer.com/api",
+    "nyksd_socket_url" : "ws://nyks.twilight-explorer.com/tendermint/websocket",
     "confirmation_limit": "3",
     "wallet_passphrase": "the correct horse battery staple",
     "unlocking_time": "144",

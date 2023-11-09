@@ -209,7 +209,7 @@ func getAllDepositAddress() QueryDepositAddressResp {
 	return a
 }
 
-func getAttestations(limit string) AttestaionBlock {
+func getAttestations(limit string) NyksAttestaionBlock {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	req_url := fmt.Sprintf("%s/twilight-project/nyks/nyks/attestations?limit=%s&order_by=desc", nyksd_url, limit)
 	resp, err := http.Get(req_url)
@@ -222,7 +222,7 @@ func getAttestations(limit string) AttestaionBlock {
 		log.Fatalln(err)
 	}
 
-	a := AttestaionBlock{}
+	a := NyksAttestaionBlock{}
 	err = json.Unmarshal(body, &a)
 
 	return a

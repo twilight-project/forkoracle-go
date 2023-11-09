@@ -85,7 +85,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 
 // This function is a buffer between websocket and send_transaction to add future functionality
 func process_message(accountName string, message []byte) {
-	var c BlockData
+	var c BtcFkBlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {
 		fmt.Printf("Unmarshal: %v\n", err)

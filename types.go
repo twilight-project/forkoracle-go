@@ -9,7 +9,7 @@ type ChainTip struct {
 	Status          string `json:"status"`
 }
 
-type BlockData struct {
+type BtcFkBlockData struct {
 	Method   string     `json:"method"`
 	ChainTip []ChainTip `json:"params,omitempty"`
 }
@@ -20,7 +20,7 @@ type WatchtowerResponse struct {
 	Params  []WatchtowerNotification
 }
 
-type WatchtowerSender struct {
+type WatchtowerTxInput struct {
 	Address string
 	Amount  uint64
 	Txid    string
@@ -33,14 +33,14 @@ type WatchtowerNotification struct {
 	Receiving        string
 	Satoshis         uint64
 	Receiving_txid   string
-	Sending_txinputs []WatchtowerSender
+	Sending_txinputs []WatchtowerTxInput
 	Archived         bool
 	Receiving_vout   uint64
 	Sending          string
 	Sending_vout     int32
 }
 
-type Proposal struct {
+type NyksProposal struct {
 	// @Type                string
 	Creator             string
 	Height              string
@@ -48,15 +48,15 @@ type Proposal struct {
 	OrchestratorAddress string
 }
 
-type Attestation struct {
+type NyksAttestation struct {
 	Observed bool
 	Votes    []string
 	Height   string
-	Proposal Proposal
+	Proposal NyksProposal
 }
 
-type AttestaionBlock struct {
-	Attestations []Attestation
+type NyksAttestaionBlock struct {
+	Attestations []NyksAttestation
 }
 
 type IndividualTwilightReserveAccount struct {
@@ -64,7 +64,7 @@ type IndividualTwilightReserveAccount struct {
 	BtcValue        string
 }
 
-type SweepProposal struct {
+type NyksSweepProposal struct {
 	ReserveAddress                   string
 	JudgeAddress                     string
 	TotalValue                       string
@@ -73,15 +73,15 @@ type SweepProposal struct {
 	BtcSweepTx                       string
 }
 
-type AttestationSweep struct {
+type NyksAttestationSweep struct {
 	Observed bool
 	Votes    []string
 	Height   string
-	Proposal SweepProposal
+	Proposal NyksSweepProposal
 }
 
-type AttestaionBlockSweep struct {
-	Attestations []AttestationSweep
+type NyksAttestaionBlockSweep struct {
+	Attestations []NyksAttestationSweep
 }
 
 type DepositAddress struct {
@@ -250,11 +250,11 @@ type WatchedTx struct {
 	Watched bool
 }
 
-type ProposedAddress struct {
-	Current      string
-	Proposed     string
-	UnlockHeight int64
-}
+// type ProposedAddress struct {
+// 	Current      string
+// 	Proposed     string
+// 	UnlockHeight int64
+// }
 
 type FeeLimits struct {
 	Min int `json:"min"`
@@ -268,14 +268,14 @@ type FeeRate struct {
 }
 
 type ProposedAddressesResp struct {
-	ProposeSweepAddressMsgs []ProposedAddresses
+	ProposeSweepAddressMsgs []ProposedAddress
 }
 
 type ProposedAddressResp struct {
-	ProposeSweepAddressMsg ProposedAddresses
+	ProposeSweepAddressMsg ProposedAddress
 }
 
-type ProposedAddresses struct {
+type ProposedAddress struct {
 	BtcAddress   string `json:"btcAddress"`
 	BtcScript    string `json:"btcScript"`
 	ReserveId    string `json:"reserveId"`
@@ -299,4 +299,30 @@ type ReserveAccountBalances struct {
 
 type ClearingAccountResp struct {
 	ReserveClearingAccountsAll []ReserveClearingAccountsAll
+}
+
+type BlockResultsResponse struct {
+	Result *BlockResult `json:"result,omitempty"`
+	Error  *RPCError    `json:"error,omitempty"`
+}
+
+type RPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    string `json:"data"`
+}
+
+type BlockResult struct {
+	Height           string     `json:"height"`
+	TxsResults       []TxResult `json:"txs_results"`
+	BeginBlockEvents []Event    `json:"begin_block_events"`
+	EndBlockEvents   []Event    `json:"end_block_events"`
+}
+
+type TxResult struct {
+	Events []Event `json:"events"`
+}
+
+type Event struct {
+	Type string `json:"type"`
 }

@@ -45,6 +45,8 @@ func main() {
 	time.Sleep(1 * time.Minute)
 	if judge == true {
 		go startJudge(accountName)
+	} else {
+		time.Sleep(5 * time.Minute)
 	}
 
 	time.Sleep(1 * time.Minute)

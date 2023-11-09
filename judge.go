@@ -355,7 +355,6 @@ func initReserve(accountName string) {
 	}
 
 	_ = generateAndRegisterNewBtcReserveAddress(accountName, int64(height+unlockingTimeInBlocks))
-
 	fmt.Println("judge initialized")
 }
 
@@ -560,7 +559,7 @@ func processRefund(accountName string) {
 
 	sweepTxs := getUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
 	if sweepTxs.Code > 0 {
-		fmt.Println("no unsigned sweep tx found")
+		fmt.Println("refund : no unsigned sweep tx found : ", reserveIdForRefund, "   ", uint64(currentRoundId+1))
 		return
 	}
 
@@ -604,7 +603,7 @@ func processSignedSweep(accountName string) {
 
 	sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
 	if sweepTxs.Code > 0 {
-		fmt.Println("No Unsigned Sweep tx found")
+		fmt.Println("Signed Sweep: No Unsigned Sweep tx found : ", reserveIdForSweepTx, "   ", roundIdForSweepTx)
 		return
 	}
 

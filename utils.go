@@ -325,48 +325,6 @@ func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, acc
 	sendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 }
 
-// func sendUnsignedSweepTx(sweepTx string, sweeptxId string, oldReserveAddress string, withdrawals []BtcWithdrawRequest, accountName string, total uint64) {
-
-// 	fmt.Println("inside sending sweep proposal")
-
-// 	twilightIndividualAccounts := make([]*volttypes.IndividualTwilightReserveAccount, 0)
-// 	for _, withdrawal := range withdrawals {
-// 		amount, _ := strconv.Atoi(withdrawal.WithdrawAmount)
-// 		individualAccount := volttypes.IndividualTwilightReserveAccount{
-// 			TwilightAddress: withdrawal.WithdrawAddress,
-// 			BtcValue:        uint64(amount),
-// 		}
-// 		twilightIndividualAccounts = append(twilightIndividualAccounts, &individualAccount)
-// 	}
-
-// 	cosmos := getCosmosClient()
-
-// 	addrs := querySweepAddressByParentAddress(oldReserveAddress)
-// 	if len(addrs) <= 0 {
-// 		fmt.Println("New Resevre address not found hence not sending sweep proposal")
-// 		return
-// 	}
-
-// 	newReserveAddress := addrs[0]
-
-// 	msg := &bridgetypes.MsgSweepProposal{
-
-// 		ReserveId:                        1,
-// 		ReserveAddress:                   oldReserveAddress,
-// 		JudgeAddress:                     oracleAddr,
-// 		BtcRelayCapacityValue:            0,
-// 		TotalValue:                       total,
-// 		PrivatePoolValue:                 0,
-// 		PublicValue:                      0,
-// 		FeePool:                          0,
-// 		IndividualTwilightReserveAccount: twilightIndividualAccounts,
-// 		BtcRefundTx:                      refundTx + "++" + newReserveAddress.Address, // change to refund tx
-// 		BtcSweepTx:                       sweepTx,
-// 	}
-
-// 	sendTransactionSweepProposal(accountName, cosmos, msg)
-// }
-
 func sendSweepSign(hexSignatures []string, address string, accountName string, reserveId uint64, roundId uint64) {
 	cosmos := getCosmosClient()
 	msg := &bridgetypes.MsgSignSweep{

@@ -497,6 +497,12 @@ func processRefund(accountName string) {
 		return
 	}
 
+	fmt.Println("============================")
+	fmt.Println(sweeptx.BtcUnsignedSweepTx)
+	fmt.Println(sweepAddresses.ProposeSweepAddressMsg.BtcScript)
+	fmt.Println(reserveIdForRefund)
+	fmt.Println("============================")
+
 	refundTxHex, err := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
 	if err != nil {
 		fmt.Println("issue creating refund tx")

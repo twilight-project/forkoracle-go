@@ -198,6 +198,8 @@ func registerAddressOnForkscanner(address string) {
 	}
 	log.Println(result)
 
+	fmt.Println("registered address on forkscanner : ", address)
+
 }
 
 func createTxFromHex(txHex string) (*wire.MsgTx, error) {
@@ -560,19 +562,19 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 
 		switch functionCall {
 		case "signed_sweep_process":
-			processSignedSweep(accountName)
+			go processSignedSweep(accountName)
 		case "address_propose":
-			proposeAddress(accountName)
+			go proposeAddress(accountName)
 		case "refund_process":
-			processRefund(accountName)
+			go processRefund(accountName)
 		case "signed_refund_process":
-			processSignedRefund(accountName)
+			go processSignedRefund(accountName)
 		case "register_res_addr_validators":
-			registerAddressOnValidators()
+			go registerAddressOnValidators()
 		case "signing_sweep":
-			processTxSigningSweep(accountName)
+			go processTxSigningSweep(accountName)
 		case "signing_refund":
-			processTxSigningRefund(accountName)
+			go processTxSigningRefund(accountName)
 		default:
 			log.Println("Unknown function :", functionCall)
 		}

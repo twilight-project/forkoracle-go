@@ -10,7 +10,6 @@ import (
 
 	"github.com/btcsuite/btcd/wire"
 	"github.com/spf13/viper"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
 func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountName string, withdrawals []BtcWithdrawRequest, unlockHeight int64) (string, string, uint64, error) {
@@ -358,79 +357,6 @@ func initReserve(accountName string) {
 	fmt.Println("judge initialized")
 }
 
-func proposeAddress(accountName string) {
-	fmt.Println("starting propose Address")
-	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
-	unlockingTimeInBlocks, _ := strconv.Atoi(number)
-
-	// temporary till staking is implemented
-	number = fmt.Sprintf("%v", viper.Get("height_diff_between_judges"))
-	heightDiffBetweenJudges, _ := strconv.Atoi(number)
-
-	var latestProposedAddress SweepAddress
-	addresses := querySweepAddressesOrderByHeight(1)
-	if len(addresses) == 0 {
-		fmt.Println("no Sweep address found")
-		return
-	}
-
-	latestProposedAddress = addresses[0]
-
-	var currentJudgeReserves []BtcReserve
-	btcReserves := getBtcReserves()
-	for _, reserve := range btcReserves.BtcReserves {
-		if reserve.JudgeAddress == oracleAddr {
-			currentJudgeReserves = append(currentJudgeReserves, reserve)
-			break
-		}
-	}
-
-	if len(currentJudgeReserves) != 1 {
-		fmt.Println("current judge address not found")
-		return
-	}
-
-	currentJudgeReserve := currentJudgeReserves[0]
-
-	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
-	if reserveIdForProposal == 1 {
-		reserveIdForProposal = len(btcReserves.BtcReserves)
-	} else {
-		reserveIdForProposal = reserveIdForProposal - 1
-	}
-
-	var reserveToBeUpdated BtcReserve
-	for _, reserve := range btcReserves.BtcReserves {
-		tempId, _ := strconv.Atoi(reserve.ReserveId)
-		if tempId == reserveIdForProposal {
-			reserveToBeUpdated = reserve
-			break
-		}
-	}
-
-	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
-	proposed := checkIfAddressIsProposed(int64(RoundId+1), int64(reserveIdForProposal))
-	if proposed == true {
-		return
-	}
-
-	unlockHeight := latestProposedAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
-	newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, currentJudgeReserve.ReserveAddress)
-
-	cosmos_client := getCosmosClient()
-	msg := &bridgetypes.MsgProposeSweepAddress{
-		BtcScript:    hexScript,
-		BtcAddress:   newReserveAddress,
-		JudgeAddress: oracleAddr,
-		ReserveId:    uint64(reserveIdForProposal),
-		RoundId:      uint64(RoundId + 1),
-	}
-
-	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-	insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
-
-}
-
 func processSweep(accountName string) {
 	fmt.Println("Process Sweep unsigned started")
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
@@ -571,7 +497,11 @@ func processRefund(accountName string) {
 		return
 	}
 
-	refundTxHex, _ := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
+	refundTxHex, err := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
+	if err != nil {
+		fmt.Println("issue creating refund tx")
+		return
+	}
 	sendUnsignedRefundTx(refundTxHex, uint64(reserveIdForRefund), uint64(currentRoundId+1), accountName)
 }
 
@@ -713,8 +643,8 @@ func processSignedRefund(accountName string) {
 func startJudge(accountName string) {
 	fmt.Println("starting judge")
 	go processSweep(accountName)
-	go nyksEventListener("register_reserve_address", accountName, "address_propose")
+	go nyksEventListener("unsigned_tx_sweep", accountName, "signed_sweep_process")
 	go nyksEventListener("unsigned_tx_sweep", accountName, "refund_process")
 	go nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")
-	nyksEventListener("unsigned_tx_sweep", accountName, "register_res_addr_validators")
+	nyksEventListener("register_reserve_address", accountName, "register_res_addr_validators")
 }

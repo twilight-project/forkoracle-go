@@ -37,16 +37,16 @@ func main() {
 	}
 
 	time.Sleep(30 * time.Second)
-
 	go orchestrator(accountName, forkscanner_url)
 
+	go nyksEventListener("register_reserve_address", accountName, "address_propose")
 	initJudge(accountName)
 
 	time.Sleep(1 * time.Minute)
 	if judge == true {
 		go startJudge(accountName)
 	} else {
-		time.Sleep(5 * time.Minute)
+		time.Sleep(2 * time.Minute)
 	}
 
 	time.Sleep(1 * time.Minute)

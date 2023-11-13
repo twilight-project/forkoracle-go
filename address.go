@@ -6,12 +6,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/cosmos/btcutil"
 	"github.com/spf13/viper"
+	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -152,4 +154,78 @@ func generateAddress(unlock_height int64, oldReserveAddress string) (string, []b
 	insertSweepAddress(addressStr, redeemScript, preimage, int64(unlock_height), oldReserveAddress, true)
 
 	return addressStr, redeemScript
+}
+
+func proposeAddress(accountName string) {
+	fmt.Println("starting propose Address")
+	time.Sleep(5 * time.Minute)
+	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	unlockingTimeInBlocks, _ := strconv.Atoi(number)
+
+	// temporary till staking is implemented
+	number = fmt.Sprintf("%v", viper.Get("height_diff_between_judges"))
+	heightDiffBetweenJudges, _ := strconv.Atoi(number)
+
+	var latestProposedAddress SweepAddress
+	addresses := querySweepAddressesOrderByHeight(1)
+	if len(addresses) == 0 {
+		fmt.Println("no Sweep address found")
+		return
+	}
+
+	latestProposedAddress = addresses[0]
+
+	var currentJudgeReserves []BtcReserve
+	btcReserves := getBtcReserves()
+	for _, reserve := range btcReserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentJudgeReserves = append(currentJudgeReserves, reserve)
+			break
+		}
+	}
+
+	if len(currentJudgeReserves) != 1 {
+		fmt.Println("current judge address not found")
+		return
+	}
+
+	currentJudgeReserve := currentJudgeReserves[0]
+
+	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
+	if reserveIdForProposal == 1 {
+		reserveIdForProposal = len(btcReserves.BtcReserves)
+	} else {
+		reserveIdForProposal = reserveIdForProposal - 1
+	}
+
+	var reserveToBeUpdated BtcReserve
+	for _, reserve := range btcReserves.BtcReserves {
+		tempId, _ := strconv.Atoi(reserve.ReserveId)
+		if tempId == reserveIdForProposal {
+			reserveToBeUpdated = reserve
+			break
+		}
+	}
+
+	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
+	proposed := checkIfAddressIsProposed(int64(RoundId + 1))
+	if proposed == true {
+		return
+	}
+
+	unlockHeight := latestProposedAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
+	newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, currentJudgeReserve.ReserveAddress)
+
+	cosmos_client := getCosmosClient()
+	msg := &bridgetypes.MsgProposeSweepAddress{
+		BtcScript:    hexScript,
+		BtcAddress:   newReserveAddress,
+		JudgeAddress: oracleAddr,
+		ReserveId:    uint64(reserveIdForProposal),
+		RoundId:      uint64(RoundId + 1),
+	}
+
+	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
+	insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
+
 }

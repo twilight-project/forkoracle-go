@@ -123,7 +123,8 @@ func generateRefundTx(txHex string, script string, reserveId uint64) (string, er
 	for _, cAccount := range clearingAccounts.ReserveClearingAccountsAll {
 		for _, balance := range cAccount.ReserveAccountBalances {
 			amount, _ := strconv.Atoi(balance.Amount)
-			txout, err := CreateTxOut(cAccount.BtcWithdrawAddress, int64(amount))
+			//change this to BTC Deposit Address later
+			txout, err := CreateTxOut(cAccount.BtcDepositAddress, int64(amount))
 			if err != nil {
 				fmt.Println("error while add tx out : ", err)
 				return "", err
@@ -179,9 +180,9 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 	noOfValidators, _ := strconv.Atoi(number)
 	for {
 		time.Sleep(30 * time.Second)
-		receiveSweepSignatures := getSignSweep(reserveId, roundId)
+		receivedSweepSignatures := getSignSweep(reserveId, roundId)
 
-		filteredSweepSignatures := orderSignSweep(receiveSweepSignatures)
+		filteredSweepSignatures := orderSignSweep(receivedSweepSignatures)
 
 		if len(filteredSweepSignatures) <= 0 {
 			fmt.Println("INFO: ", "no signature found")

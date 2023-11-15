@@ -40,25 +40,25 @@ func preimage() ([]byte, error) {
 }
 
 func buildScript(preimage []byte, unlockHeight int64) ([]byte, error) {
-	var judgeBtcPK *btcec.PublicKey
-	var refundJudgeAddress string
-	judges := getRegisteredJudges()
-	if len(judges.Judges) == 0 {
-		fmt.Println("no judge found")
-		return nil, nil
-	} else if len(judges.Judges) == 1 {
-		refundJudgeAddress = judges.Judges[0].JudgeAddress
-	} else {
-		for _, judge := range judges.Judges {
-			if judge.JudgeAddress != oracleAddr {
-				refundJudgeAddress = judge.JudgeAddress
-			}
-		}
+	// var judgeBtcPK *btcec.PublicKey
+	// var refundJudgeAddress string
+	// judges := getRegisteredJudges()
+	// if len(judges.Judges) == 0 {
+	// 	fmt.Println("no judge found")
+	// 	return nil, nil
+	// } else if len(judges.Judges) == 1 {
+	// 	refundJudgeAddress = judges.Judges[0].JudgeAddress
+	// } else {
+	// 	for _, judge := range judges.Judges {
+	// 		if judge.JudgeAddress != oracleAddr {
+	// 			refundJudgeAddress = judge.JudgeAddress
+	// 		}
+	// 	}
 
-	}
+	// }
 
-	number := fmt.Sprintf("%v", viper.Get("csv_delay"))
-	delayPeriod, _ := strconv.Atoi(number)
+	// number := fmt.Sprintf("%v", viper.Get("csv_delay"))
+	// delayPeriod, _ := strconv.Atoi(number)
 	delegateAddresses := getDelegateAddresses()
 	payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
@@ -92,13 +92,15 @@ func buildScript(preimage []byte, unlockHeight int64) ([]byte, error) {
 		builder.AddData(pubKey.SerializeCompressed())
 
 		//TODO: might need to change this for multi judge setup
-		if element.BtcOracleAddress == refundJudgeAddress {
-			judgeBtcPK = pubKey
-		}
+		// if element.BtcOracleAddress == refundJudgeAddress {
+		// 	judgeBtcPK = pubKey
+		// }
 	}
 	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
 	builder.AddOp(txscript.OP_CHECKMULTISIGVERIFY)
 
+	builder.AddOp(txscript.OP_CHECKMULTISIG)
+	builder.AddOp(txscript.OP_IF)
 	// adding preimage check if multisig passes
 	builder.AddOp(txscript.OP_SIZE)
 	builder.AddInt64(32)
@@ -106,19 +108,21 @@ func buildScript(preimage []byte, unlockHeight int64) ([]byte, error) {
 	builder.AddOp(txscript.OP_HASH160)
 	builder.AddData(payment_hash)
 	builder.AddOp(txscript.OP_EQUAL)
-	builder.AddOp(txscript.OP_IFDUP)
-
-	// adding judge refund check
-	builder.AddOp(txscript.OP_NOTIF)
-	builder.AddData(judgeBtcPK.SerializeCompressed())
-	builder.AddOp(txscript.OP_CHECKSIG)
-	builder.AddOp(txscript.OP_NOTIF)
-	builder.AddInt64(unlockHeight + int64(delayPeriod))
-	builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
-	builder.AddOp(txscript.OP_DROP)
 	builder.AddOp(txscript.OP_ENDIF)
 
-	builder.AddOp(txscript.OP_ENDIF)
+	// builder.AddOp(txscript.OP_IFDUP)
+
+	// // adding judge refund check
+	// builder.AddOp(txscript.OP_NOTIF)
+	// builder.AddData(judgeBtcPK.SerializeCompressed())
+	// builder.AddOp(txscript.OP_CHECKSIG)
+	// builder.AddOp(txscript.OP_NOTIF)
+	// builder.AddInt64(unlockHeight + int64(delayPeriod))
+	// builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
+	// builder.AddOp(txscript.OP_DROP)
+	// builder.AddOp(txscript.OP_ENDIF)
+
+	// builder.AddOp(txscript.OP_ENDIF)
 
 	redeemScript, err := builder.Script()
 	if err != nil {
@@ -158,7 +162,7 @@ func generateAddress(unlock_height int64, oldReserveAddress string) (string, []b
 
 func proposeAddress(accountName string) {
 	fmt.Println("starting propose Address")
-	time.Sleep(5 * time.Minute)
+	time.Sleep(10 * time.Minute)
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
@@ -169,7 +173,7 @@ func proposeAddress(accountName string) {
 	var latestProposedAddress SweepAddress
 	addresses := querySweepAddressesOrderByHeight(1)
 	if len(addresses) == 0 {
-		fmt.Println("no Sweep address found")
+		fmt.Println("address proposer : no Sweep address found")
 		return
 	}
 

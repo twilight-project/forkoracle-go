@@ -608,3 +608,46 @@ func checkIfAddressIsProposed(roundID int64) bool {
 
 	return DB_reader.Next() // Return true if there is at least one result row
 }
+
+func insertSignedtx(tx []byte, unlock_height int64) {
+	_, err := dbconn.Exec("INSERT into signed_tx VALUES ($1, $2)",
+		tx,
+		unlock_height,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing insert signed sweep tx: ", err)
+	}
+}
+
+func querySignedTx(unlock_height int64) [][]byte {
+	DB_reader, err := dbconn.Query("select tx from unsigned_tx where unlock_height <= ", unlock_height)
+	if err != nil {
+		fmt.Println("An error occured while query script: ", err)
+	}
+
+	defer DB_reader.Close()
+	txs := [][]byte{}
+
+	for DB_reader.Next() {
+		tx := []byte{}
+		err := DB_reader.Scan(
+			&tx,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		txs = append(txs, tx)
+	}
+
+	return txs
+}
+
+func deleteSignedTx(tx []byte) {
+	_, err := dbconn.Exec("DELETE FROM signed_tx WHERE tx = $1", tx)
+	if err != nil {
+		fmt.Println("An error occurred while executing delete signed tx: ", err)
+	} else {
+		fmt.Println("Transaction successfully deleted")
+	}
+}

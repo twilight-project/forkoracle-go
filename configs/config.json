@@ -12,7 +12,7 @@
     "nyksd_socket_url" : "ws://nyks.twilight-explorer.com/tendermint/websocket",
     "confirmation_limit": "3",
     "wallet_passphrase": "the correct horse battery staple",
-    "unlocking_time": "40",
+    "unlocking_time": "20",
     "no_of_Validators": "6",
     "csv_delay": "10",
     "sweep_preblock": "5",

@@ -63,18 +63,19 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 		sweepTx.AddTxOut(txOut)
 	}
 
-	feeRate := getBtcFeeRate()
-	baseSize := sweepTx.SerializeSizeStripped()
-	totalSize := sweepTx.SerializeSize()
-	weight := (baseSize * 3) + totalSize
-	vsize := (weight + 3) / 4
+	// feeRate := getBtcFeeRate()
+	// baseSize := sweepTx.SerializeSizeStripped()
+	// totalSize := sweepTx.SerializeSize()
+	// weight := (baseSize * 3) + totalSize
+	// vsize := (weight + 3) / 4
 
 	// Calculate the required fee
-	requiredFee := vsize * feeRate.Priority
+	requiredFee := 2000
 
 	lastOutput := sweepTx.TxOut[len(sweepTx.TxOut)-1]
 	if lastOutput.Value < int64(requiredFee) {
-		log.Fatalf("Change output is smaller than required fee")
+		fmt.Println("Change output is smaller than required fee")
+		return "", "", 0, nil
 	}
 
 	// Deduct the fee from the change output
@@ -498,12 +499,6 @@ func processRefund(accountName string) {
 		return
 	}
 
-	fmt.Println("============================")
-	fmt.Println(sweeptx.BtcUnsignedSweepTx)
-	fmt.Println(sweepAddresses.ProposeSweepAddressMsg.BtcScript)
-	fmt.Println(reserveIdForRefund)
-	fmt.Println("============================")
-
 	refundTxHex, err := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
 	if err != nil {
 		fmt.Println("issue creating refund tx")
@@ -572,13 +567,8 @@ func processSignedSweep(accountName string) {
 	fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
 
 	broadcastSweeptxNYKS(signedSweepTxHex, accountName, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
-
-	wireTransaction, err := createTxFromHex(signedSweepTxHex)
-	if err != nil {
-		fmt.Println("error decodeing signed transaction : ", err)
-	}
-	broadcastBtcTransaction(wireTransaction)
 	markAddressBroadcastedSweep(currentReserveAddress.Address)
+
 }
 
 func processSignedRefund(accountName string) {
@@ -647,11 +637,41 @@ func processSignedRefund(accountName string) {
 
 }
 
+func broadcastOnBtc() {
+	fmt.Println("Started Btc Broadcaster")
+	for {
+		resp := getAttestations("3")
+		if len(resp.Attestations) <= 0 {
+			time.Sleep(1 * time.Minute)
+			fmt.Println("no attestaions (btc broadcaster)")
+			continue
+		}
+
+		for _, attestation := range resp.Attestations {
+			if attestation.Observed == false {
+				continue
+			}
+			height, _ := strconv.Atoi(attestation.Proposal.Height)
+			txs := querySignedTx(int64(height))
+			for _, tx := range txs {
+				transaction := hex.EncodeToString(tx)
+				wireTransaction, err := createTxFromHex(transaction)
+				if err != nil {
+					fmt.Println("error decodeing signed transaction btc broadcaster : ", err)
+				}
+				broadcastBtcTransaction(wireTransaction)
+				deleteSignedTx(tx)
+			}
+		}
+
+	}
+}
+
 func startJudge(accountName string) {
 	fmt.Println("starting judge")
 	go processSweep(accountName)
+	go broadcastOnBtc()
 	go nyksEventListener("unsigned_tx_sweep", accountName, "signed_sweep_process")
 	go nyksEventListener("unsigned_tx_sweep", accountName, "refund_process")
 	go nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")
-	nyksEventListener("register_reserve_address", accountName, "register_res_addr_validators")
 }

@@ -550,8 +550,6 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 		return
 	}
 
-	fmt.Println("registered")
-
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {

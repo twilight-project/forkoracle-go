@@ -291,7 +291,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		var signedRefundTx bytes.Buffer
 		err := refundTx.Serialize(&signedRefundTx)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("Signed Refund : ", err)
 		}
 
 		return signedRefundTx.Bytes(), nil, newReserveAddress
@@ -567,6 +567,7 @@ func processSignedSweep(accountName string) {
 	fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
 
 	broadcastSweeptxNYKS(signedSweepTxHex, accountName, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
+	insertSignedtx(signedSweepTx, currentReserveAddress.Unlock_height)
 	markAddressBroadcastedSweep(currentReserveAddress.Address)
 
 }

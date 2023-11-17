@@ -7,6 +7,7 @@ import (
 )
 
 func processTxSigningSweep(accountName string) {
+	fmt.Println("starting Sweep Tx Signer")
 	SweepTxs := getAllUnsignedSweepTx()
 
 	for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
@@ -42,6 +43,7 @@ func processTxSigningSweep(accountName string) {
 }
 
 func processTxSigningRefund(accountName string) {
+	fmt.Println("starting Refund Tx Signer")
 	refundTxs := getAllUnsignedRefundTx()
 
 	for _, tx := range refundTxs.UnsignedTxRefundMsgs {

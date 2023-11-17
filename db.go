@@ -620,7 +620,7 @@ func insertSignedtx(tx []byte, unlock_height int64) {
 }
 
 func querySignedTx(unlock_height int64) [][]byte {
-	DB_reader, err := dbconn.Query("select tx from signed_tx where unlock_height <= ", unlock_height)
+	DB_reader, err := dbconn.Query("select tx from signed_tx where unlock_height <= $1", unlock_height)
 	if err != nil {
 		fmt.Println("An error occured while query script signed tx: ", err)
 	}

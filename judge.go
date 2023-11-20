@@ -70,7 +70,7 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 	// vsize := (weight + 3) / 4
 
 	// Calculate the required fee
-	requiredFee := 2000
+	requiredFee := 15000
 
 	lastOutput := sweepTx.TxOut[len(sweepTx.TxOut)-1]
 	if lastOutput.Value < int64(requiredFee) {

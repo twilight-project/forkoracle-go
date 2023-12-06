@@ -138,7 +138,6 @@ func kDeepCheck(accountName string, height uint64) {
 						BtcTxHash:             tx.Txid,
 						UnlockHeight:          0,
 						RoundId:               uint64(roundId),
-						WithdrawIdentifiers:   []string{},
 						BtcBlockNumber:        0,
 					}
 					fmt.Println("Sending Sweep proposal message")

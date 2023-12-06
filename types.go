@@ -141,17 +141,6 @@ type Utxo struct {
 	Amount uint64
 }
 
-type BtcWithdrawRequestResp struct {
-	WithdrawRequest []BtcWithdrawRequest
-}
-
-type BtcWithdrawRequest struct {
-	WithdrawAddress string
-	ReserveAddress  string
-	WithdrawAmount  string
-	TwilightAddress string
-}
-
 type MsgSignSweep struct {
 	ReserveAddress   string
 	SignerAddress    string
@@ -283,24 +272,6 @@ type ProposedAddress struct {
 	JudgeAddress string `json:"judgeAddress"`
 }
 
-type ReserveClearingAccountsAll struct {
-	TwilightAddress              string
-	BtcDepositAddress            string
-	BtcDepositAddressIdentifier  int64
-	BtcWithdrawAddress           string
-	BtcWithdrawAddressIdentifier int64
-	ReserveAccountBalances       []ReserveAccountBalances
-}
-
-type ReserveAccountBalances struct {
-	ReserveId string
-	Amount    string
-}
-
-type ClearingAccountResp struct {
-	ReserveClearingAccountsAll []ReserveClearingAccountsAll
-}
-
 type BlockResultsResponse struct {
 	Result *BlockResult `json:"result,omitempty"`
 	Error  *RPCError    `json:"error,omitempty"`
@@ -325,4 +296,41 @@ type TxResult struct {
 
 type Event struct {
 	Type string `json:"type"`
+}
+
+type RefundAccount struct {
+	Amount                      string `json:"Amount"`
+	BtcDepositAddress           string `json:"BtcDepositAddress"`
+	BtcDepositAddressIdentifier int    `json:"BtcDepositAddressIdentifier"`
+}
+
+// RefundTxSnapshot represents the main structure
+type RefundTxSnapshot struct {
+	ReserveId                string          `json:"ReserveId"`
+	RoundId                  string          `json:"RoundId"`
+	RefundAccounts           []RefundAccount `json:"refundAccounts"`
+	EndBlockerHeightTwilight string          `json:"EndBlockerHeightTwilight"`
+}
+
+type RefundTxSnapshotResp struct {
+	RefundTxSnapshot RefundTxSnapshot
+}
+
+// WithdrawRequest represents a withdrawal request details
+type WithdrawRequest struct {
+	WithdrawIdentifier int    `json:"withdrawIdentifier"`
+	WithdrawAddress    string `json:"withdrawAddress"`
+	WithdrawAmount     string `json:"withdrawAmount"`
+}
+
+// ReserveWithdrawSnapshot represents the main structure
+type ReserveWithdrawSnapshot struct {
+	ReserveId                string            `json:"ReserveId"`
+	RoundId                  string            `json:"RoundId"`
+	WithdrawRequests         []WithdrawRequest `json:"withdrawRequests"`
+	EndBlockerHeightTwilight string            `json:"EndBlockerHeightTwilight"`
+}
+
+type ReserveWithdrawSnapshotResp struct {
+	ReserveWithdrawSnapshot ReserveWithdrawSnapshot
 }

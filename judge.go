@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountName string, withdrawals []BtcWithdrawRequest, unlockHeight int64) (string, string, uint64, error) {
+func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountName string, withdrawRequests []WithdrawRequest, unlockHeight int64) (string, string, uint64, error) {
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepPreblock, _ := strconv.Atoi(number)
 	utxos := queryUtxo(sweepAddress.Address)
@@ -41,7 +41,14 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 		sweepTx.AddTxIn(txIn)
 	}
 
-	for _, withdrawal := range withdrawals {
+	txOut, err := CreateTxOut(newSweepAddress, int64(0))
+	if err != nil {
+		log.Println("error with txout", err)
+		return "", "", 0, err
+	}
+	sweepTx.AddTxOut(txOut)
+
+	for _, withdrawal := range withdrawRequests {
 		amount, err := strconv.Atoi(withdrawal.WithdrawAmount)
 		txOut, err := CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
 		if err != nil {
@@ -55,14 +62,10 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 	// need to be worked on
 
 	if int64(totalAmountTxIn-totalAmountTxOut) > 0 {
-		txOut, err := CreateTxOut(newSweepAddress, int64(totalAmountTxIn-totalAmountTxOut))
-		if err != nil {
-			log.Println("error with txout", err)
-			return "", "", 0, err
-		}
-		sweepTx.AddTxOut(txOut)
+		sweepTx.TxOut[0].Value = int64(totalAmountTxIn - totalAmountTxOut)
 	}
 
+	//uncomment when done testing
 	// feeRate := getBtcFeeRate()
 	// baseSize := sweepTx.SerializeSizeStripped()
 	// totalSize := sweepTx.SerializeSize()
@@ -72,7 +75,7 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 	// Calculate the required fee
 	requiredFee := 15000
 
-	lastOutput := sweepTx.TxOut[len(sweepTx.TxOut)-1]
+	lastOutput := sweepTx.TxOut[0]
 	if lastOutput.Value < int64(requiredFee) {
 		fmt.Println("Change output is smaller than required fee")
 		return "", "", 0, nil
@@ -80,7 +83,7 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 
 	// Deduct the fee from the change output
 	lastOutput.Value = lastOutput.Value - int64(requiredFee)
-	sweepTx.TxOut[len(sweepTx.TxOut)-1] = lastOutput
+	sweepTx.TxOut[0] = lastOutput
 
 	script := querySweepAddressScript(sweepAddress.Address)
 	witness := wire.TxWitness{}
@@ -97,14 +100,14 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 	return hexTx, txid, totalAmountTxIn, nil
 }
 
-func generateRefundTx(txHex string, script string, reserveId uint64) (string, error) {
+func generateRefundTx(txHex string, script string, reserveId uint64, roundId uint64) (string, error) {
 	sweepTx, err := createTxFromHex(txHex)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
 	}
 
 	inputTx := sweepTx.TxHash().String()
-	vout := len(sweepTx.TxOut) - 1
+	vout := 0 // since we are always setting the sweep tx at vout = 0
 
 	utxo := Utxo{
 		inputTx,
@@ -120,45 +123,38 @@ func generateRefundTx(txHex string, script string, reserveId uint64) (string, er
 	txIn.Sequence = wire.MaxTxInSequenceNum - 10
 	refundTx.AddTxIn(txIn)
 
-	clearingAccounts := getClearingAccounts(uint64(reserveId))
-	for _, cAccount := range clearingAccounts.ReserveClearingAccountsAll {
-		for _, balance := range cAccount.ReserveAccountBalances {
-			amount, _ := strconv.Atoi(balance.Amount)
-			//change this to BTC Deposit Address later
-			txout, err := CreateTxOut(cAccount.BtcDepositAddress, int64(amount))
-			if err != nil {
-				fmt.Println("error while add tx out : ", err)
-				return "", err
-			}
-
-			refundTx.AddTxOut(txout)
+	refundSnapshots := getRefundSnapshot(reserveId, roundId)
+	for _, refund := range refundSnapshots.RefundAccounts {
+		amount, err := strconv.Atoi(refund.Amount)
+		if err != nil {
+			fmt.Println("error in amount of refund snapshot : ", err)
+			return "", err
 		}
+		txout, err := CreateTxOut(refund.BtcDepositAddress, int64(amount))
+		if err != nil {
+			fmt.Println("error while add tx out : ", err)
+			return "", err
+		}
+		refundTx.AddTxOut(txout)
 	}
 
-	feeRate := getBtcFeeRate()
-	baseSize := sweepTx.SerializeSizeStripped()
-	totalSize := sweepTx.SerializeSize()
-	weight := (baseSize * 3) + totalSize
-	vsize := (weight + 3) / 4
+	// feeRate := getBtcFeeRate()
+	// baseSize := sweepTx.SerializeSizeStripped()
+	// totalSize := sweepTx.SerializeSize()
+	// weight := (baseSize * 3) + totalSize
+	// vsize := (weight + 3) / 4
 
-	// Calculate the required fee
-	requiredFee := vsize * feeRate.Priority
+	// // Calculate the required fee
+	// requiredFee := vsize * feeRate.Priority
 
-	validators := getDelegateAddresses()
+	// validators := getDelegateAddresses()
 
-	feeAdjustment := requiredFee / len(validators.Addresses)
+	// feeAdjustment := requiredFee / len(validators.Addresses)
 
-	for i, output := range refundTx.TxOut {
-		refundTx.TxOut[i].Value = output.Value - int64(feeAdjustment)
-	}
-	// need to be decided
-	// txout, err := CreateTxOut("bc1q49kzd05aqxs8q7r4rnnxc35cdk6783sf0khepr", 5000)
-	// if err != nil {
-	// 	fmt.Println("error while add tx out : ", err)
-	// 	return "", err
+	// for i, output := range refundTx.TxOut {
+	// 	refundTx.TxOut[i].Value = output.Value - int64(feeAdjustment)
 	// }
 
-	// refundTx.AddTxOut(txout)
 	locktime := uint32(5)
 	refundTx.LockTime = locktime
 
@@ -397,6 +393,8 @@ func processSweep(accountName string) {
 				continue
 			}
 
+			proposeAddress(accountName)
+
 			fmt.Println("sweep address found")
 
 			currentSweepAddress := addresses[0]
@@ -427,8 +425,8 @@ func processSweep(accountName string) {
 				break
 			}
 
-			withdrawals := getBtcWithdrawRequestForAddress(currentSweepAddress)
-			sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress, *newSweepAddress, accountName, withdrawals, int64(height))
+			withdrawRequests := getWithdrawSnapshot(uint64(currentReserveId), uint64(currentRoundId+1)).WithdrawRequests
+			sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress, *newSweepAddress, accountName, withdrawRequests, int64(height))
 			if err != nil {
 				fmt.Println("Error in generating a Sweep transaction: ", err)
 				return
@@ -499,7 +497,7 @@ func processRefund(accountName string) {
 		return
 	}
 
-	refundTxHex, err := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund))
+	refundTxHex, err := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveIdForRefund), uint64(currentRoundId+1))
 	if err != nil {
 		fmt.Println("issue creating refund tx")
 		return
@@ -664,7 +662,6 @@ func broadcastOnBtc() {
 				deleteSignedTx(tx)
 			}
 		}
-
 	}
 }
 

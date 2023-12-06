@@ -467,19 +467,6 @@ func OrderSignRefund(refundSignatures MsgSignRefundResp, address string) ([]MsgS
 	return orderedSignRefund, judgeSign
 }
 
-func getBtcWithdrawRequestForAddress(sweepAddress SweepAddress) []BtcWithdrawRequest {
-	withdrawals := getBtcWithdrawRequest()
-
-	withdrawRequests := make([]BtcWithdrawRequest, 0)
-	for _, withdrawal := range withdrawals.WithdrawRequest {
-		if withdrawal.ReserveAddress == sweepAddress.Address {
-			withdrawRequests = append(withdrawRequests, withdrawal)
-		}
-	}
-
-	return withdrawRequests
-}
-
 func getBtcFeeRate() FeeRate {
 	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
 	if err != nil {

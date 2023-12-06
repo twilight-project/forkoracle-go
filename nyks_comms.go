@@ -341,26 +341,6 @@ func getDelegateAddresses() DelegateAddressesResp {
 	return a
 }
 
-func getBtcWithdrawRequest() BtcWithdrawRequestResp {
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/withdraw_btc_request_all")
-	if err != nil {
-		fmt.Println("error getting withdrawals : ", err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("error reading withdrawals  : ", err)
-	}
-
-	a := BtcWithdrawRequestResp{}
-	err = json.Unmarshal(body, &a)
-	if err != nil {
-		fmt.Println("error unmarshalling withdrawals : ", err)
-	}
-	return a
-}
-
 func getSignSweep(reserveId uint64, roundId uint64) MsgSignSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/sign_sweep/%d/%d", reserveId, roundId)
@@ -504,23 +484,44 @@ func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressRe
 	return a
 }
 
-func getClearingAccounts(reserveId uint64) ClearingAccountResp {
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	path := fmt.Sprintf("/twilight-project/nyks/volt/reserve_clearing_accounts_all/%d", reserveId)
-	resp, err := http.Get(nyksd_url + path)
+func getRefundSnapshot(reserveId uint64, roundId uint64) RefundTxSnapshot {
+	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/volt/refund_tx_snapshot/%d/%d", reserveId, roundId)
+	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
 	if err != nil {
-		fmt.Println("error getting clearing accounts : ", err)
+		fmt.Println("error getting refund snapshot : ", err)
 	}
 	//We Read the response body on the line below.
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error getting clearing accounts body : ", err)
+		fmt.Println("error getting refund snapshot body : ", err)
 	}
 
-	a := ClearingAccountResp{}
+	a := RefundTxSnapshotResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
-		fmt.Println("error unmarshalling clearing accounts : ", err)
+		fmt.Println("error unmarshalling refund snapshot : ", err)
 	}
-	return a
+	return a.RefundTxSnapshot
+}
+
+func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapshot {
+	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/volt/reserve_withdraw_snapshot/%d/%d", reserveId, roundId)
+	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
+	if err != nil {
+		fmt.Println("error getting withdraw snapshot : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting withdraw snapshot body : ", err)
+	}
+
+	a := ReserveWithdrawSnapshotResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling withdraw snapshot : ", err)
+	}
+	return a.ReserveWithdrawSnapshot
 }

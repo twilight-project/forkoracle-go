@@ -40,7 +40,12 @@ func TestDepositAddress(t *testing.T) {
 	for _, taddr := range twilightAddress {
 		command := fmt.Sprintf("nyksd tx bank send $(nyksd keys show validator-sfo -a --keyring-backend test) %s 20000nyks --keyring-backend test", taddr)
 		args := strings.Fields(command)
-		_ = exec.Command(args[0], args[1:]...)
+		cmd := exec.Command(args[0], args[1:]...)
+		_, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			return
+		}
 		time.Sleep(3 * time.Second)
 	}
 

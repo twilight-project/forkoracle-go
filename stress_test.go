@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"encoding/hex"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -24,29 +27,37 @@ func TestDepositAddress(t *testing.T) {
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
 
 	initialize()
-	// accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	// time.Sleep(1 * time.Second)
-	// registerJudge(accountName)
+	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	time.Sleep(3 * time.Second)
+	registerJudge(accountName)
 
-	_ = tregisterReserveAddress()
-	// depositAddresses, _ := TestgenerateBitcoinAddresses(10000)
-	// twilightAddress, _ := TestgenerateTwilightAddresses(10000)
-	// TestregisterDepositAddress(10000, depositAddresses, twilightAddress)
-	// TestconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
-	// TestwithdrawalBtc(10000, depositAddresses, resevreAddresses)
+	resevreAddresses := tregisterReserveAddress()
+	depositAddresses, _ := tgenerateBitcoinAddresses(10000)
+	twilightAddress, _ := tgenerateTwilightAddresses(10000)
+	tregisterDepositAddress(10000, depositAddresses, twilightAddress)
+	tconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
+	twithdrawalBtc(10000, depositAddresses, resevreAddresses)
 
-	// for i, rAddr := range resevreAddresses {
-	// 	newSweepAddress, script := generateAddress(10000, rAddr)
-	// 	cosmos_client := getCosmosClient()
-	// 	msg := &bridgetypes.MsgProposeSweepAddress{
-	// 		BtcScript:    hex.EncodeToString(script),
-	// 		BtcAddress:   newSweepAddress,
-	// 		JudgeAddress: oracleAddr,
-	// 		ReserveId:    uint64(i),
-	// 		RoundId:      uint64(2),
-	// 	}
-	// 	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-	// }
+	fmt.Println("Press 'Enter' to continue...")
+
+	// Create a new scanner reading from standard input
+	scanner := bufio.NewScanner(os.Stdin)
+
+	// Wait for input
+	scanner.Scan()
+
+	for i, rAddr := range resevreAddresses {
+		newSweepAddress, script := generateAddress(10000, rAddr)
+		cosmos_client := getCosmosClient()
+		msg := &bridgetypes.MsgProposeSweepAddress{
+			BtcScript:    hex.EncodeToString(script),
+			BtcAddress:   newSweepAddress,
+			JudgeAddress: oracleAddr,
+			ReserveId:    uint64(i),
+			RoundId:      uint64(2),
+		}
+		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
+	}
 
 }
 
@@ -55,7 +66,7 @@ func tregisterReserveAddress() []string {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i := 0; i < 25; i++ {
 		addresses[i] = generateAndRegisterNewBtcReserveAddress(accountName, 100)
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 	return addresses
 }
@@ -76,7 +87,7 @@ func tconfirmBtcTransaction(n int, depositAddresses []string, reserveAddresses [
 			Sending_vout:     -1,
 		}
 		confirmBtcTransactionOnNyks(accountName, tx)
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 
@@ -136,7 +147,7 @@ func tregisterDepositAddress(n int, btcAddresses []string, twilightAddresses []s
 		if err != nil {
 			fmt.Println("error in registering deposit address : ", err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 
@@ -155,7 +166,7 @@ func twithdrawalBtc(n int, btcAddresses []string, twilightAddresses []string) {
 		if err != nil {
 			fmt.Println("error in registering deposit address : ", err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 

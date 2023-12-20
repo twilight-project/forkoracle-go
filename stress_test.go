@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcutil"
@@ -24,9 +25,10 @@ func TestDepositAddress(t *testing.T) {
 
 	initialize()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	time.Sleep(1 * time.Second)
 	registerJudge(accountName)
 
-	_ = tregisterReserveAddress()
+	// _ = tregisterReserveAddress()
 	// depositAddresses, _ := TestgenerateBitcoinAddresses(10000)
 	// twilightAddress, _ := TestgenerateTwilightAddresses(10000)
 	// TestregisterDepositAddress(10000, depositAddresses, twilightAddress)
@@ -53,6 +55,7 @@ func tregisterReserveAddress() []string {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i := 0; i < 25; i++ {
 		addresses[i] = generateAndRegisterNewBtcReserveAddress(accountName, 100)
+		time.Sleep(1 * time.Second)
 	}
 	return addresses
 }
@@ -73,6 +76,7 @@ func tconfirmBtcTransaction(n int, depositAddresses []string, reserveAddresses [
 			Sending_vout:     -1,
 		}
 		confirmBtcTransactionOnNyks(accountName, tx)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -132,6 +136,7 @@ func tregisterDepositAddress(n int, btcAddresses []string, twilightAddresses []s
 		if err != nil {
 			fmt.Println("error in registering deposit address : ", err)
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -150,6 +155,7 @@ func twithdrawalBtc(n int, btcAddresses []string, twilightAddresses []string) {
 		if err != nil {
 			fmt.Println("error in registering deposit address : ", err)
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 

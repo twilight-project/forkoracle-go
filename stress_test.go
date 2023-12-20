@@ -41,6 +41,7 @@ func TestDepositAddress(t *testing.T) {
 		command := fmt.Sprintf("nyksd tx bank send $(nyksd keys show validator-sfo -a --keyring-backend test) %s 20000nyks --keyring-backend test", taddr)
 		args := strings.Fields(command)
 		_ = exec.Command(args[0], args[1:]...)
+		time.Sleep(3 * time.Second)
 	}
 
 	tregisterDepositAddress(10000, depositAddresses, twilightAddress)

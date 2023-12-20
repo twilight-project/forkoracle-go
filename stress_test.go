@@ -35,13 +35,12 @@ func TestDepositAddress(t *testing.T) {
 	// twilightAddress, _ := tgenerateTwilightAddresses(10000)
 
 	// for _, taddr := range twilightAddress {
-	command := fmt.Sprintf("nyksd tx bank send $(nyksd keys show validator-sfo -a --keyring-backend test) %s 20000nyks --keyring-backend test -y", "twilight1fvev09whc727j3ve49pg6zfk03pje8cav5eldw")
+	command := fmt.Sprintf("nyksd tx bank send %s %s 20000nyks --keyring-backend test -y", oracleAddr, "twilight1fvev09whc727j3ve49pg6zfk03pje8cav5eldw")
 	fmt.Println(command)
 	args := strings.Fields(command)
 	cmd := exec.Command(args[0], args[1:]...)
 	err := cmd.Run()
 	if err != nil {
-		panic(err)
 	}
 	time.Sleep(3 * time.Second)
 	// }

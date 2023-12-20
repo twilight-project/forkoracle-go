@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,6 +36,13 @@ func TestDepositAddress(t *testing.T) {
 	resevreAddresses := tregisterReserveAddress()
 	depositAddresses, _ := tgenerateBitcoinAddresses(10000)
 	twilightAddress, _ := tgenerateTwilightAddresses(10000)
+
+	for _, taddr := range twilightAddress {
+		command := fmt.Sprintf("nyksd tx bank send $(nyksd keys show validator-sfo -a --keyring-backend test) %s 20000nyks --keyring-backend test", taddr)
+		args := strings.Fields(command)
+		_ = exec.Command(args[0], args[1:]...)
+	}
+
 	tregisterDepositAddress(10000, depositAddresses, twilightAddress)
 	tconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
 	twithdrawalBtc(10000, depositAddresses, resevreAddresses)
@@ -107,8 +116,6 @@ func tgenerateBitcoinAddresses(n int) ([]string, error) {
 
 		addresses[i] = segwitAddr
 	}
-
-	fmt.Println(addresses)
 	return addresses, nil
 }
 

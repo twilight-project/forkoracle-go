@@ -24,11 +24,11 @@ func TestDepositAddress(t *testing.T) {
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
 
 	initialize()
-	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	time.Sleep(1 * time.Second)
-	registerJudge(accountName)
+	// accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	// time.Sleep(1 * time.Second)
+	// registerJudge(accountName)
 
-	// _ = tregisterReserveAddress()
+	_ = tregisterReserveAddress()
 	// depositAddresses, _ := TestgenerateBitcoinAddresses(10000)
 	// twilightAddress, _ := TestgenerateTwilightAddresses(10000)
 	// TestregisterDepositAddress(10000, depositAddresses, twilightAddress)

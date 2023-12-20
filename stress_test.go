@@ -111,7 +111,7 @@ func TestgenerateTwilightAddresses(n int) ([]string, error) {
 		// Convert the public key to an address
 		address := types.AccAddress(publicKey.Address())
 
-		fmt.Println("Address with custom prefix:", address.String())
+		addresses[i] = address.String()
 	}
 	addresses[0] = "twilight1qskpa0sgd56nzuhlq6rf098quxx05quln22l9e"
 	return addresses, nil

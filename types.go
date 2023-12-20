@@ -1,5 +1,7 @@
 package main
 
+import "github.com/gorilla/websocket"
+
 type ChainTip struct {
 	Block           string `json:"block"`
 	Height          int64  `json:"height"`
@@ -333,4 +335,28 @@ type ReserveWithdrawSnapshot struct {
 
 type ReserveWithdrawSnapshotResp struct {
 	ReserveWithdrawSnapshot ReserveWithdrawSnapshot
+}
+
+type BroadcastRefundMsg struct {
+	ReserveId      string `json:"reserveId"`
+	RoundId        string `json:"roundId"`
+	SignedRefundTx string `json:"signedRefundTx"`
+	JudgeAddress   string `json:"judgeAddress"`
+}
+
+type BroadcastRefundMsgResp struct {
+	BroadcastRefundMsg BroadcastRefundMsg
+}
+
+type Client struct {
+	hub  *Hub
+	conn *websocket.Conn
+	send chan []byte
+}
+
+type Hub struct {
+	clients    map[*Client]bool
+	broadcast  chan []byte
+	register   chan *Client
+	unregister chan *Client
 }

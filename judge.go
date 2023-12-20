@@ -393,11 +393,18 @@ func processSweep(accountName string) {
 				continue
 			}
 
-			proposeAddress(accountName)
-
 			fmt.Println("sweep address found")
 
 			currentSweepAddress := addresses[0]
+			utxos := queryUtxo(currentSweepAddress.Address)
+			if len(utxos) <= 0 {
+				// need to decide if this needs to be enabled
+				// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
+				fmt.Println("INFO : No funds in address : ", currentSweepAddress.Address, " generating new address : ")
+				return
+			}
+			proposeAddress(accountName)
+
 			var newSweepAddress *string
 			var reserveTobeProcessed BtcReserve
 
@@ -631,6 +638,8 @@ func processSignedRefund(accountName string) {
 
 	broadcastRefundtxNYKS(signedRefundTxHex, accountName, uint64(currentReserveId), uint64(currentRoundId+1))
 	markAddressBroadcastedRefund(newReserveAddress.Address)
+
+	WsHub.broadcast <- signedRefundTx
 
 	// add tapscript inscription here
 

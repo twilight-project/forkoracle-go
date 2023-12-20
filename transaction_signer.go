@@ -11,6 +11,13 @@ func processTxSigningSweep(accountName string) {
 	SweepTxs := getAllUnsignedSweepTx()
 
 	for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
+		reserveId, _ := strconv.Atoi(tx.ReserveId)
+		roundId, _ := strconv.Atoi(tx.RoundId)
+		correspondingRefundTx := getBroadCastedRefundTx(uint64(reserveId), uint64(roundId))
+		if correspondingRefundTx.ReserveId == "" {
+			fmt.Printf("corresponding refund tx not found  reserve Id: %d roundid : %d\n", reserveId, roundId)
+			continue
+		}
 		sweepTx, err := createTxFromHex(tx.BtcUnsignedSweepTx)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
@@ -30,9 +37,6 @@ func processTxSigningSweep(accountName string) {
 		}
 
 		sweepSignatures := signTx(sweepTx, reserveAddress.Script)
-
-		reserveId, _ := strconv.Atoi(tx.ReserveId)
-		roundId, _ := strconv.Atoi(tx.RoundId)
 
 		fmt.Println("Sweep Signature : ", sweepSignatures)
 		sendSweepSign(sweepSignatures, reserveAddress.Address, accountName, uint64(reserveId), uint64(roundId))

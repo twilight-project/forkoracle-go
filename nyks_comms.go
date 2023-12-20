@@ -525,3 +525,24 @@ func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapsh
 	}
 	return a.ReserveWithdrawSnapshot
 }
+
+func getBroadCastedRefundTx(reserveId uint64, roundId uint64) BroadcastRefundMsg {
+	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	path := fmt.Sprintf("/twilight-project/nyks/bridge/broadcast_tx_refund/%d/%d", reserveId, roundId)
+	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
+	if err != nil {
+		fmt.Println("error getting broadcasted refund : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting broadcasted refund body : ", err)
+	}
+
+	a := BroadcastRefundMsgResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling broadcasted refund : ", err)
+	}
+	return a.BroadcastRefundMsg
+}

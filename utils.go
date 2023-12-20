@@ -538,14 +538,12 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 	}
 
 	for {
-		_, p, err := conn.ReadMessage()
+		_, _, err := conn.ReadMessage()
 		if err != nil {
 			fmt.Println("error in address watcher: ", err)
 			stopChan <- struct{}{} // Signal goroutine to stop
 			return
 		}
-
-		fmt.Println("event occured : ", event, " : ", p)
 
 		switch functionCall {
 		case "signed_sweep_process":

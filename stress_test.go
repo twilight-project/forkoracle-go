@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"encoding/hex"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -25,50 +28,50 @@ func TestDepositAddress(t *testing.T) {
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8473")
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
 
-	// initialize()
-	// accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	// time.Sleep(3 * time.Second)
-	// registerJudge(accountName)
-
-	// resevreAddresses := tregisterReserveAddress()
-	// depositAddresses, _ := tgenerateBitcoinAddresses(10000)
-	// twilightAddress, _ := tgenerateTwilightAddresses(10000)
-
-	// for _, taddr := range twilightAddress {
-	command := fmt.Sprintf("nyksd tx bank send %s %s 20000nyks --keyring-backend test -y", oracleAddr, "twilight1fvev09whc727j3ve49pg6zfk03pje8cav5eldw")
-	fmt.Println(command)
-	args := strings.Fields(command)
-	cmd := exec.Command(args[0], args[1:]...)
-	err := cmd.Run()
-	if err != nil {
-	}
+	initialize()
+	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	time.Sleep(3 * time.Second)
-	// }
+	registerJudge(accountName)
 
-	// tregisterDepositAddress(10000, depositAddresses, twilightAddress)
-	// tconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
-	// twithdrawalBtc(10000, depositAddresses, resevreAddresses)
+	resevreAddresses := tregisterReserveAddress()
+	depositAddresses, _ := tgenerateBitcoinAddresses(10000)
+	twilightAddress, _ := tgenerateTwilightAddresses(10000)
 
-	// fmt.Println("Press 'Enter' to continue...")
+	for _, taddr := range twilightAddress {
+		command := fmt.Sprintf("nyksd tx bank send %s %s 20000nyks --keyring-backend test -y", oracleAddr, taddr)
+		fmt.Println(command)
+		args := strings.Fields(command)
+		cmd := exec.Command(args[0], args[1:]...)
+		err := cmd.Run()
+		if err != nil {
+		}
+		time.Sleep(3 * time.Second)
+	}
 
-	// // Create a new scanner reading from standard input
-	// scanner := bufio.NewScanner(os.Stdin)
+	tregisterDepositAddress(10000, depositAddresses, twilightAddress)
+	tconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
+	twithdrawalBtc(10000, depositAddresses, resevreAddresses)
 
-	// // Wait for input
-	// scanner.Scan()
+	fmt.Println("Press 'Enter' to continue...")
 
-	// for i, rAddr := range resevreAddresses {
-	// 	newSweepAddress, script := generateAddress(10000, rAddr)
-	// 	cosmos_client := getCosmosClient()
-	// 	msg := &bridgetypes.MsgProposeSweepAddress{
-	// 		BtcScript:    hex.EncodeToString(script),
-	// 		BtcAddress:   newSweepAddress,
-	// 		JudgeAddress: oracleAddr,
-	// 		ReserveId:    uint64(i),
-	// 		RoundId:      uint64(2),
-	// 	}
-	// 	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-	// }
+	// Create a new scanner reading from standard input
+	scanner := bufio.NewScanner(os.Stdin)
+
+	// Wait for input
+	scanner.Scan()
+
+	for i, rAddr := range resevreAddresses {
+		newSweepAddress, script := generateAddress(10000, rAddr)
+		cosmos_client := getCosmosClient()
+		msg := &bridgetypes.MsgProposeSweepAddress{
+			BtcScript:    hex.EncodeToString(script),
+			BtcAddress:   newSweepAddress,
+			JudgeAddress: oracleAddr,
+			ReserveId:    uint64(i),
+			RoundId:      uint64(2),
+		}
+		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
+	}
 
 }
 

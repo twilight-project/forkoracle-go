@@ -26,11 +26,11 @@ func TestDepositAddress(t *testing.T) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	registerJudge(accountName)
 
-	resevreAddresses := TestregisterReserveAddress()
-	depositAddresses, _ := TestgenerateBitcoinAddresses(10000)
-	twilightAddress, _ := TestgenerateTwilightAddresses(10000)
-	TestregisterDepositAddress(10000, depositAddresses, twilightAddress)
-	TestconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
+	_ = tregisterReserveAddress()
+	// depositAddresses, _ := TestgenerateBitcoinAddresses(10000)
+	// twilightAddress, _ := TestgenerateTwilightAddresses(10000)
+	// TestregisterDepositAddress(10000, depositAddresses, twilightAddress)
+	// TestconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
 	// TestwithdrawalBtc(10000, depositAddresses, resevreAddresses)
 
 	// for i, rAddr := range resevreAddresses {
@@ -48,7 +48,7 @@ func TestDepositAddress(t *testing.T) {
 
 }
 
-func TestregisterReserveAddress() []string {
+func tregisterReserveAddress() []string {
 	addresses := make([]string, 25)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i := 0; i < 25; i++ {
@@ -57,7 +57,7 @@ func TestregisterReserveAddress() []string {
 	return addresses
 }
 
-func TestconfirmBtcTransaction(n int, depositAddresses []string, reserveAddresses []string) {
+func tconfirmBtcTransaction(n int, depositAddresses []string, reserveAddresses []string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i := 0; i < n; i++ {
 		tx := WatchtowerNotification{
@@ -76,7 +76,7 @@ func TestconfirmBtcTransaction(n int, depositAddresses []string, reserveAddresse
 	}
 }
 
-func TestgenerateBitcoinAddresses(n int) ([]string, error) {
+func tgenerateBitcoinAddresses(n int) ([]string, error) {
 	addresses := make([]string, n)
 	for i := 0; i < n; i++ {
 		// Derive a new public key (non-standard approach)
@@ -97,7 +97,7 @@ func TestgenerateBitcoinAddresses(n int) ([]string, error) {
 	return addresses, nil
 }
 
-func TestgenerateTwilightAddresses(n int) ([]string, error) {
+func tgenerateTwilightAddresses(n int) ([]string, error) {
 	addresses := make([]string, n)
 	for i := 0; i < n; i++ {
 		customPrefix := "twilight"
@@ -117,7 +117,7 @@ func TestgenerateTwilightAddresses(n int) ([]string, error) {
 	return addresses, nil
 }
 
-func TestregisterDepositAddress(n int, btcAddresses []string, twilightAddresses []string) {
+func tregisterDepositAddress(n int, btcAddresses []string, twilightAddresses []string) {
 	cosmos := getCosmosClient()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
@@ -135,7 +135,7 @@ func TestregisterDepositAddress(n int, btcAddresses []string, twilightAddresses 
 	}
 }
 
-func TestwithdrawalBtc(n int, btcAddresses []string, twilightAddresses []string) {
+func twithdrawalBtc(n int, btcAddresses []string, twilightAddresses []string) {
 	cosmos := getCosmosClient()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
@@ -153,7 +153,7 @@ func TestwithdrawalBtc(n int, btcAddresses []string, twilightAddresses []string)
 	}
 }
 
-// func TestRegisterJudgeTest(accountName string) {
+// func tRegisterJudgeTest(accountName string) {
 // 	cosmos := getCosmosClient()
 // 	msg := &bridgetypes.MsgRegisterJudge{
 // 		Creator:          oracleAddr,

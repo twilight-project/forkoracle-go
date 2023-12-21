@@ -74,7 +74,7 @@ func TestDepositAddress(t *testing.T) {
 
 func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(10000)))
+	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(20000)))
 	for _, taddr := range twilightAddress {
 		msg := &banktypes.MsgSend{
 			FromAddress: oracleAddr,

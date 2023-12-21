@@ -84,6 +84,7 @@ func taddFunds(twilightAddress []string) {
 		}
 		cosmos.BroadcastTx(accountName, msg)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
+		fmt.Print("sending funds : ", taddr)
 	}
 }
 

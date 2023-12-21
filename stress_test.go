@@ -45,6 +45,7 @@ func TestDepositAddress(t *testing.T) {
 	depositAddresses, _ := tgenerateBitcoinAddresses()
 	twilightAddress, _ := tgenerateTwilightAddresses()
 
+	newSweepAddresses := tproposeAddress(resevreAddresses)
 	taddFunds(twilightAddress, cosmos)
 
 	time.Sleep(5 * time.Minute)
@@ -64,7 +65,7 @@ func TestDepositAddress(t *testing.T) {
 	// Wait for input
 	scanner.Scan()
 
-	newSweepAddresses := tproposeAddress(resevreAddresses)
+	// newSweepAddresses := tproposeAddress(resevreAddresses)
 	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
 	refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
 	tsendSignedRefundtx(resevreAddresses, refundtxs)
@@ -103,6 +104,7 @@ func tproposeAddress(resevreAddresses []string) []string {
 		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 		pAddresses[i] = newSweepAddress
+		fmt.Println("new proposed address: ", newSweepAddress)
 	}
 	return pAddresses
 }

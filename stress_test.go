@@ -119,7 +119,7 @@ func tproposeAddress(resevreAddresses []string) []string {
 func tregisterReserveAddress() []string {
 	addresses := make([]string, 25)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i := 1; i <= 25; i++ {
+	for i := 0; i < 25; i++ {
 		addresses[i] = generateAndRegisterNewBtcReserveAddress(accountName, 100)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}

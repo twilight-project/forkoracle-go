@@ -44,6 +44,7 @@ func TestDepositAddress(t *testing.T) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 	registerJudge(accountName)
+
 	cosmos := getCosmosClient()
 	seq, _ := GetCurrentSequence(accountName, cosmos)
 	fmt.Println(seq)
@@ -53,8 +54,6 @@ func TestDepositAddress(t *testing.T) {
 	twilightAddress, _ := tgenerateTwilightAddresses(kr)
 
 	taddFunds(twilightAddress, cosmos)
-
-	time.Sleep(5 * time.Minute)
 
 	seq, _ = GetCurrentSequence(accountName, cosmos)
 	fmt.Println(seq)
@@ -180,12 +179,14 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 		}
 
 		addresses[i] = info.GetAddress().String()
+		fmt.Println(info.GetAddress().String())
 	}
 
 	return addresses, nil
 }
 
 func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
+	fmt.Println("registering deposit address ")
 	for i, addr := range btcAddresses {
 		accountName := fmt.Sprintf("AccountName%d", i)
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{

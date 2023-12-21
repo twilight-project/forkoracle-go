@@ -12,6 +12,7 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -173,7 +174,7 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 	for i := 0; i < limit; i++ {
 		// Generate a new private key
 		privateKey := secp256k1.GenPrivKey()
-		info, err := kr.SaveMultisig("AccountName"+fmt.Sprint(i), privateKey.PubKey())
+		info, err := kr.SavePubKey("AccountName"+fmt.Sprint(i), privateKey.PubKey(), hd.Secp256k1Type)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err

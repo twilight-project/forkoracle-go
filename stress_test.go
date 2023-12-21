@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -36,33 +34,37 @@ func TestDepositAddress(t *testing.T) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 	registerJudge(accountName)
+	cosmos := getCosmosClient()
+	seq, _ := GetCurrentSequence(accountName, cosmos)
 
-	resevreAddresses := tregisterReserveAddress()
-	depositAddresses, _ := tgenerateBitcoinAddresses()
-	twilightAddress, _ := tgenerateTwilightAddresses()
+	fmt.Println(seq)
 
-	taddFunds(twilightAddress)
+	// resevreAddresses := tregisterReserveAddress()
+	// depositAddresses, _ := tgenerateBitcoinAddresses()
+	// twilightAddress, _ := tgenerateTwilightAddresses()
 
-	time.Sleep(5 * time.Minute)
+	// taddFunds(twilightAddress)
 
-	tregisterDepositAddress(depositAddresses, twilightAddress)
-	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
-	twithdrawalBtc(depositAddresses, resevreAddresses)
+	// time.Sleep(5 * time.Minute)
 
-	fmt.Println("Press 'Enter' to continue...")
+	// tregisterDepositAddress(depositAddresses, twilightAddress)
+	// tconfirmBtcTransaction(depositAddresses, resevreAddresses)
+	// twithdrawalBtc(depositAddresses, resevreAddresses)
 
-	// Create a new scanner reading from standard input
-	scanner := bufio.NewScanner(os.Stdin)
+	// fmt.Println("Press 'Enter' to continue...")
 
-	// Wait for input
-	scanner.Scan()
+	// // Create a new scanner reading from standard input
+	// scanner := bufio.NewScanner(os.Stdin)
 
-	newSweepAddresses := tproposeAddress(resevreAddresses)
-	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
-	refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
-	tsendSignedRefundtx(resevreAddresses, refundtxs)
-	tsendSignedSweeptx(resevreAddresses, sweeptxs)
-	tsendSendSweepProposal(newSweepAddresses)
+	// // Wait for input
+	// scanner.Scan()
+
+	// newSweepAddresses := tproposeAddress(resevreAddresses)
+	// sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
+	// refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
+	// tsendSignedRefundtx(resevreAddresses, refundtxs)
+	// tsendSignedSweeptx(resevreAddresses, sweeptxs)
+	// tsendSendSweepProposal(newSweepAddresses)
 }
 
 func taddFunds(twilightAddress []string) {

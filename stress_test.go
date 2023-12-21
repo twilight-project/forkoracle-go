@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
@@ -15,6 +13,8 @@ import (
 	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/spf13/viper"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
@@ -73,14 +73,16 @@ func TestDepositAddress(t *testing.T) {
 }
 
 func taddFunds(twilightAddress []string) {
+	cosmos := getCosmosClient()
+	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(10000)))
 	for _, taddr := range twilightAddress {
-		command := fmt.Sprintf("nyksd tx bank send %s %s 20000nyks --keyring-backend test -y", oracleAddr, taddr)
-		fmt.Println(command)
-		args := strings.Fields(command)
-		cmd := exec.Command(args[0], args[1:]...)
-		err := cmd.Run()
-		if err != nil {
+		msg := &banktypes.MsgSend{
+			FromAddress: oracleAddr,
+			ToAddress:   taddr,
+			Amount:      amount,
 		}
+		cosmos.BroadcastTx(accountName, msg)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}
 }

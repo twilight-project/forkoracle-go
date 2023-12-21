@@ -174,14 +174,15 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 	for i := 0; i < limit; i++ {
 		// Generate a new private key
 		privateKey := secp256k1.GenPrivKey()
-		info, err := kr.SavePubKey("AccountName"+fmt.Sprint(i), privateKey.PubKey(), hd.Secp256k1Type)
+		name := "AccountName" + fmt.Sprint(i)
+		info, err := kr.SavePubKey(name, privateKey.PubKey(), hd.Secp256k1Type)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
 
 		addresses[i] = info.GetAddress().String()
-		fmt.Println(info.GetAddress().String())
+		fmt.Println(name, "  :  ", info.GetAddress().String())
 	}
 
 	return addresses, nil
@@ -191,6 +192,8 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 	fmt.Println("registering deposit address ")
 	for i, addr := range btcAddresses {
 		accountName := fmt.Sprintf("AccountName%d", i)
+		fmt.Println(accountName, " : ", twilightAddresses[i])
+
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{
 			BtcDepositAddress:     addr,
 			BtcSatoshiTestAmount:  50000,

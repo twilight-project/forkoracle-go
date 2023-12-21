@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 	"testing"
 	"time"
@@ -11,8 +12,8 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/bech32"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
@@ -25,6 +26,12 @@ var limit int
 var secondsWait int
 
 func TestDepositAddress(t *testing.T) {
+
+	kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, "/testnet/deploy/test/wallet", nil)
+	if err != nil {
+		log.Fatalf("failed to create keyring: %v", err)
+	}
+
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8477")
 	txids = append(txids, "8797380dd4658eb25e77954939cde0a880e659a6005d3a053d24835600d2dd75")
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8474")
@@ -43,9 +50,8 @@ func TestDepositAddress(t *testing.T) {
 
 	resevreAddresses := tregisterReserveAddress()
 	depositAddresses, _ := tgenerateBitcoinAddresses()
-	twilightAddress, _ := tgenerateTwilightAddresses()
+	twilightAddress, _ := tgenerateTwilightAddresses(kr)
 
-	newSweepAddresses := tproposeAddress(resevreAddresses)
 	taddFunds(twilightAddress, cosmos)
 
 	time.Sleep(5 * time.Minute)
@@ -65,7 +71,7 @@ func TestDepositAddress(t *testing.T) {
 	// Wait for input
 	scanner.Scan()
 
-	// newSweepAddresses := tproposeAddress(resevreAddresses)
+	newSweepAddresses := tproposeAddress(resevreAddresses)
 	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
 	refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
 	tsendSignedRefundtx(resevreAddresses, refundtxs)
@@ -113,7 +119,7 @@ func tproposeAddress(resevreAddresses []string) []string {
 func tregisterReserveAddress() []string {
 	addresses := make([]string, 25)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i := 0; i < 25; i++ {
+	for i := 1; i <= 25; i++ {
 		addresses[i] = generateAndRegisterNewBtcReserveAddress(accountName, 100)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}
@@ -159,30 +165,29 @@ func tgenerateBitcoinAddresses() ([]string, error) {
 	return addresses, nil
 }
 
-func tgenerateTwilightAddresses() ([]string, error) {
+func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 	addresses := make([]string, limit)
-	for i := 0; i < limit; i++ {
-		customPrefix := "twilight"
-		config := types.GetConfig()
-		config.SetBech32PrefixForAccount(customPrefix, customPrefix+"pub")
+	customPrefix := "twilight"
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(customPrefix, customPrefix+"pub")
 
+	for i := 0; i < limit; i++ {
 		// Generate a new private key
 		privateKey := secp256k1.GenPrivKey()
-		publicKey := privateKey.PubKey()
+		info, err := kr.SaveMultisig("AccountName"+fmt.Sprint(i), privateKey.PubKey())
+		if err != nil {
+			return nil, err
+		}
 
-		// Convert the public key to an address
-		address := types.AccAddress(publicKey.Address())
-
-		addresses[i] = address.String()
+		addresses[i] = info.GetAddress().String()
 	}
-	addresses[0] = "twilight1qskpa0sgd56nzuhlq6rf098quxx05quln22l9e"
+
 	return addresses, nil
 }
 
 func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
-	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-
 	for i, addr := range btcAddresses {
+		accountName := fmt.Sprintf("AccountName%d", i)
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{
 			BtcDepositAddress:     addr,
 			BtcSatoshiTestAmount:  50000,

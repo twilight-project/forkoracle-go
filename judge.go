@@ -12,17 +12,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountName string, withdrawRequests []WithdrawRequest, unlockHeight int64) (string, string, uint64, error) {
+func generateSweepTx(sweepAddress string, newSweepAddress string, accountName string, withdrawRequests []WithdrawRequest, unlockHeight int64, utxos []Utxo) (string, string, uint64, error) {
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepPreblock, _ := strconv.Atoi(number)
-	utxos := queryUtxo(sweepAddress.Address)
+
 	if len(utxos) <= 0 {
 		// need to decide if this needs to be enabled
 		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
-		fmt.Println("INFO : No funds in address : ", sweepAddress.Address, " generating new address : ")
-		markAddressSignedRefund(sweepAddress.Address)
-		markAddressSignedSweep(sweepAddress.Address)
-		markAddressArchived(sweepAddress.Address)
+		fmt.Println("INFO : No funds in address : ", sweepAddress, " generating new address : ")
+		markAddressSignedRefund(sweepAddress)
+		markAddressSignedSweep(sweepAddress)
+		markAddressArchived(sweepAddress)
 		return "", "", 0, nil
 	}
 
@@ -85,7 +85,7 @@ func generateSweepTx(sweepAddress SweepAddress, newSweepAddress string, accountN
 	lastOutput.Value = lastOutput.Value - int64(requiredFee)
 	sweepTx.TxOut[0] = lastOutput
 
-	script := querySweepAddressScript(sweepAddress.Address)
+	script := querySweepAddressScript(sweepAddress)
 	witness := wire.TxWitness{}
 	witness = append(witness, script)
 	sweepTx.TxIn[0].Witness = witness
@@ -433,7 +433,7 @@ func processSweep(accountName string) {
 			}
 
 			withdrawRequests := getWithdrawSnapshot(uint64(currentReserveId), uint64(currentRoundId+1)).WithdrawRequests
-			sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress, *newSweepAddress, accountName, withdrawRequests, int64(height))
+			sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos)
 			if err != nil {
 				fmt.Println("Error in generating a Sweep transaction: ", err)
 				return

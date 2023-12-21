@@ -27,6 +27,7 @@ func TestDepositAddress(t *testing.T) {
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8474")
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8473")
 	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
+	limit := 100
 
 	initialize()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
@@ -34,8 +35,8 @@ func TestDepositAddress(t *testing.T) {
 	registerJudge(accountName)
 
 	resevreAddresses := tregisterReserveAddress()
-	depositAddresses, _ := tgenerateBitcoinAddresses(100)
-	twilightAddress, _ := tgenerateTwilightAddresses(100)
+	depositAddresses, _ := tgenerateBitcoinAddresses(limit)
+	twilightAddress, _ := tgenerateTwilightAddresses(limit)
 
 	for _, taddr := range twilightAddress {
 		command := fmt.Sprintf("nyksd tx bank send %s %s 20000nyks --keyring-backend test -y", oracleAddr, taddr)
@@ -48,9 +49,9 @@ func TestDepositAddress(t *testing.T) {
 		time.Sleep(3 * time.Second)
 	}
 
-	tregisterDepositAddress(100, depositAddresses, twilightAddress)
-	tconfirmBtcTransaction(100, depositAddresses, resevreAddresses)
-	twithdrawalBtc(100, depositAddresses, resevreAddresses)
+	tregisterDepositAddress(limit, depositAddresses, twilightAddress)
+	tconfirmBtcTransaction(limit, depositAddresses, resevreAddresses)
+	twithdrawalBtc(limit, depositAddresses, resevreAddresses)
 
 	fmt.Println("Press 'Enter' to continue...")
 
@@ -181,15 +182,3 @@ func twithdrawalBtc(n int, btcAddresses []string, twilightAddresses []string) {
 		time.Sleep(3 * time.Second)
 	}
 }
-
-// func tRegisterJudgeTest(accountName string) {
-// 	cosmos := getCosmosClient()
-// 	msg := &bridgetypes.MsgRegisterJudge{
-// 		Creator:          oracleAddr,
-// 		JudgeAddress:     oracleAddr,
-// 		ValidatorAddress: valAddr,
-// 	}
-
-// 	sendTransactionRegisterJudge(accountName, cosmos, msg)
-// 	fmt.Println("registered Judge")
-// }

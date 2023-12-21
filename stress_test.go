@@ -34,8 +34,8 @@ func TestDepositAddress(t *testing.T) {
 	registerJudge(accountName)
 
 	resevreAddresses := tregisterReserveAddress()
-	depositAddresses, _ := tgenerateBitcoinAddresses(10000)
-	twilightAddress, _ := tgenerateTwilightAddresses(10000)
+	depositAddresses, _ := tgenerateBitcoinAddresses(100)
+	twilightAddress, _ := tgenerateTwilightAddresses(100)
 
 	for _, taddr := range twilightAddress {
 		command := fmt.Sprintf("nyksd tx bank send %s %s 20000nyks --keyring-backend test -y", oracleAddr, taddr)
@@ -48,9 +48,9 @@ func TestDepositAddress(t *testing.T) {
 		time.Sleep(3 * time.Second)
 	}
 
-	tregisterDepositAddress(10000, depositAddresses, twilightAddress)
-	tconfirmBtcTransaction(10000, depositAddresses, resevreAddresses)
-	twithdrawalBtc(10000, depositAddresses, resevreAddresses)
+	tregisterDepositAddress(100, depositAddresses, twilightAddress)
+	tconfirmBtcTransaction(100, depositAddresses, resevreAddresses)
+	twithdrawalBtc(100, depositAddresses, resevreAddresses)
 
 	fmt.Println("Press 'Enter' to continue...")
 

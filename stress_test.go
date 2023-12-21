@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/ignite/cli/ignite/pkg/cosmosclient"
 	"github.com/spf13/viper"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
@@ -38,23 +39,22 @@ func TestDepositAddress(t *testing.T) {
 	registerJudge(accountName)
 	cosmos := getCosmosClient()
 	seq, _ := GetCurrentSequence(accountName, cosmos)
-
 	fmt.Println(seq)
 
 	resevreAddresses := tregisterReserveAddress()
 	depositAddresses, _ := tgenerateBitcoinAddresses()
 	twilightAddress, _ := tgenerateTwilightAddresses()
 
-	taddFunds(twilightAddress)
+	taddFunds(twilightAddress, cosmos)
 
 	time.Sleep(5 * time.Minute)
 
 	seq, _ = GetCurrentSequence(accountName, cosmos)
 	fmt.Println(seq)
 
-	tregisterDepositAddress(depositAddresses, twilightAddress)
+	tregisterDepositAddress(depositAddresses, twilightAddress, cosmos)
 	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
-	twithdrawalBtc(depositAddresses, resevreAddresses)
+	twithdrawalBtc(depositAddresses, resevreAddresses, cosmos)
 
 	fmt.Println("Press 'Enter' to continue...")
 
@@ -69,11 +69,10 @@ func TestDepositAddress(t *testing.T) {
 	refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
 	tsendSignedRefundtx(resevreAddresses, refundtxs)
 	tsendSignedSweeptx(resevreAddresses, sweeptxs)
-	tsendSendSweepProposal(newSweepAddresses)
+	tsendSendSweepProposal(newSweepAddresses, cosmos)
 }
 
-func taddFunds(twilightAddress []string) {
-	cosmos := getCosmosClient()
+func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(10000)))
 	for _, taddr := range twilightAddress {
@@ -177,8 +176,7 @@ func tgenerateTwilightAddresses() ([]string, error) {
 	return addresses, nil
 }
 
-func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string) {
-	cosmos := getCosmosClient()
+func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
 	for i, addr := range btcAddresses {
@@ -196,8 +194,7 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string) 
 	}
 }
 
-func twithdrawalBtc(btcAddresses []string, twilightAddresses []string) {
-	cosmos := getCosmosClient()
+func twithdrawalBtc(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 
 	for i, addr := range btcAddresses {
@@ -243,9 +240,8 @@ func tsendSignedSweeptx(reserveAddresses []string, sweeptxs []string) {
 	}
 }
 
-func tsendSendSweepProposal(pAddress []string) {
+func tsendSendSweepProposal(pAddress []string, cosmos cosmosclient.Client) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	cosmos := getCosmosClient()
 	for i, addr := range pAddress {
 		msg := &bridgetypes.MsgSweepProposal{
 			ReserveId:             uint64(i),

@@ -175,6 +175,7 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 		privateKey := secp256k1.GenPrivKey()
 		info, err := kr.SaveMultisig("AccountName"+fmt.Sprint(i), privateKey.PubKey())
 		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
 

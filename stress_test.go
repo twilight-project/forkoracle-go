@@ -107,6 +107,7 @@ func tproposeAddress(resevreAddresses []string) []string {
 		fmt.Println("new proposed address: ", newSweepAddress)
 	}
 	return pAddresses
+
 }
 
 func tregisterReserveAddress() []string {

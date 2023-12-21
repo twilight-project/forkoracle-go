@@ -43,6 +43,8 @@ func TestDepositAddress(t *testing.T) {
 
 	taddFunds(twilightAddress)
 
+	time.Sleep(5 * time.Minute)
+
 	tregisterDepositAddress(depositAddresses, twilightAddress)
 	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
 	twithdrawalBtc(depositAddresses, resevreAddresses)
@@ -61,7 +63,6 @@ func TestDepositAddress(t *testing.T) {
 	tsendSignedRefundtx(resevreAddresses, refundtxs)
 	tsendSignedSweeptx(resevreAddresses, sweeptxs)
 	tsendSendSweepProposal(newSweepAddresses)
-
 }
 
 func taddFunds(twilightAddress []string) {

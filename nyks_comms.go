@@ -96,7 +96,6 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 }
 
 func sendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignRefund) {
-
 	_, err := cosmos.BroadcastTx(accountName, data)
 	if err == nil {
 		fmt.Println("Refund Signature sent")
@@ -144,6 +143,36 @@ func getCosmosClient() cosmosclient.Client {
 
 	return cosmos
 }
+
+func GetCurrentSequence(accountName string, cosmos cosmosclient.Client) (uint64, error) {
+	accAddr := getCosmosAddress(accountName, cosmos)
+
+	accRetriever := cosmos.Context().AccountRetriever
+	_, seq, err := accRetriever.GetAccountNumberSequence(cosmos.Context(), accAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	return seq, nil
+}
+
+// func getAccountSequence(cosmos cosmosclient.Client, address string) (uint64, error) {
+// 	accAddress, err := sdk.AccAddressFromBech32(address)
+// 	if err != nil {
+// 		return 0, fmt.Errorf("invalid account address: %v", err)
+// 	}
+
+// 	// Get the account keeper from the Cosmos client
+// 	accKeeper := cosmos.App().AccountKeeper()
+
+// 	// Retrieve the account using the account keeper
+// 	account := accKeeper.GetAccount(cosmos.Context(), accAddress)
+// 	if account == nil {
+// 		return 0, fmt.Errorf("account %s does not exist", accAddress)
+// 	}
+
+// 	return account.GetSequence(), nil
+// }
 
 func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.AccAddress {
 	address, err := cosmos.Address(accountName)

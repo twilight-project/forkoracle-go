@@ -26,7 +26,7 @@ var secondsWait int
 
 func TestDepositAddress(t *testing.T) {
 
-	kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, "/testnet/deploy/test/wallet", nil)
+	kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, "/root/.nyks/keyring-test/", nil)
 	if err != nil {
 		log.Fatalf("failed to create keyring: %v", err)
 	}
@@ -177,17 +177,18 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 	return addresses, nil
 }
 
-func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client, kr keyring.Keyring) {
+func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, kr keyring.Keyring) {
 	fmt.Println("registering deposit address ")
+	cosmos := getCosmosClient()
 	for i, addr := range btcAddresses {
 		accountName := fmt.Sprintf("AccountName%d", i)
 		fmt.Println(accountName, " : ", twilightAddresses[i])
 
-		info, err := kr.Key(accountName)
-		if err != nil {
-			fmt.Printf("failed to get key info for account %s: %v\n", accountName, err)
-			continue
-		}
+		// info, err := kr.Key(accountName)
+		// if err != nil {
+		// 	fmt.Printf("failed to get key info for account %s: %v\n", accountName, err)
+		// 	continue
+		// }
 
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{
 			BtcDepositAddress:     addr,
@@ -195,7 +196,29 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 			TwilightStakingAmount: 10000,
 			TwilightAddress:       twilightAddresses[i],
 		}
-		_, err = cosmos.BroadcastTx(info.GetAddress().String(), msg)
+
+		// txf := tx.NewFactoryCLI(cosmos.Context().WithKeyring(kr), nil).
+		// 	WithFees("1000nyks").
+		// 	WithGas(200000)
+
+		// txBuilder, _ := txf.BuildUnsignedTx(msg)
+
+		// // Fetch account number and sequence
+		// accNum, accSeq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(info.GetAddress())
+		// if err != nil {
+		// 	return err
+		// }
+
+		// // Sign the transaction
+		// signerData := authtypes.SignerData{
+		// 	AccountNumber: accNum,
+		// 	Sequence:      accSeq,
+		// 	ChainID:       clientCtx.ChainID,
+		// }
+		// err = tx.SignWithPrivKey(clientCtx.TxConfig.SignModeHandler().DefaultMode(), signerData, txBuilder, info.GetPrivKey(), clientCtx.TxConfig, accSeq)
+		// return err
+
+		_, err := cosmos.BroadcastTx(accountName, msg)
 		if err != nil {
 			fmt.Println("error in registering deposit address : ", err)
 		}

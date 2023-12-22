@@ -122,13 +122,13 @@ func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []string
 		tx := WatchtowerNotification{
 			Block:            "00000000000000000003239eae998dc7ad3585c2a08a3afc94d5a2721d1a2608",
 			Height:           1000,
-			Receiving:        depositAddresses[i],
+			Receiving:        reserveAddresses[i%25],
 			Satoshis:         50000,
 			Receiving_txid:   txids[i%5],
 			Sending_txinputs: []WatchtowerTxInput{},
 			Archived:         false,
 			Receiving_vout:   uint64(i),
-			Sending:          reserveAddresses[i%25],
+			Sending:          depositAddresses[i],
 			Sending_vout:     -1,
 		}
 		confirmBtcTransactionOnNyks(accountName, tx)

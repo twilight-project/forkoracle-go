@@ -26,7 +26,7 @@ var secondsWait int
 
 func TestDepositAddress(t *testing.T) {
 
-	kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, "/root/.nyks/keyring-test", nil)
+	kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, "/root/.nyks/", nil)
 	if err != nil {
 		log.Fatalf("failed to open keyring: %v", err)
 	}

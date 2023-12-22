@@ -36,7 +36,7 @@ func TestDepositAddress(t *testing.T) {
 	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8474")
 	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8473")
 	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
-	// limit = 10
+	limit = 10
 	// secondsWait = 3
 
 	// initialize()

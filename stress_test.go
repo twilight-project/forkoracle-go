@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -31,41 +33,41 @@ func TestDepositAddress(t *testing.T) {
 		log.Fatalf("failed to open keyring: %v", err)
 	}
 
-	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8477")
-	// txids = append(txids, "8797380dd4658eb25e77954939cde0a880e659a6005d3a053d24835600d2dd75")
-	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8474")
-	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8473")
-	// txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
+	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8477")
+	txids = append(txids, "8797380dd4658eb25e77954939cde0a880e659a6005d3a053d24835600d2dd75")
+	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8474")
+	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8473")
+	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
 	limit = 10
-	// secondsWait = 3
+	secondsWait = 3
 
-	// initialize()
-	// accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	// time.Sleep(time.Duration(secondsWait) * time.Second)
-	// registerJudge(accountName)
+	initialize()
+	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	time.Sleep(time.Duration(secondsWait) * time.Second)
+	registerJudge(accountName)
 
-	// cosmos := getCosmosClient()
+	cosmos := getCosmosClient()
 
-	// resevreAddresses := tregisterReserveAddress()
-	// depositAddresses, _ := tgenerateBitcoinAddresses()
-	_, _ = tgenerateTwilightAddresses(kr)
+	resevreAddresses := tregisterReserveAddress()
+	depositAddresses, _ := tgenerateBitcoinAddresses()
+	twilightAddress, _ := tgenerateTwilightAddresses(kr)
 
-	// taddFunds(twilightAddress, cosmos)
+	taddFunds(twilightAddress, cosmos)
 
-	// tregisterDepositAddress(depositAddresses, twilightAddress, cosmos, kr)
-	// tconfirmBtcTransaction(depositAddresses, resevreAddresses)
-	// twithdrawalBtc(depositAddresses, resevreAddresses, cosmos)
+	tregisterDepositAddress(depositAddresses, twilightAddress, cosmos)
+	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
+	twithdrawalBtc(depositAddresses, resevreAddresses, cosmos)
 
-	// fmt.Println("Press 'Enter' to continue...")
-	// scanner := bufio.NewScanner(os.Stdin)
-	// scanner.Scan()
+	fmt.Println("Press 'Enter' to continue...")
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
 
-	// newSweepAddresses := tproposeAddress(resevreAddresses)
-	// sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
-	// refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
-	// tsendSignedRefundtx(resevreAddresses, refundtxs)
-	// tsendSignedSweeptx(resevreAddresses, sweeptxs)
-	// tsendSendSweepProposal(newSweepAddresses, cosmos)
+	newSweepAddresses := tproposeAddress(resevreAddresses)
+	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
+	refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
+	tsendSignedRefundtx(resevreAddresses, refundtxs)
+	tsendSignedSweeptx(resevreAddresses, sweeptxs)
+	tsendSendSweepProposal(newSweepAddresses, cosmos)
 }
 
 func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
@@ -177,18 +179,11 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 	return addresses, nil
 }
 
-func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, kr keyring.Keyring) {
+func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
 	fmt.Println("registering deposit address ")
-	cosmos := getCosmosClient()
 	for i, addr := range btcAddresses {
 		accountName := fmt.Sprintf("AccountName%d", i)
 		fmt.Println(accountName, " : ", twilightAddresses[i])
-
-		// info, err := kr.Key(accountName)
-		// if err != nil {
-		// 	fmt.Printf("failed to get key info for account %s: %v\n", accountName, err)
-		// 	continue
-		// }
 
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{
 			BtcDepositAddress:     addr,
@@ -196,27 +191,6 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 			TwilightStakingAmount: 10000,
 			TwilightAddress:       twilightAddresses[i],
 		}
-
-		// txf := tx.NewFactoryCLI(cosmos.Context().WithKeyring(kr), nil).
-		// 	WithFees("1000nyks").
-		// 	WithGas(200000)
-
-		// txBuilder, _ := txf.BuildUnsignedTx(msg)
-
-		// // Fetch account number and sequence
-		// accNum, accSeq, err := authtypes.NewAccountRetriever(clientCtx).GetAccountNumberSequence(info.GetAddress())
-		// if err != nil {
-		// 	return err
-		// }
-
-		// // Sign the transaction
-		// signerData := authtypes.SignerData{
-		// 	AccountNumber: accNum,
-		// 	Sequence:      accSeq,
-		// 	ChainID:       clientCtx.ChainID,
-		// }
-		// err = tx.SignWithPrivKey(clientCtx.TxConfig.SignModeHandler().DefaultMode(), signerData, txBuilder, info.GetPrivKey(), clientCtx.TxConfig, accSeq)
-		// return err
 
 		_, err := cosmos.BroadcastTx(accountName, msg)
 		if err != nil {

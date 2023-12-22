@@ -14,7 +14,6 @@ import (
 	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
@@ -163,10 +162,9 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 	config.SetBech32PrefixForAccount(customPrefix, customPrefix+"pub")
 
 	for i := 0; i < limit; i++ {
-		// Generate a new private key
-		privateKey := secp256k1.GenPrivKey()
 		name := "AccountName" + fmt.Sprint(i)
-		info, err := kr.SavePubKey(name, privateKey.PubKey(), hd.Secp256k1Type)
+
+		info, _, err := kr.NewMnemonic(name, keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err

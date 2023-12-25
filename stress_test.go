@@ -101,7 +101,7 @@ func tproposeAddress(resevreAddresses []string) []string {
 			BtcAddress:   newSweepAddress,
 			JudgeAddress: oracleAddr,
 			ReserveId:    uint64(i + 1),
-			RoundId:      uint64(2),
+			RoundId:      uint64(1),
 		}
 		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
 		time.Sleep(time.Duration(secondsWait) * time.Second)

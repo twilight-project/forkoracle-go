@@ -207,7 +207,7 @@ func twithdrawalBtc(btcAddresses []string, twilightAddress []string, cosmos cosm
 		accountName := fmt.Sprintf("AccountName%d", i)
 		msg := &bridgetypes.MsgWithdrawBtcRequest{
 			WithdrawAddress: addr,
-			ReserveId:       uint64(i % 25),
+			ReserveId:       uint64((i + 1) % 25),
 			WithdrawAmount:  30000,
 			TwilightAddress: twilightAddress[i],
 		}

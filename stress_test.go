@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -32,13 +33,9 @@ func TestDepositAddress(t *testing.T) {
 		log.Fatalf("failed to open keyring: %v", err)
 	}
 
-	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8477")
-	txids = append(txids, "8797380dd4658eb25e77954939cde0a880e659a6005d3a053d24835600d2dd75")
-	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8474")
-	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8473")
-	txids = append(txids, "8fe487104de3725d07ba93dafc300d5351c01893ec909a22ed19aad8061c8472")
 	limit = 10
 	secondsWait = 3
+	txids = generateRandomHex(64, limit)
 
 	initialize()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
@@ -69,7 +66,20 @@ func TestDepositAddress(t *testing.T) {
 	tsendSendSweepProposal(newSweepAddresses, cosmos)
 }
 
+func generateRandomHex(n int, count int) []string {
+	var hexStrings []string
+	for i := 0; i < count; i++ {
+		bytes := make([]byte, n/2)
+		if _, err := rand.Read(bytes); err != nil {
+			return nil
+		}
+		hexStrings = append(hexStrings, fmt.Sprintf("%x", bytes))
+	}
+	return hexStrings
+}
+
 func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
+	fmt.Println("adding funds")
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(20000)))
 	for _, taddr := range twilightAddress {
@@ -94,7 +104,7 @@ func tproposeAddress(resevreAddresses []string) []string {
 			BtcScript:    hex.EncodeToString(script),
 			BtcAddress:   newSweepAddress,
 			JudgeAddress: oracleAddr,
-			ReserveId:    uint64(i),
+			ReserveId:    uint64(i + 1),
 			RoundId:      uint64(2),
 		}
 		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
@@ -124,7 +134,7 @@ func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []string
 			Height:           1000,
 			Receiving:        reserveAddresses[i%25],
 			Satoshis:         50000,
-			Receiving_txid:   txids[i%5],
+			Receiving_txid:   txids[i],
 			Sending_txinputs: []WatchtowerTxInput{},
 			Archived:         false,
 			Receiving_vout:   uint64(i),
@@ -163,13 +173,11 @@ func tgenerateTwilightAddresses(kr keyring.Keyring) ([]string, error) {
 
 	for i := 0; i < limit; i++ {
 		name := "AccountName" + fmt.Sprint(i)
-
 		info, _, err := kr.NewMnemonic(name, keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
-
 		addresses[i] = info.GetAddress().String()
 		fmt.Println(name, "  :  ", info.GetAddress().String())
 	}
@@ -181,7 +189,6 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 	fmt.Println("registering deposit address ")
 	for i, addr := range btcAddresses {
 		accountName := fmt.Sprintf("AccountName%d", i)
-		fmt.Println(accountName, " : ", twilightAddresses[i])
 
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{
 			BtcDepositAddress:     addr,
@@ -199,8 +206,8 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 }
 
 func twithdrawalBtc(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
+	fmt.Println("creating withdraw requests")
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-
 	for i, addr := range btcAddresses {
 		msg := &bridgetypes.MsgWithdrawBtcRequest{
 			WithdrawAddress: addr,
@@ -210,7 +217,7 @@ func twithdrawalBtc(btcAddresses []string, twilightAddresses []string, cosmos co
 		}
 		_, err := cosmos.BroadcastTx(accountName, msg)
 		if err != nil {
-			fmt.Println("error in registering deposit address : ", err)
+			fmt.Println("error in registering withdraw address : ", err)
 		}
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}

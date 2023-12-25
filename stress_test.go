@@ -52,7 +52,7 @@ func TestDepositAddress(t *testing.T) {
 
 	tregisterDepositAddress(depositAddresses, twilightAddress, cosmos)
 	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
-	twithdrawalBtc(depositAddresses, resevreAddresses, cosmos)
+	twithdrawalBtc(depositAddresses, twilightAddress, cosmos)
 
 	fmt.Println("Press 'Enter' to continue...")
 	scanner := bufio.NewScanner(os.Stdin)
@@ -205,7 +205,7 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 	}
 }
 
-func twithdrawalBtc(btcAddresses []string, twilightAddresses []string, cosmos cosmosclient.Client) {
+func twithdrawalBtc(btcAddresses []string, twilightAddress []string, cosmos cosmosclient.Client) {
 	fmt.Println("creating withdraw requests")
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, addr := range btcAddresses {
@@ -213,7 +213,7 @@ func twithdrawalBtc(btcAddresses []string, twilightAddresses []string, cosmos co
 			WithdrawAddress: addr,
 			ReserveId:       uint64(i % 25),
 			WithdrawAmount:  30000,
-			TwilightAddress: twilightAddresses[i],
+			TwilightAddress: twilightAddress[i],
 		}
 		_, err := cosmos.BroadcastTx(accountName, msg)
 		if err != nil {
@@ -236,7 +236,7 @@ func tsendUnsignedSweeptx(reserveAddresses []string, pAddresses []string) []stri
 	for i, addr := range reserveAddresses {
 		withdrawRequests := getWithdrawSnapshot(uint64(i), uint64(1)).WithdrawRequests
 		sweepTxHex, sweepTxId, _, _ := generateSweepTx(addr, *&pAddresses[i], accountName, withdrawRequests, int64(1000), utxos)
-		sendUnsignedSweepTx(uint64(i), uint64(2), sweepTxHex, sweepTxId, accountName)
+		sendUnsignedSweepTx(uint64(i+1), uint64(1), sweepTxHex, sweepTxId, accountName)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 		txHexes[i] = sweepTxHex
 	}
@@ -246,7 +246,7 @@ func tsendUnsignedSweeptx(reserveAddresses []string, pAddresses []string) []stri
 func tsendSignedSweeptx(reserveAddresses []string, sweeptxs []string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, _ := range reserveAddresses {
-		broadcastSweeptxNYKS(sweeptxs[i], accountName, uint64(i), uint64(1))
+		broadcastSweeptxNYKS(sweeptxs[i], accountName, uint64(i+1), uint64(1))
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}
 }
@@ -272,7 +272,7 @@ func tsendSendSweepProposal(pAddress []string, cosmos cosmosclient.Client) {
 func tsendSignedRefundtx(reserveAddresses []string, refundTx []string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, _ := range reserveAddresses {
-		broadcastRefundtxNYKS(refundTx[i], accountName, uint64(i), uint64(1))
+		broadcastRefundtxNYKS(refundTx[i], accountName, uint64(i+1), uint64(1))
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}
 }
@@ -282,7 +282,7 @@ func tsendUnsignedRefundtx(reserveAddresses []string, sweeptxs []string) []strin
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, _ := range reserveAddresses {
 		refundTxHex, _ := generateRefundTx(sweeptxs[i], "", uint64(i), uint64(1))
-		sendUnsignedRefundTx(refundTxHex, uint64(i), uint64(2), accountName)
+		sendUnsignedRefundTx(refundTxHex, uint64(i+1), uint64(1), accountName)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 		refundtxHexes[i] = refundTxHex
 	}

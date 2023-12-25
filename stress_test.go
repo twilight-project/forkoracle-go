@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -54,9 +52,7 @@ func TestDepositAddress(t *testing.T) {
 	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
 	twithdrawalBtc(depositAddresses, twilightAddress, cosmos)
 
-	fmt.Println("Press 'Enter' to continue...")
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
+	time.Sleep(10 * time.Minute)
 
 	newSweepAddresses := tproposeAddress(resevreAddresses)
 	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
@@ -207,8 +203,8 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 
 func twithdrawalBtc(btcAddresses []string, twilightAddress []string, cosmos cosmosclient.Client) {
 	fmt.Println("creating withdraw requests")
-	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, addr := range btcAddresses {
+		accountName := fmt.Sprintf("AccountName%d", i)
 		msg := &bridgetypes.MsgWithdrawBtcRequest{
 			WithdrawAddress: addr,
 			ReserveId:       uint64(i % 25),

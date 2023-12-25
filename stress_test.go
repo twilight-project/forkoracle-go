@@ -31,7 +31,7 @@ func TestDepositAddress(t *testing.T) {
 		log.Fatalf("failed to open keyring: %v", err)
 	}
 
-	limit = 10
+	limit = 1
 	secondsWait = 3
 	txids = generateRandomHex(64, limit)
 

@@ -77,7 +77,7 @@ func generateRandomHex(n int, count int) []string {
 func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 	fmt.Println("adding funds")
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(20000)))
+	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(100000)))
 	for _, taddr := range twilightAddress {
 		msg := &banktypes.MsgSend{
 			FromAddress: oracleAddr,
@@ -189,7 +189,7 @@ func tregisterDepositAddress(btcAddresses []string, twilightAddresses []string, 
 		msg := &bridgetypes.MsgRegisterBtcDepositAddress{
 			BtcDepositAddress:     addr,
 			BtcSatoshiTestAmount:  50000,
-			TwilightStakingAmount: 10000,
+			TwilightStakingAmount: 50000,
 			TwilightAddress:       twilightAddresses[i],
 		}
 

@@ -52,7 +52,7 @@ func TestDepositAddress(t *testing.T) {
 	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
 	twithdrawalBtc(depositAddresses, twilightAddress, cosmos)
 
-	time.Sleep(10 * time.Minute)
+	time.Sleep(1 * time.Minute)
 
 	newSweepAddresses := tproposeAddress(resevreAddresses)
 	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)

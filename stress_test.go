@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
-	"github.com/btcsuite/btcutil/bech32"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -33,6 +33,8 @@ func TestDepositAddress(t *testing.T) {
 
 	limit = 1
 	secondsWait = 3
+	tgenerateBitcoinAddresses()
+
 	txids = generateRandomHex(64, limit)
 
 	initialize()
@@ -145,19 +147,29 @@ func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []string
 func tgenerateBitcoinAddresses() ([]string, error) {
 	addresses := make([]string, limit)
 	for i := 0; i < limit; i++ {
-		// Derive a new public key (non-standard approach)
+		// Derive a new private key
 		privateKey, err := btcec.NewPrivateKey(btcec.S256())
 		if err != nil {
-			return nil, err
+			log.Fatal(err)
 		}
-		pubKeyHash := btcutil.Hash160(privateKey.PubKey().SerializeCompressed())
 
-		// Convert the public key hash to a bech32 encoded address
-		x, _ := bech32.ConvertBits(pubKeyHash, 8, 5, true)
-		segwitAddr, _ := bech32.Encode("bc", x)
+		// Generate the public key from the private key.
+		pubKey := privateKey.PubKey()
 
-		addresses[i] = segwitAddr
-		fmt.Println("btc Account : ", segwitAddr)
+		// Serialize the compressed public key.
+		serializedPubKey := pubKey.SerializeCompressed()
+
+		// Generate P2WPKH (Pay to Witness Public Key Hash) script.
+		witnessProgram := btcutil.Hash160(serializedPubKey)
+		address, err := btcutil.NewAddressWitnessPubKeyHash(witnessProgram, &chaincfg.MainNetParams)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Generate the bech32 encoded SegWit address.
+		segwitAddress := address.EncodeAddress()
+		addresses[i] = segwitAddress
+		fmt.Println("SegWit Address:", segwitAddress)
 	}
 	return addresses, nil
 }
@@ -232,7 +244,7 @@ func tsendUnsignedSweeptx(reserveAddresses []string, pAddresses []string) []stri
 
 	for i, addr := range reserveAddresses {
 		withdrawRequests := getWithdrawSnapshot(uint64(i+1), uint64(1)).WithdrawRequests
-		fmt.Println(i)
+		fmt.Println(i + 1)
 		fmt.Println(withdrawRequests)
 		sweepTxHex, sweepTxId, _, _ := generateSweepTx(addr, *&pAddresses[i], accountName, withdrawRequests, int64(1000), utxos)
 		sendUnsignedSweepTx(uint64(i+1), uint64(1), sweepTxHex, sweepTxId, accountName)

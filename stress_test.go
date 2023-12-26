@@ -128,7 +128,7 @@ func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []string
 		tx := WatchtowerNotification{
 			Block:            "00000000000000000003239eae998dc7ad3585c2a08a3afc94d5a2721d1a2608",
 			Height:           1000,
-			Receiving:        reserveAddresses[i+1],
+			Receiving:        reserveAddresses[i],
 			Satoshis:         50000,
 			Receiving_txid:   txids[i],
 			Sending_txinputs: []WatchtowerTxInput{},
@@ -157,6 +157,7 @@ func tgenerateBitcoinAddresses() ([]string, error) {
 		segwitAddr, _ := bech32.Encode("bc", x)
 
 		addresses[i] = segwitAddr
+		fmt.Println("btc Account : ", segwitAddr)
 	}
 	return addresses, nil
 }

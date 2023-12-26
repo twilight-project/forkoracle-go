@@ -264,7 +264,7 @@ func tsendSendSweepProposal(pAddress []string, cosmos cosmosclient.Client) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, addr := range pAddress {
 		msg := &bridgetypes.MsgSweepProposal{
-			ReserveId:             uint64(i),
+			ReserveId:             uint64(i + 1),
 			NewReserveAddress:     addr,
 			JudgeAddress:          oracleAddr,
 			BtcRelayCapacityValue: 0,

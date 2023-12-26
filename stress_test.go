@@ -33,8 +33,6 @@ func TestDepositAddress(t *testing.T) {
 
 	limit = 1
 	secondsWait = 3
-	tgenerateBitcoinAddresses()
-
 	txids = generateRandomHex(64, limit)
 
 	initialize()
@@ -292,7 +290,7 @@ func tsendUnsignedRefundtx(reserveAddresses []string, sweeptxs []string) []strin
 	refundtxHexes := make([]string, 25)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i, _ := range reserveAddresses {
-		refundTxHex, _ := generateRefundTx(sweeptxs[i], "", uint64(i), uint64(1))
+		refundTxHex, _ := generateRefundTx(sweeptxs[i], "", uint64(i+1), uint64(1))
 		sendUnsignedRefundTx(refundTxHex, uint64(i+1), uint64(1), accountName)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 		refundtxHexes[i] = refundTxHex

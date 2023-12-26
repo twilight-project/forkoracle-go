@@ -124,6 +124,7 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	refundTx.AddTxIn(txIn)
 
 	refundSnapshots := getRefundSnapshot(reserveId, roundId)
+	fmt.Println(refundSnapshots)
 	for _, refund := range refundSnapshots.RefundAccounts {
 		amount, err := strconv.Atoi(refund.Amount)
 		if err != nil {

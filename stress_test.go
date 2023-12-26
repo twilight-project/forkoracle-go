@@ -104,9 +104,9 @@ func tproposeAddress(resevreAddresses []string) []string {
 			RoundId:      uint64(1),
 		}
 		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-		time.Sleep(time.Duration(secondsWait) * time.Second)
 		pAddresses[i] = newSweepAddress
 		fmt.Println("new proposed address: ", newSweepAddress)
+		time.Sleep(20 * time.Second)
 	}
 	return pAddresses
 

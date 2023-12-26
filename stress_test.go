@@ -231,6 +231,8 @@ func tsendUnsignedSweeptx(reserveAddresses []string, pAddresses []string) []stri
 
 	for i, addr := range reserveAddresses {
 		withdrawRequests := getWithdrawSnapshot(uint64(i), uint64(1)).WithdrawRequests
+		fmt.Println(i)
+		fmt.Println(withdrawRequests)
 		sweepTxHex, sweepTxId, _, _ := generateSweepTx(addr, *&pAddresses[i], accountName, withdrawRequests, int64(1000), utxos)
 		sendUnsignedSweepTx(uint64(i+1), uint64(1), sweepTxHex, sweepTxId, accountName)
 		time.Sleep(time.Duration(secondsWait) * time.Second)

@@ -31,40 +31,44 @@ func TestDepositAddress(t *testing.T) {
 		log.Fatalf("failed to open keyring: %v", err)
 	}
 
-	limit = 1
+	limit = 100
 	secondsWait = 3
-	txids = generateRandomHex(64, limit)
 
 	initialize()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 	registerJudge(accountName)
-
 	cosmos := getCosmosClient()
+	tregisterReserveAddress()
 
-	resevreAddresses := tregisterReserveAddress()
-	depositAddresses, _ := tgenerateBitcoinAddresses()
-	twilightAddress, _ := tgenerateTwilightAddresses(kr)
+	for j := 1; j <= 100; j++ {
+		reserveAddresses := getBtcReserves().BtcReserves
+		txids = generateRandomHex(64)
+		depositAddresses, _ := tgenerateBitcoinAddresses()
+		twilightAddress, _ := tgenerateTwilightAddresses(kr)
 
-	taddFunds(twilightAddress, cosmos)
+		taddFunds(twilightAddress, cosmos)
 
-	tregisterDepositAddress(depositAddresses, twilightAddress, cosmos)
-	tconfirmBtcTransaction(depositAddresses, resevreAddresses)
-	twithdrawalBtc(depositAddresses, twilightAddress, cosmos)
+		tregisterDepositAddress(depositAddresses, twilightAddress, cosmos)
+		tconfirmBtcTransaction(depositAddresses, reserveAddresses)
+		twithdrawalBtc(depositAddresses, twilightAddress, cosmos)
 
-	time.Sleep(1 * time.Minute)
+		time.Sleep(1 * time.Minute)
 
-	newSweepAddresses := tproposeAddress(resevreAddresses)
-	sweeptxs := tsendUnsignedSweeptx(resevreAddresses, newSweepAddresses)
-	refundtxs := tsendUnsignedRefundtx(resevreAddresses, sweeptxs)
-	tsendSignedRefundtx(resevreAddresses, refundtxs)
-	tsendSignedSweeptx(resevreAddresses, sweeptxs)
-	tsendSendSweepProposal(newSweepAddresses, cosmos)
+		for i, addr := range reserveAddresses {
+			newSweepAddress := tproposeAddress(addr.ReserveAddress, uint64(i+i), uint64(j))
+			sweeptx := tsendUnsignedSweeptx(addr.ReserveAddress, newSweepAddress, uint64(i+i), uint64(j))
+			refundtx := tsendUnsignedRefundtx(addr.ReserveAddress, sweeptx, uint64(i+i), uint64(j))
+			tsendSignedRefundtx(addr.ReserveAddress, refundtx, uint64(i+i), uint64(j))
+			tsendSignedSweeptx(addr.ReserveAddress, sweeptx, uint64(i+i), uint64(j))
+			tsendSendSweepProposal(newSweepAddress, cosmos, uint64(i+i), uint64(j))
+		}
+	}
 }
 
-func generateRandomHex(n int, count int) []string {
+func generateRandomHex(n int) []string {
 	var hexStrings []string
-	for i := 0; i < count; i++ {
+	for i := 0; i < limit; i++ {
 		bytes := make([]byte, n/2)
 		if _, err := rand.Read(bytes); err != nil {
 			return nil
@@ -90,25 +94,21 @@ func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 	}
 }
 
-func tproposeAddress(resevreAddresses []string) []string {
-	pAddresses := make([]string, 1)
+func tproposeAddress(resevreAddress string, reserve uint64, round uint64) string {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i, rAddr := range resevreAddresses {
-		newSweepAddress, script := generateAddress(int64(limit), rAddr)
-		cosmos_client := getCosmosClient()
-		msg := &bridgetypes.MsgProposeSweepAddress{
-			BtcScript:    hex.EncodeToString(script),
-			BtcAddress:   newSweepAddress,
-			JudgeAddress: oracleAddr,
-			ReserveId:    uint64(i + 1),
-			RoundId:      uint64(1),
-		}
-		sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-		pAddresses[i] = newSweepAddress
-		fmt.Println("new proposed address: ", newSweepAddress)
-		time.Sleep(20 * time.Second)
+	newSweepAddress, script := generateAddress(1000000, resevreAddress)
+	cosmos_client := getCosmosClient()
+	msg := &bridgetypes.MsgProposeSweepAddress{
+		BtcScript:    hex.EncodeToString(script),
+		BtcAddress:   newSweepAddress,
+		JudgeAddress: oracleAddr,
+		ReserveId:    reserve,
+		RoundId:      round,
 	}
-	return pAddresses
+	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
+	fmt.Println("new proposed address: ", newSweepAddress)
+	time.Sleep(time.Duration(secondsWait) * time.Second)
+	return newSweepAddress
 
 }
 
@@ -122,13 +122,13 @@ func tregisterReserveAddress() []string {
 	return addresses
 }
 
-func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []string) {
+func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []BtcReserve) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	for i := 0; i < limit; i++ {
 		tx := WatchtowerNotification{
 			Block:            "00000000000000000003239eae998dc7ad3585c2a08a3afc94d5a2721d1a2608",
 			Height:           1000,
-			Receiving:        reserveAddresses[i],
+			Receiving:        reserveAddresses[i].ReserveAddress,
 			Satoshis:         50000,
 			Receiving_txid:   txids[i],
 			Sending_txinputs: []WatchtowerTxInput{},
@@ -230,8 +230,7 @@ func twithdrawalBtc(btcAddresses []string, twilightAddress []string, cosmos cosm
 	}
 }
 
-func tsendUnsignedSweeptx(reserveAddresses []string, pAddresses []string) []string {
-	txHexes := make([]string, 25)
+func tsendUnsignedSweeptx(reserveAddress string, pAddress string, reserve uint64, round uint64) string {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	utxos := []Utxo{
 		{Txid: "4f3c9b8f82f611e38f068342e37d6f083d74e64b2ccf7e8b4aee217aebad8fb4", Vout: 0, Amount: 1000000},
@@ -239,61 +238,47 @@ func tsendUnsignedSweeptx(reserveAddresses []string, pAddresses []string) []stri
 		{Txid: "e38f068342e37d6f083d74e64b2ccf7e8b4aee217aebad8fb44f3c9b8f82f611", Vout: 2, Amount: 1000000},
 		// Add more Utxo structs here as needed
 	}
+	withdrawRequests := getWithdrawSnapshot(reserve, round).WithdrawRequests
+	fmt.Println(withdrawRequests)
+	sweepTxHex, sweepTxId, _, _ := generateSweepTx(reserveAddress, *&pAddress, accountName, withdrawRequests, int64(1000), utxos)
+	sendUnsignedSweepTx(reserve, round, sweepTxHex, sweepTxId, accountName)
+	time.Sleep(time.Duration(secondsWait) * time.Second)
 
-	for i, addr := range reserveAddresses {
-		withdrawRequests := getWithdrawSnapshot(uint64(i+1), uint64(1)).WithdrawRequests
-		fmt.Println(i + 1)
-		fmt.Println(withdrawRequests)
-		sweepTxHex, sweepTxId, _, _ := generateSweepTx(addr, *&pAddresses[i], accountName, withdrawRequests, int64(1000), utxos)
-		sendUnsignedSweepTx(uint64(i+1), uint64(1), sweepTxHex, sweepTxId, accountName)
-		time.Sleep(time.Duration(secondsWait) * time.Second)
-		txHexes[i] = sweepTxHex
-	}
-	return txHexes
+	return sweepTxHex
 }
 
-func tsendSignedSweeptx(reserveAddresses []string, sweeptxs []string) {
+func tsendSignedSweeptx(reserveAddress string, sweeptx string, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i, _ := range reserveAddresses {
-		broadcastSweeptxNYKS(sweeptxs[i], accountName, uint64(i+1), uint64(1))
-		time.Sleep(time.Duration(secondsWait) * time.Second)
-	}
+	broadcastSweeptxNYKS(sweeptx, accountName, reserve, round)
+	time.Sleep(time.Duration(secondsWait) * time.Second)
 }
 
-func tsendSendSweepProposal(pAddress []string, cosmos cosmosclient.Client) {
+func tsendSendSweepProposal(pAddress string, cosmos cosmosclient.Client, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i, addr := range pAddress {
-		msg := &bridgetypes.MsgSweepProposal{
-			ReserveId:             uint64(i + 1),
-			NewReserveAddress:     addr,
-			JudgeAddress:          oracleAddr,
-			BtcRelayCapacityValue: 0,
-			BtcTxHash:             "4f3c9b8f82f611e38f068342e37d6f083d74e64b2ccf7e8b4aee217aebad8fb4",
-			UnlockHeight:          0,
-			RoundId:               uint64(1),
-			BtcBlockNumber:        0,
-		}
-		sendTransactionSweepProposal(accountName, cosmos, msg)
-		time.Sleep(time.Duration(secondsWait) * time.Second)
+	msg := &bridgetypes.MsgSweepProposal{
+		ReserveId:             reserve,
+		NewReserveAddress:     pAddress,
+		JudgeAddress:          oracleAddr,
+		BtcRelayCapacityValue: 0,
+		BtcTxHash:             "4f3c9b8f82f611e38f068342e37d6f083d74e64b2ccf7e8b4aee217aebad8fb4",
+		UnlockHeight:          0,
+		RoundId:               round,
+		BtcBlockNumber:        0,
 	}
+	sendTransactionSweepProposal(accountName, cosmos, msg)
+	time.Sleep(time.Duration(secondsWait) * time.Second)
 }
 
-func tsendSignedRefundtx(reserveAddresses []string, refundTx []string) {
+func tsendSignedRefundtx(reserveAddress string, refundTx string, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i, _ := range reserveAddresses {
-		broadcastRefundtxNYKS(refundTx[i], accountName, uint64(i+1), uint64(1))
-		time.Sleep(time.Duration(secondsWait) * time.Second)
-	}
+	broadcastRefundtxNYKS(refundTx, accountName, reserve, round)
+	time.Sleep(time.Duration(secondsWait) * time.Second)
 }
 
-func tsendUnsignedRefundtx(reserveAddresses []string, sweeptxs []string) []string {
-	refundtxHexes := make([]string, 25)
+func tsendUnsignedRefundtx(reserveAddress string, sweeptx string, reserve uint64, round uint64) string {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i, _ := range reserveAddresses {
-		refundTxHex, _ := generateRefundTx(sweeptxs[i], "", uint64(i+1), uint64(1))
-		sendUnsignedRefundTx(refundTxHex, uint64(i+1), uint64(1), accountName)
-		time.Sleep(time.Duration(secondsWait) * time.Second)
-		refundtxHexes[i] = refundTxHex
-	}
-	return refundtxHexes
+	refundTxHex, _ := generateRefundTx(sweeptx, "", reserve, round)
+	sendUnsignedRefundTx(refundTxHex, reserve, round, accountName)
+	time.Sleep(time.Duration(secondsWait) * time.Second)
+	return refundTxHex
 }

@@ -22,6 +22,7 @@ import (
 
 var txids []string
 var limit int
+var round int
 var secondsWait int
 
 func TestDepositAddress(t *testing.T) {
@@ -31,8 +32,9 @@ func TestDepositAddress(t *testing.T) {
 		log.Fatalf("failed to open keyring: %v", err)
 	}
 
-	limit = 100
-	secondsWait = 3
+	limit = 10000
+	secondsWait = 1
+	round = 1
 
 	initialize()
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
@@ -41,7 +43,7 @@ func TestDepositAddress(t *testing.T) {
 	cosmos := getCosmosClient()
 	tregisterReserveAddress()
 
-	for j := 1; j <= 100; j++ {
+	for j := 1; j <= round; j++ {
 		reserveAddresses := getBtcReserves().BtcReserves
 		txids = generateRandomHex(64)
 		depositAddresses, _ := tgenerateBitcoinAddresses()
@@ -57,6 +59,7 @@ func TestDepositAddress(t *testing.T) {
 
 		for i, addr := range reserveAddresses {
 			newSweepAddress := tproposeAddress(addr.ReserveAddress, uint64(i+i), uint64(j))
+			time.Sleep(1 * time.Minute)
 			sweeptx := tsendUnsignedSweeptx(addr.ReserveAddress, newSweepAddress, uint64(i+i), uint64(j))
 			refundtx := tsendUnsignedRefundtx(addr.ReserveAddress, sweeptx, uint64(i+i), uint64(j))
 			tsendSignedRefundtx(addr.ReserveAddress, refundtx, uint64(i+i), uint64(j))

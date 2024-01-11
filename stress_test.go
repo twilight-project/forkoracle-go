@@ -92,7 +92,7 @@ func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 			Amount:      amount,
 		}
 		cosmos.BroadcastTx(accountName, msg)
-		time.Sleep(time.Duration(secondsWait) * time.Second)
+		// time.Sleep(time.Duration(secondsWait) * time.Second)
 		fmt.Println("sending funds : ", taddr)
 	}
 }

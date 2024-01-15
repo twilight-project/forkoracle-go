@@ -11,6 +11,7 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -32,7 +33,7 @@ func TestDepositAddress(t *testing.T) {
 		log.Fatalf("failed to open keyring: %v", err)
 	}
 
-	limit = 10000
+	limit = 10
 	secondsWait = 1
 	round = 1
 
@@ -83,6 +84,7 @@ func generateRandomHex(n int) []string {
 
 func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 	fmt.Println("adding funds")
+	cosmos.Context().WithBroadcastMode(flags.BroadcastAsync)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	amount := sdk.NewCoins(sdk.NewCoin("nyks", sdk.NewInt(100000)))
 	for _, taddr := range twilightAddress {
@@ -92,7 +94,7 @@ func taddFunds(twilightAddress []string, cosmos cosmosclient.Client) {
 			Amount:      amount,
 		}
 		cosmos.BroadcastTx(accountName, msg)
-		// time.Sleep(time.Duration(secondsWait) * time.Second)
+		time.Sleep(time.Duration(secondsWait) * time.Second)
 		fmt.Println("sending funds : ", taddr)
 	}
 }

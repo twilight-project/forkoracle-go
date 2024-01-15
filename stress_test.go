@@ -34,7 +34,7 @@ func TestDepositAddress(t *testing.T) {
 	}
 
 	limit = 10
-	secondsWait = 1
+	secondsWait = 3
 	round = 1
 
 	initialize()

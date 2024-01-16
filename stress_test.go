@@ -61,8 +61,8 @@ func TestDepositAddress(t *testing.T) {
 		for i, addr := range reserveAddresses {
 			newSweepAddress := tproposeAddress(addr.ReserveAddress, uint64(i+i), uint64(j))
 			time.Sleep(1 * time.Minute)
-			sweeptx := tsendUnsignedSweeptx(addr.ReserveAddress, newSweepAddress, uint64(i+i), uint64(j))
-			refundtx := tsendUnsignedRefundtx(addr.ReserveAddress, sweeptx, uint64(i+i), uint64(j))
+			sweeptx := tsendUnsignedSweeptx(addr.ReserveAddress, newSweepAddress, uint64(i+1), uint64(j))
+			refundtx := tsendUnsignedRefundtx(addr.ReserveAddress, sweeptx, uint64(i+1), uint64(j))
 			tsendSignedRefundtx(addr.ReserveAddress, refundtx, uint64(i+i), uint64(j))
 			tsendSignedSweeptx(addr.ReserveAddress, sweeptx, uint64(i+i), uint64(j))
 			tsendSendSweepProposal(newSweepAddress, cosmos, uint64(i+i), uint64(j))

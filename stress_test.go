@@ -120,7 +120,7 @@ func tproposeAddress(resevreAddress string, reserve uint64, round uint64) string
 func tregisterReserveAddress() []string {
 	addresses := make([]string, 1)
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 25; i++ {
 		addresses[i] = generateAndRegisterNewBtcReserveAddress(accountName, 100)
 		time.Sleep(time.Duration(secondsWait) * time.Second)
 	}
@@ -133,7 +133,7 @@ func tconfirmBtcTransaction(depositAddresses []string, reserveAddresses []BtcRes
 		tx := WatchtowerNotification{
 			Block:            "00000000000000000003239eae998dc7ad3585c2a08a3afc94d5a2721d1a2608",
 			Height:           1000,
-			Receiving:        reserveAddresses[i].ReserveAddress,
+			Receiving:        reserveAddresses[i%25].ReserveAddress,
 			Satoshis:         50000,
 			Receiving_txid:   txids[i],
 			Sending_txinputs: []WatchtowerTxInput{},

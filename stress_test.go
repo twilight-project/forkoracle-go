@@ -65,7 +65,7 @@ func TestDepositAddress(t *testing.T) {
 			refundtx := tsendUnsignedRefundtx(addr.ReserveAddress, sweeptx, uint64(i+1), uint64(j))
 			tsendSignedRefundtx(addr.ReserveAddress, refundtx, uint64(i+1), uint64(j))
 			tsendSignedSweeptx(addr.ReserveAddress, sweeptx, uint64(i+1), uint64(j))
-			tsendSendSweepProposal(newSweepAddress, cosmos, uint64(i+1), uint64(j))
+			tSendSweepProposal(newSweepAddress, cosmos, uint64(i+1), uint64(j))
 		}
 	}
 }
@@ -111,7 +111,6 @@ func tproposeAddress(resevreAddress string, reserve uint64, round uint64) string
 		RoundId:      round,
 	}
 	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-	fmt.Println("new proposed address: ", newSweepAddress)
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 	return newSweepAddress
 
@@ -244,7 +243,6 @@ func tsendUnsignedSweeptx(reserveAddress string, pAddress string, reserve uint64
 		// Add more Utxo structs here as needed
 	}
 	withdrawRequests := getWithdrawSnapshot(reserve, round).WithdrawRequests
-	fmt.Println(withdrawRequests)
 	sweepTxHex, sweepTxId, _, _ := generateSweepTx(reserveAddress, *&pAddress, accountName, withdrawRequests, int64(1000), utxos)
 	sendUnsignedSweepTx(reserve, round, sweepTxHex, sweepTxId, accountName)
 	time.Sleep(time.Duration(secondsWait) * time.Second)
@@ -258,9 +256,10 @@ func tsendSignedSweeptx(reserveAddress string, sweeptx string, reserve uint64, r
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 }
 
-func tsendSendSweepProposal(pAddress string, cosmos cosmosclient.Client, reserve uint64, round uint64) {
+func tSendSweepProposal(pAddress string, cosmos cosmosclient.Client, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	txid := generateRandomHex(1)[0]
+	fmt.Println(txid)
 	msg := &bridgetypes.MsgSweepProposal{
 		ReserveId:             reserve,
 		NewReserveAddress:     pAddress,

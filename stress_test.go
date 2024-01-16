@@ -260,12 +260,13 @@ func tsendSignedSweeptx(reserveAddress string, sweeptx string, reserve uint64, r
 
 func tsendSendSweepProposal(pAddress string, cosmos cosmosclient.Client, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+	txid := generateRandomHex(1)[0]
 	msg := &bridgetypes.MsgSweepProposal{
 		ReserveId:             reserve,
 		NewReserveAddress:     pAddress,
 		JudgeAddress:          oracleAddr,
 		BtcRelayCapacityValue: 0,
-		BtcTxHash:             "4f3c9b8f82f611e38f068342e37d6f083d74e64b2ccf7e8b4aee217aebad8fb4",
+		BtcTxHash:             txid,
 		UnlockHeight:          0,
 		RoundId:               round,
 		BtcBlockNumber:        0,

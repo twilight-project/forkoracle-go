@@ -44,21 +44,22 @@ func main() {
 	}
 
 	time.Sleep(30 * time.Second)
-	go orchestrator(accountName, forkscanner_url)
+	// add go when you revert
+	orchestrator(accountName, forkscanner_url)
 
-	initJudge(accountName)
+	// initJudge(accountName)
 
-	time.Sleep(1 * time.Minute)
-	if judge == true {
-		go startJudge(accountName)
-	} else {
-		time.Sleep(2 * time.Minute)
-	}
+	// time.Sleep(1 * time.Minute)
+	// if judge == true {
+	// 	go startJudge(accountName)
+	// } else {
+	// 	time.Sleep(2 * time.Minute)
+	// }
 
-	time.Sleep(1 * time.Minute)
-	go startBridge(accountName, forkscanner_url)
-	go pubsubServer()
-	startTransactionSigner(accountName)
+	// time.Sleep(1 * time.Minute)
+	// go startBridge(accountName, forkscanner_url)
+	// go pubsubServer()
+	// startTransactionSigner(accountName)
 }
 
 func (h *Hub) run() {

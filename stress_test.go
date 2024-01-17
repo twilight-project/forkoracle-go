@@ -46,7 +46,7 @@ func TestDepositAddress(t *testing.T) {
 
 	for j := 1; j <= round; j++ {
 		reserveAddresses := getBtcReserves().BtcReserves
-		txids = generateRandomHex(64)
+		txids = generateRandomHexLimit(64)
 		depositAddresses, _ := tgenerateBitcoinAddresses()
 		twilightAddress, _ := tgenerateTwilightAddresses(kr)
 
@@ -70,14 +70,19 @@ func TestDepositAddress(t *testing.T) {
 	}
 }
 
-func generateRandomHex(n int) []string {
+func generateRandomHex(n int) string {
+	bytes := make([]byte, n/2)
+	if _, err := rand.Read(bytes); err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", bytes)
+}
+
+func generateRandomHexLimit(n int) []string {
 	var hexStrings []string
 	for i := 0; i < limit; i++ {
-		bytes := make([]byte, n/2)
-		if _, err := rand.Read(bytes); err != nil {
-			return nil
-		}
-		hexStrings = append(hexStrings, fmt.Sprintf("%x", bytes))
+		hex := generateRandomHex(n)
+		hexStrings = append(hexStrings, hex)
 	}
 	return hexStrings
 }
@@ -253,12 +258,13 @@ func tsendUnsignedSweeptx(reserveAddress string, pAddress string, reserve uint64
 func tsendSignedSweeptx(reserveAddress string, sweeptx string, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	broadcastSweeptxNYKS(sweeptx, accountName, reserve, round)
+	fmt.Println("Signed Sweep tx Sent")
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 }
 
 func tSendSweepProposal(pAddress string, cosmos cosmosclient.Client, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	txid := generateRandomHex(1)[0]
+	txid := generateRandomHex(64)
 	fmt.Println(txid)
 	msg := &bridgetypes.MsgSweepProposal{
 		ReserveId:             reserve,
@@ -277,6 +283,7 @@ func tSendSweepProposal(pAddress string, cosmos cosmosclient.Client, reserve uin
 func tsendSignedRefundtx(reserveAddress string, refundTx string, reserve uint64, round uint64) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	broadcastRefundtxNYKS(refundTx, accountName, reserve, round)
+	fmt.Println("Signed Refund tx Sent")
 	time.Sleep(time.Duration(secondsWait) * time.Second)
 }
 

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -158,7 +157,6 @@ func generateAddress(unlock_height int64, oldReserveAddress string) (string, []b
 
 func proposeAddress(accountName string) {
 	fmt.Println("starting propose Address")
-	time.Sleep(10 * time.Minute)
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
@@ -166,14 +164,14 @@ func proposeAddress(accountName string) {
 	number = fmt.Sprintf("%v", viper.Get("height_diff_between_judges"))
 	heightDiffBetweenJudges, _ := strconv.Atoi(number)
 
-	var latestProposedAddress SweepAddress
+	var lastSweepAddress SweepAddress
 	addresses := querySweepAddressesOrderByHeight(1)
 	if len(addresses) == 0 {
 		fmt.Println("address proposer : no Sweep address found")
 		return
 	}
 
-	latestProposedAddress = addresses[0]
+	lastSweepAddress = addresses[0]
 
 	var currentJudgeReserves []BtcReserve
 	btcReserves := getBtcReserves()
@@ -214,7 +212,7 @@ func proposeAddress(accountName string) {
 		return
 	}
 
-	unlockHeight := latestProposedAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
+	unlockHeight := lastSweepAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
 	newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, currentJudgeReserve.ReserveAddress)
 
 	cosmos_client := getCosmosClient()

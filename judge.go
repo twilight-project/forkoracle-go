@@ -408,7 +408,7 @@ func processSweep(accountName string) {
 			var newSweepAddress *string
 			var reserveTobeProcessed BtcReserve
 
-			minRoundId := 500
+			minRoundId := 50000000
 			// Iterate through the array and find the minimum roundId
 			for _, reserve := range currentReservesForThisJudge {
 				tempRoundId, _ := strconv.Atoi(reserve.RoundId)

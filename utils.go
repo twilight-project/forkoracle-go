@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,24 +116,26 @@ func registerAddressOnValidators() {
 	resp := getReserveddresses()
 	if len(resp.Addresses) > 0 {
 		for _, address := range resp.Addresses {
-			if stringInSlice(address.ReserveAddress, savedAddress) == false {
+			if !stringInSlice(address.ReserveAddress, savedAddress) {
 				registerAddressOnForkscanner(address.ReserveAddress)
+				decodedScript := decodeBtcScript(address.ReserveScript)
+				height := getHeightFromScript(decodedScript)
 				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				insertSweepAddress(address.ReserveAddress, reserveScript, nil, 0, "", false)
+				insertSweepAddress(address.ReserveAddress, reserveScript, nil, height, "", false)
 			}
 		}
 	}
 }
 
-func getReserveForAddress(address string) BtcReserve {
-	btcReserves := getBtcReserves()
-	for _, reserve := range btcReserves.BtcReserves {
-		if reserve.ReserveAddress == address {
-			return reserve
-		}
-	}
-	return BtcReserve{}
-}
+// func getReserveForAddress(address string) BtcReserve {
+// 	btcReserves := getBtcReserves()
+// 	for _, reserve := range btcReserves.BtcReserves {
+// 		if reserve.ReserveAddress == address {
+// 			return reserve
+// 		}
+// 	}
+// 	return BtcReserve{}
+// }
 
 func registerReserveAddressOnNyks(accountName string, address string, script []byte) {
 
@@ -269,12 +272,12 @@ func signTx(tx *wire.MsgTx, script []byte) []string {
 // 	return signature
 // }
 
-func reverseArray(arr []MsgSignSweep) []MsgSignSweep {
-	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
-		arr[i], arr[j] = arr[j], arr[i]
-	}
-	return arr
-}
+// func reverseArray(arr []MsgSignSweep) []MsgSignSweep {
+// 	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
+// 		arr[i], arr[j] = arr[j], arr[i]
+// 	}
+// 	return arr
+// }
 
 func stringInSlice(str string, slice []string) bool {
 	for _, s := range slice {
@@ -484,6 +487,39 @@ func getBtcFeeRate() FeeRate {
 	return a
 }
 
+func decodeBtcScript(script string) string {
+	decoded, err := hex.DecodeString(script)
+	if err != nil {
+		fmt.Println("Error decoding script Hex : ", err)
+	}
+	decodedScript, err := txscript.DisasmString(decoded)
+	if err != nil {
+		fmt.Println("Error decoding script : ", err)
+	}
+
+	return decodedScript
+}
+
+func getHeightFromScript(script string) int64 {
+	// Split the decoded script into parts
+	height := int64(0)
+	parts := strings.Split(script, " ")
+	if len(parts) < 0 {
+		return height
+	}
+	// Reverse the byte order
+	for i, j := 0, len(parts[0])-2; i < j; i, j = i+2, j-2 {
+		parts[0] = parts[0][:i] + parts[0][j:j+2] + parts[0][i+2:j] + parts[0][i:i+2] + parts[0][j+2:]
+	}
+	// Convert the first part from hex to decimal
+	height, err := strconv.ParseInt(parts[0], 16, 64)
+	if err != nil {
+		fmt.Println("Error converting block height from hex to decimal:", err)
+	}
+
+	return height
+}
+
 func nyksEventListener(event string, accountName string, functionCall string) {
 	headers := make(map[string][]string)
 	headers["Content-Type"] = []string{"application/json"}
@@ -560,6 +596,8 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 			go processTxSigningSweep(accountName)
 		case "signing_refund":
 			go processTxSigningRefund(accountName)
+		case "sweep_process":
+			go processSweep(accountName)
 		default:
 			log.Println("Unknown function :", functionCall)
 		}

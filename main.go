@@ -3,11 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"net/url"
-	"time"
-
 	"log"
 	"net/http"
+	"net/url"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
@@ -50,7 +49,7 @@ func main() {
 	initJudge(accountName)
 
 	time.Sleep(1 * time.Minute)
-	if judge == true {
+	if judge {
 		go startJudge(accountName)
 	} else {
 		time.Sleep(2 * time.Minute)
@@ -131,3 +130,10 @@ func pubsubServer() {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
+
+// func main() {
+// 	x := decodeBtcScript("0358a20cb175512102ca505bf28698f0b6c26114a725f757b88d65537dd52a5b6455a9cac9581f105551af82012088a9145c3b26c54ea2c9e6a6995abb6146d79ea017c6998773642102ca505bf28698f0b6c26114a725f757b88d65537dd52a5b6455a9cac9581f1055ac640363a20cb2756868")
+// 	y := getHeightFromScript(x)
+// 	// z, _ := convertHextoDec(y[0])
+// 	fmt.Println(y)
+// }

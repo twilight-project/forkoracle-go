@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -207,7 +208,7 @@ func proposeAddress(accountName string) {
 
 	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
 	proposed := checkIfAddressIsProposed(int64(RoundId + 1))
-	if proposed == true {
+	if proposed {
 		fmt.Println("finishing propose Address already proposed")
 		return
 	}
@@ -228,4 +229,60 @@ func proposeAddress(accountName string) {
 	insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
 
 	fmt.Println("finishing propose Address after proposing")
+}
+
+func processProposeAddress(accountName string) {
+	fmt.Println("Process propose address started")
+	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
+	sweepInitateBlockHeight, _ := strconv.Atoi(number)
+
+	for {
+		resp := getAttestations("20")
+		if len(resp.Attestations) <= 0 {
+			time.Sleep(1 * time.Minute)
+			fmt.Println("no attestaions (start judge)")
+			continue
+		}
+
+		var currentReservesForThisJudge []BtcReserve
+		reserves := getBtcReserves()
+		for _, reserve := range reserves.BtcReserves {
+			if reserve.JudgeAddress == oracleAddr {
+				currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
+			}
+		}
+
+		if len(currentReservesForThisJudge) == 0 {
+			time.Sleep(2 * time.Minute)
+			continue
+		}
+
+		for _, attestation := range resp.Attestations {
+			height, _ := strconv.Atoi(attestation.Proposal.Height)
+
+			if !attestation.Observed {
+				continue
+			}
+
+			addresses := querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), false)
+			if len(addresses) <= 0 {
+				addresses = querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), true)
+				if len(addresses) <= 0 {
+					continue
+				}
+			}
+
+			fmt.Println("sweep address found")
+
+			currentSweepAddress := addresses[0]
+			utxos := queryUtxo(currentSweepAddress.Address)
+			if len(utxos) <= 0 {
+				// need to decide if this needs to be enabled
+				// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
+				fmt.Println("INFO : No funds in address : ", currentSweepAddress.Address, " generating new address : ")
+				return
+			}
+			proposeAddress(accountName)
+		}
+	}
 }

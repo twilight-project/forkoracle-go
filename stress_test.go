@@ -299,3 +299,5 @@ package main
 // // nyksd tx gov submit-proposal software-upgrade test1 --title upgrade --description upgrade --upgrade-height 20 --from validator-sfo --keyring-backend test --yes
 // // nyksd tx gov deposit 1 10000000nyks --from validator-sfo --keyring-backend test --yes
 // // nyksd tx gov vote 1 yes --from validator-sfo --keyring-backend test --yes
+
+// // insert into notification (block, receiving, satoshis, height, txid, archived, sending, receiving_vout, sending_vout) values ('00000000000000000001aee19f28336e1f8eec388a9fe399623432a0218b3ef4', 'bc1qrp8j76s9mqpdfpdrv0cyj6kfqvql9cy5rsmvzekvfqhtk0t99zfsanwgqs', 50000, 827952, 'ab984a53d8d28d0e249c886eaf5076105ad493fb30e04fe98283d44b3d0e2d42', false, 'bc1q49kzd05aqxs8q7r4rnnxc35cdk6783sf0khepr', 0, -1);

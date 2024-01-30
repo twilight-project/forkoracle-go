@@ -218,9 +218,9 @@ func markAddressSignedRefund(address string) {
 	}
 }
 
-func querySweepAddressesByHeight(height uint64) []SweepAddress {
+func querySweepAddressesByHeight(height uint64, owned bool) []SweepAddress {
 	// fmt.Println("getting address for height: ", height)
-	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where unlock_height = $1 and archived = false and owned = true", height)
+	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where unlock_height = $1 and archived = false and owned = $2", height, owned)
 	if err != nil {
 		fmt.Println("An error occured while query address by height: ", err)
 	}

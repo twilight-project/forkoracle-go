@@ -66,14 +66,14 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 	}
 
 	//uncomment when done testing
-	// feeRate := getBtcFeeRate()
-	// baseSize := sweepTx.SerializeSizeStripped()
-	// totalSize := sweepTx.SerializeSize()
-	// weight := (baseSize * 3) + totalSize
-	// vsize := (weight + 3) / 4
+	feeRate := getBtcFeeRate()
+	baseSize := sweepTx.SerializeSizeStripped()
+	totalSize := sweepTx.SerializeSize()
+	weight := (baseSize * 3) + totalSize
+	vsize := (weight + 3) / 4
 
 	// Calculate the required fee
-	requiredFee := 15000
+	requiredFee := vsize * feeRate.Priority
 
 	lastOutput := sweepTx.TxOut[0]
 	if lastOutput.Value < int64(requiredFee) {
@@ -357,6 +357,7 @@ func initReserve(accountName string) {
 
 func processSweep(accountName string) {
 	fmt.Println("Process Sweep unsigned started")
+	time.Sleep(3 * time.Minute)
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
@@ -384,11 +385,11 @@ func processSweep(accountName string) {
 		for _, attestation := range resp.Attestations {
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
 
-			if attestation.Observed == false {
+			if !attestation.Observed {
 				continue
 			}
 
-			addresses := querySweepAddressesByHeight(uint64(height + sweepInitateBlockHeight))
+			addresses := querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), true)
 			if len(addresses) <= 0 {
 				continue
 			}
@@ -403,7 +404,6 @@ func processSweep(accountName string) {
 				fmt.Println("INFO : No funds in address : ", currentSweepAddress.Address, " generating new address : ")
 				return
 			}
-			proposeAddress(accountName)
 
 			var newSweepAddress *string
 			var reserveTobeProcessed BtcReserve
@@ -656,7 +656,7 @@ func broadcastOnBtc() {
 		}
 
 		for _, attestation := range resp.Attestations {
-			if attestation.Observed == false {
+			if !attestation.Observed {
 				continue
 			}
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
@@ -676,9 +676,10 @@ func broadcastOnBtc() {
 
 func startJudge(accountName string) {
 	fmt.Println("starting judge")
-	go processSweep(accountName)
+	go processProposeAddress(accountName)
 	go broadcastOnBtc()
+	go nyksEventListener("sweep_proposal", accountName, "sweep_process")
 	go nyksEventListener("unsigned_tx_sweep", accountName, "signed_sweep_process")
 	go nyksEventListener("unsigned_tx_sweep", accountName, "refund_process")
-	go nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")
+	nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")
 }

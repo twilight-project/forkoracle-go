@@ -77,7 +77,7 @@ func kDeepService(accountName string) {
 		if len(resp.Attestations) > 0 {
 			fmt.Println("INFO : k deep : latest attestaion is : ", resp.Attestations[0])
 			for _, attestation := range resp.Attestations {
-				if attestation.Observed == true {
+				if attestation.Observed {
 					fmt.Println("attestaion is Observed : ", attestation.Proposal.Height)
 					height, err := strconv.ParseUint(attestation.Proposal.Height, 10, 64)
 					if err != nil {

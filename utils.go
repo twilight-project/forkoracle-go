@@ -529,7 +529,7 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_socket_url"))
 	conn, _, err := websocket.DefaultDialer.Dial(nyksd_url, headers)
 	if err != nil {
-		log.Fatal("dial:", err)
+		fmt.Println("nyks event listerner dial:", err)
 	}
 	defer conn.Close()
 
@@ -571,7 +571,7 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 
 	err = conn.WriteMessage(websocket.TextMessage, []byte(payload))
 	if err != nil {
-		fmt.Println("error in address watcher: ", err)
+		fmt.Println("error in nyks event handler: ", err)
 		stopChan <- struct{}{} // Signal goroutine to stop
 		return
 	}
@@ -579,7 +579,7 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			fmt.Println("error in address watcher: ", err)
+			fmt.Println("error in nyks event handler: ", err)
 			stopChan <- struct{}{} // Signal goroutine to stop
 			return
 		}

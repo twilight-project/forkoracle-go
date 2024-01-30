@@ -82,5 +82,5 @@ func startTransactionSigner(accountName string) {
 	fmt.Println("starting Transaction Signer")
 	go nyksEventListener("unsigned_tx_refund", accountName, "signing_refund")
 	nyksEventListener("unsigned_tx_sweep", accountName, "signing_sweep")
-
+	fmt.Println("finishing bridge")
 }

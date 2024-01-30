@@ -38,7 +38,7 @@ func main() {
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
-	if accountName == "validator-sfo" || accountName == "validator-ams" {
+	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-stg" {
 		judge = true
 	}
 
@@ -59,6 +59,7 @@ func main() {
 	go startBridge(accountName, forkscanner_url)
 	go pubsubServer()
 	startTransactionSigner(accountName)
+	fmt.Println("exiting main")
 }
 
 func (h *Hub) run() {
@@ -112,6 +113,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 }
 
 func pubsubServer() {
+	fmt.Println("starting pubsub server")
 	WsHub = &Hub{
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),

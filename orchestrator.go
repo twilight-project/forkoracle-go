@@ -78,6 +78,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 			case <-done:
 			case <-time.After(time.Second):
 			}
+			fmt.Println("exiting orchestrator")
 			return
 		}
 	}

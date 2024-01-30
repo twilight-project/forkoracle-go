@@ -46,18 +46,18 @@ func main() {
 
 	go orchestrator(accountName, forkscanner_url)
 
-	// initJudge(accountName)
+	initJudge(accountName)
 
-	// time.Sleep(1 * time.Minute)
-	// if judge {
-	// 	go startJudge(accountName)
-	// } else {
-	// 	time.Sleep(2 * time.Minute)
-	// }
+	time.Sleep(1 * time.Minute)
+	if judge {
+		go startJudge(accountName)
+	} else {
+		time.Sleep(2 * time.Minute)
+	}
 
-	// time.Sleep(1 * time.Minute)
-	// go startBridge(accountName, forkscanner_url)
-	// go pubsubServer()
+	time.Sleep(1 * time.Minute)
+	go startBridge(accountName, forkscanner_url)
+	go pubsubServer()
 	startTransactionSigner(accountName)
 	fmt.Println("exiting main")
 }

@@ -209,7 +209,6 @@ func proposeAddress(accountName string) {
 	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
 	proposed := checkIfAddressIsProposed(int64(RoundId + 1))
 	if proposed {
-		fmt.Println("finishing propose Address already proposed")
 		return
 	}
 
@@ -237,7 +236,7 @@ func processProposeAddress(accountName string) {
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
 	for {
-		resp := getAttestations("20")
+		resp := getAttestations("5")
 		if len(resp.Attestations) <= 0 {
 			time.Sleep(1 * time.Minute)
 			fmt.Println("no attestaions (start judge)")
@@ -270,17 +269,6 @@ func processProposeAddress(accountName string) {
 				if len(addresses) <= 0 {
 					continue
 				}
-			}
-
-			fmt.Println("sweep address found")
-
-			currentSweepAddress := addresses[0]
-			utxos := queryUtxo(currentSweepAddress.Address)
-			if len(utxos) <= 0 {
-				// need to decide if this needs to be enabled
-				// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
-				fmt.Println("INFO : No funds in address : ", currentSweepAddress.Address, " generating new address : ")
-				return
 			}
 			proposeAddress(accountName)
 		}

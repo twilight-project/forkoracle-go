@@ -50,6 +50,10 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 
 	for _, withdrawal := range withdrawRequests {
 		amount, err := strconv.Atoi(withdrawal.WithdrawAmount)
+		if err != nil {
+			fmt.Println("error while txout amount conversion : ", err)
+			return "", "", 0, err
+		}
 		txOut, err := CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
 		if err != nil {
 			fmt.Println("error while txout : ", err)
@@ -227,20 +231,20 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 	}
 }
 
-func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64) ([]byte, error, SweepAddress) {
+func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64) ([]byte, SweepAddress, error) {
 
 	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
 	noOfValidators, _ := strconv.Atoi(number)
 
 	addrs := getProposedSweepAddress(reserveId, roundId)
 	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
-		return nil, nil, SweepAddress{}
+		return nil, SweepAddress{}, nil
 	}
 
 	addresses := querySweepAddress(addrs.ProposeSweepAddressMsg.BtcAddress)
 	if len(addresses) <= 0 {
 		fmt.Println("address not found in DB")
-		return nil, nil, SweepAddress{}
+		return nil, SweepAddress{}, nil
 	}
 	newReserveAddress := addresses[0]
 
@@ -290,20 +294,20 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 			fmt.Println("Signed Refund : ", err)
 		}
 
-		return signedRefundTx.Bytes(), nil, newReserveAddress
+		return signedRefundTx.Bytes(), newReserveAddress, nil
 	}
 }
 
 //temp use function judge sign
 
-func signByJudge(tx *wire.MsgTx, script []byte) []string {
-	return signTx(tx, script)
-}
+// func signByJudge(tx *wire.MsgTx, script []byte) []string {
+// 	return signTx(tx, script)
+// }
 
 func initJudge(accountName string) {
 	fmt.Println("init judge")
 
-	if judge == true {
+	if judge {
 		addr := queryAllSweepAddresses()
 		if len(addr) <= 0 {
 			time.Sleep(2 * time.Minute)
@@ -329,7 +333,7 @@ func initReserve(accountName string) {
 				registered = true
 			}
 		}
-		if registered == false {
+		if !registered {
 			registerJudge(accountName)
 		}
 	}
@@ -337,7 +341,7 @@ func initReserve(accountName string) {
 	for {
 		resp := getAttestations("1")
 		if len(resp.Attestations) <= 0 {
-			time.Sleep(30)
+			time.Sleep(30 * time.Second)
 			continue
 		} else {
 			attestation := resp.Attestations[0]
@@ -559,7 +563,7 @@ func processSignedSweep(accountName string) {
 	}
 	currentReserveAddress := reserveAddresses[0]
 
-	if currentReserveAddress.BroadcastSweep == true {
+	if currentReserveAddress.BroadcastSweep {
 		fmt.Println("Sweep tx already broadcasted")
 		return
 	}
@@ -631,7 +635,7 @@ func processSignedRefund(accountName string) {
 		fmt.Println(err)
 	}
 
-	signedRefundTx, _, newReserveAddress := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
+	signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
 
 	signedRefundTxHex := hex.EncodeToString(signedRefundTx)
 	fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)

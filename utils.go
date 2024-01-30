@@ -483,6 +483,9 @@ func getBtcFeeRate() FeeRate {
 
 	a := FeeRate{}
 	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("Error decoding Fee Rate : ", err)
+	}
 
 	return a
 }
@@ -504,7 +507,7 @@ func getHeightFromScript(script string) int64 {
 	// Split the decoded script into parts
 	height := int64(0)
 	parts := strings.Split(script, " ")
-	if len(parts) < 0 {
+	if len(parts) == 0 {
 		return height
 	}
 	// Reverse the byte order

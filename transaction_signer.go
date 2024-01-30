@@ -32,7 +32,7 @@ func processTxSigningSweep(accountName string) {
 
 		reserveAddress := addresses[0]
 
-		if reserveAddress.Signed_sweep == true {
+		if reserveAddress.Signed_sweep {
 			continue
 		}
 
@@ -64,7 +64,7 @@ func processTxSigningRefund(accountName string) {
 		}
 		reserveAddress := addresses[0]
 
-		if reserveAddress.Signed_refund == true {
+		if reserveAddress.Signed_refund {
 			continue
 		}
 		refundSignature := signTx(refundTx, reserveAddress.Script)

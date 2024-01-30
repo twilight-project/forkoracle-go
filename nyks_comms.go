@@ -182,43 +182,43 @@ func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.A
 	return address
 }
 
-func getDepositAddresses() QueryDepositAddressResp {
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
-	if err != nil {
-		fmt.Println("error getting deposit addresses : ", err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("error getting deposit addresses body : ", err)
-	}
+// func getDepositAddresses() QueryDepositAddressResp {
+// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
+// 	if err != nil {
+// 		fmt.Println("error getting deposit addresses : ", err)
+// 	}
+// 	//We Read the response body on the line below.
+// 	body, err := ioutil.ReadAll(resp.Body)
+// 	if err != nil {
+// 		fmt.Println("error getting deposit addresses body : ", err)
+// 	}
 
-	a := QueryDepositAddressResp{}
-	err = json.Unmarshal(body, &a)
-	if err != nil {
-		fmt.Println("error unmarshalling deposit addresses : ", err)
-	}
-	return a
-}
+// 	a := QueryDepositAddressResp{}
+// 	err = json.Unmarshal(body, &a)
+// 	if err != nil {
+// 		fmt.Println("error unmarshalling deposit addresses : ", err)
+// 	}
+// 	return a
+// }
 
-func getDepositAddress(address string) DepositAddress {
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_address/" + address)
-	if err != nil {
-		fmt.Println("error getting deposit addresses : ", err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("error getting deposit addresses body : ", err)
-	}
-	a := DepositAddress{}
-	err = json.Unmarshal(body, &a)
-	if err != nil {
-		fmt.Println("error unmarshalling deposit addresses : ", err)
-	}
-	return a
-}
+// func getDepositAddress(address string) DepositAddress {
+// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_address/" + address)
+// 	if err != nil {
+// 		fmt.Println("error getting deposit addresses : ", err)
+// 	}
+// 	body, err := ioutil.ReadAll(resp.Body)
+// 	if err != nil {
+// 		fmt.Println("error getting deposit addresses body : ", err)
+// 	}
+// 	a := DepositAddress{}
+// 	err = json.Unmarshal(body, &a)
+// 	if err != nil {
+// 		fmt.Println("error unmarshalling deposit addresses : ", err)
+// 	}
+// 	return a
+// }
 
 func getAllDepositAddress() QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
@@ -253,6 +253,9 @@ func getAttestations(limit string) NyksAttestaionBlock {
 
 	a := NyksAttestaionBlock{}
 	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error getting attestations : ", err)
+	}
 
 	return a
 }
@@ -290,6 +293,9 @@ func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
 
 	a := UnsignedTxSweepResp{}
 	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error getting unsigned sweep tx : ", err)
+	}
 
 	return a
 }
@@ -309,6 +315,9 @@ func getAllUnsignedSweepTx() UnsignedTxSweepResp {
 
 	a := UnsignedTxSweepResp{}
 	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error getting all unsigned sweep tx : ", err)
+	}
 
 	return a
 }
@@ -328,6 +337,9 @@ func getUnsignedRefundTx(reserveId int64, roundId int64) UnsignedTxRefundResp {
 
 	a := UnsignedTxRefundResp{}
 	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error getting unsigned refund tx : ", err)
+	}
 
 	return a
 }
@@ -346,6 +358,9 @@ func getAllUnsignedRefundTx() UnsignedTxRefundResp {
 
 	a := UnsignedTxRefundResp{}
 	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error getting all unsigned refund tx : ", err)
+	}
 
 	return a
 }
@@ -472,25 +487,25 @@ func getBtcReserves() BtcReserveResp {
 	return a
 }
 
-func getProposedSweepAddresses() ProposedAddressesResp {
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/24")
-	if err != nil {
-		fmt.Println("error getting proposed address : ", err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("error getting proposed address body : ", err)
-	}
+// func getProposedSweepAddresses() ProposedAddressesResp {
+// 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+// 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/24")
+// 	if err != nil {
+// 		fmt.Println("error getting proposed address : ", err)
+// 	}
+// 	//We Read the response body on the line below.
+// 	body, err := ioutil.ReadAll(resp.Body)
+// 	if err != nil {
+// 		fmt.Println("error getting proposed address body : ", err)
+// 	}
 
-	a := ProposedAddressesResp{}
-	err = json.Unmarshal(body, &a)
-	if err != nil {
-		fmt.Println("error unmarshalling proposed address : ", err)
-	}
-	return a
-}
+// 	a := ProposedAddressesResp{}
+// 	err = json.Unmarshal(body, &a)
+// 	if err != nil {
+// 		fmt.Println("error unmarshalling proposed address : ", err)
+// 	}
+// 	return a
+// }
 
 func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressResp {
 	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))

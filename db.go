@@ -445,58 +445,58 @@ func querySweepAddressScript(address string) []byte {
 // 	return address
 // }
 
-func querySweepAddressPreimage(address string) []byte {
-	DB_reader, err := dbconn.Query("select preimage from address where address = $1", address)
-	if err != nil {
-		fmt.Println("An error occured while query preimage: ", err)
-	}
+// func querySweepAddressPreimage(address string) []byte {
+// 	DB_reader, err := dbconn.Query("select preimage from address where address = $1", address)
+// 	if err != nil {
+// 		fmt.Println("An error occured while query preimage: ", err)
+// 	}
 
-	defer DB_reader.Close()
-	preimage := []byte{}
+// 	defer DB_reader.Close()
+// 	preimage := []byte{}
 
-	for DB_reader.Next() {
-		err := DB_reader.Scan(
-			&preimage,
-		)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
+// 	for DB_reader.Next() {
+// 		err := DB_reader.Scan(
+// 			&preimage,
+// 		)
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 	}
 
-	return preimage
-}
+// 	return preimage
+// }
 
-func querySweepAddressByParentAddress(address string) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where parent_address = $1", address)
-	if err != nil {
-		fmt.Println("An error occured while query address by parent address: ", err)
-	}
+// func querySweepAddressByParentAddress(address string) []SweepAddress {
+// 	DB_reader, err := dbconn.Query("select * from address where parent_address = $1", address)
+// 	if err != nil {
+// 		fmt.Println("An error occured while query address by parent address: ", err)
+// 	}
 
-	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+// 	defer DB_reader.Close()
+// 	addresses := make([]SweepAddress, 0)
 
-	for DB_reader.Next() {
-		address := SweepAddress{}
-		err := DB_reader.Scan(
-			&address.Address,
-			&address.Script,
-			&address.Preimage,
-			&address.Unlock_height,
-			&address.Parent_address,
-			&address.Signed_refund,
-			&address.Signed_sweep,
-			&address.Archived,
-			&address.BroadcastSweep,
-			&address.BroadcastRefund,
-			&address.Owned,
-		)
-		if err != nil {
-			fmt.Println(err)
-		}
-		addresses = append(addresses, address)
-	}
-	return addresses
-}
+// 	for DB_reader.Next() {
+// 		address := SweepAddress{}
+// 		err := DB_reader.Scan(
+// 			&address.Address,
+// 			&address.Script,
+// 			&address.Preimage,
+// 			&address.Unlock_height,
+// 			&address.Parent_address,
+// 			&address.Signed_refund,
+// 			&address.Signed_sweep,
+// 			&address.Archived,
+// 			&address.BroadcastSweep,
+// 			&address.BroadcastRefund,
+// 			&address.Owned,
+// 		)
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 		addresses = append(addresses, address)
+// 	}
+// 	return addresses
+// }
 
 func queryAllAddressOnly() []string {
 	DB_reader, err := dbconn.Query("select address from address;")

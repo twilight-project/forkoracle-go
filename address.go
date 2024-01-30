@@ -157,7 +157,6 @@ func generateAddress(unlock_height int64, oldReserveAddress string) (string, []b
 }
 
 func proposeAddress(accountName string) {
-	fmt.Println("starting propose Address")
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 

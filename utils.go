@@ -112,6 +112,7 @@ func broadcastBtcTransaction(tx *wire.MsgTx) {
 
 func registerAddressOnValidators() {
 	// {add check to see if the address already exists}
+	fmt.Println("registering address on validators")
 	savedAddress := queryAllAddressOnly()
 	resp := getReserveddresses()
 	if len(resp.Addresses) > 0 {

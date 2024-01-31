@@ -13,6 +13,8 @@ import (
 )
 
 func generateSweepTx(sweepAddress string, newSweepAddress string, accountName string, withdrawRequests []WithdrawRequest, unlockHeight int64, utxos []Utxo) (string, string, uint64, error) {
+	fmt.Println(withdrawRequests)
+	fmt.Println("sweep address : ", newSweepAddress)
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepPreblock, _ := strconv.Atoi(number)
 
@@ -64,7 +66,6 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 	}
 
 	// need to be worked on
-
 	if int64(totalAmountTxIn-totalAmountTxOut) > 0 {
 		sweepTx.TxOut[0].Value = int64(totalAmountTxIn - totalAmountTxOut)
 	}
@@ -79,15 +80,15 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 	// Calculate the required fee
 	requiredFee := vsize * feeRate.Priority
 
-	lastOutput := sweepTx.TxOut[0]
-	if lastOutput.Value < int64(requiredFee) {
+	newReserveOutput := sweepTx.TxOut[0]
+	if newReserveOutput.Value < int64(requiredFee) {
 		fmt.Println("Change output is smaller than required fee")
 		return "", "", 0, nil
 	}
 
 	// Deduct the fee from the change output
-	lastOutput.Value = lastOutput.Value - int64(requiredFee)
-	sweepTx.TxOut[0] = lastOutput
+	newReserveOutput.Value = newReserveOutput.Value - int64(requiredFee)
+	sweepTx.TxOut[0] = newReserveOutput
 
 	script := querySweepAddressScript(sweepAddress)
 	witness := wire.TxWitness{}

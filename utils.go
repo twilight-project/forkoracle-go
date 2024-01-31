@@ -150,7 +150,7 @@ func registerReserveAddressOnNyks(accountName string, address string, script []b
 	}
 
 	// store response in txResp
-	txResp, err := cosmos.BroadcastTx(accountName, msg)
+	txResp, err := sendTransactionRegisterReserveAddress(accountName, cosmos, msg)
 	if err != nil {
 		fmt.Println("error in registering reserve address : ", err)
 	}

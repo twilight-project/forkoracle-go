@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
@@ -19,105 +20,170 @@ import (
 )
 
 func sendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgProposeSweepAddress) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in sending sweep address proposal : ", err)
-	} else {
-		fmt.Println("Sweep Address propose Transaction sent")
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("Sweep Address propose Transaction sent")
+			return
+		}
+		fmt.Println("error in sending sweep address proposal, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in sending sweep address proposal after 5 attempts: ", err)
+}
+
+func sendTransactionRegisterReserveAddress(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterReserveAddress) (cosmosclient.Response, error) {
+	var err error
+	var resp cosmosclient.Response
+	for i := 0; i < 5; i++ {
+		resp, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("Register Reserve Transaction sent")
+			return resp, nil
+		}
+		fmt.Println("error in sending Register Reserve, retrying... : ", err)
+		time.Sleep(10 * time.Second)
+	}
+	fmt.Println("error in sending Register Reserve after 5 attempts: ", err)
+	return resp, err
 }
 
 func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in chaintip trnasaction : ", err)
-	} else {
-		fmt.Println("sent Seen Chaintip transaction")
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("sent Seen Chaintip transaction")
+			return
+		}
+		fmt.Println("error in chaintip transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in chaintip transaction after 5 attempts: ", err)
 }
 
 func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in confirm deposit transaction : ", err)
-	} else {
-		fmt.Println("btc deposit confirmation sent")
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("btc deposit confirmation sent")
+			return
+		}
+		fmt.Println("error in confirm deposit transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in confirm deposit transaction after 5 attempts: ", err)
 }
 
 func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in sending sweep transaction proposal : ", err)
-	} else {
-		fmt.Println("Sweep Transaction sent")
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("Sweep Transaction sent")
+			return
+		}
+		fmt.Println("error in sending sweep transaction proposal, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in sending sweep transaction proposal after 5 attempts: ", err)
 }
 
 func sendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxSweep) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in sending unsigned sweep transaction : ", err)
-	} else {
-		fmt.Println("unsigned Sweep Transaction sent")
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("unsigned Sweep Transaction sent")
+			return
+		}
+		fmt.Println("error in sending unsigned sweep transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in sending unsigned sweep transaction after 5 attempts: ", err)
 }
 
 func sendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxRefund) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in sending unsigned Refund transaction : ", err)
-	} else {
-		fmt.Println("unsigned Refund Transaction sent")
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("unsigned Refund Transaction sent")
+			return
+		}
+		fmt.Println("error in sending unsigned Refund transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in sending unsigned Refund transaction after 5 attempts: ", err)
 }
 
 func sendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterJudge) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in sending register judge transaction : ", err)
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			return
+		}
+		fmt.Println("error in sending register judge transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in sending register judge transaction after 5 attempts: ", err)
 }
 
 func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err == nil {
-		fmt.Println("Sweep Signature sent")
-	} else {
-		fmt.Println("Error in sending sweep signature : {}", err)
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("Sweep Signature sent")
+			return
+		}
+		fmt.Println("Error in sending sweep signature, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("Error in sending sweep signature after 5 attempts: ", err)
 }
 
 func sendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignRefund) {
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err == nil {
-		fmt.Println("Refund Signature sent")
-	} else {
-		fmt.Println("Error in sending refund signature : {}", err)
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			fmt.Println("Refund Signature sent")
+			return
+		}
+		fmt.Println("Error in sending refund signature, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("Error in sending refund signature after 5 attempts: ", err)
 }
 
 func sendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in Boradcasting Sweep Tx transaction : ", err)
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			return
+		}
+		fmt.Println("error in Broadcasting Sweep Tx transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in Broadcasting Sweep Tx transaction after 5 attempts: ", err)
 }
 
 func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxRefund) {
-
-	_, err := cosmos.BroadcastTx(accountName, data)
-	if err != nil {
-		fmt.Println("error in Boradcasting Sweep Tx transaction : ", err)
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err = cosmos.BroadcastTx(accountName, data)
+		if err == nil {
+			return
+		}
+		fmt.Println("error in Broadcasting Refund Tx transaction, retrying... : ", err)
+		time.Sleep(10 * time.Second)
 	}
+	fmt.Println("error in Broadcasting Refund Tx transaction after 5 attempts: ", err)
 }
 
 func getCosmosClient() cosmosclient.Client {

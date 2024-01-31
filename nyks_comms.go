@@ -58,7 +58,7 @@ func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Clie
 			fmt.Println("sent Seen Chaintip transaction")
 			return
 		}
-		if strings.Contains(err.Error(), "duplicate") {
+		if strings.Contains(err.Error(), "Duplicate vote") {
 			fmt.Println("duplicate error in chaintip transaction, not retrying... : ", err)
 			break
 		}

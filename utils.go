@@ -587,8 +587,6 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 		switch functionCall {
 		case "signed_sweep_process":
 			go processSignedSweep(accountName)
-		case "address_propose":
-			go proposeAddress(accountName)
 		case "refund_process":
 			go processRefund(accountName)
 		case "signed_refund_process":

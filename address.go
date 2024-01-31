@@ -156,7 +156,7 @@ func generateAddress(unlock_height int64, oldReserveAddress string) (string, []b
 	return addressStr, redeemScript
 }
 
-func proposeAddress(accountName string) {
+func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string) {
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
@@ -173,58 +173,20 @@ func proposeAddress(accountName string) {
 
 	lastSweepAddress = addresses[0]
 
-	var currentJudgeReserves []BtcReserve
-	btcReserves := getBtcReserves()
-	for _, reserve := range btcReserves.BtcReserves {
-		if reserve.JudgeAddress == oracleAddr {
-			currentJudgeReserves = append(currentJudgeReserves, reserve)
-			break
-		}
-	}
-
-	if len(currentJudgeReserves) != 1 {
-		fmt.Println("current judge address not found")
-		return
-	}
-
-	currentJudgeReserve := currentJudgeReserves[0]
-
-	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
-	if reserveIdForProposal == 1 {
-		reserveIdForProposal = len(btcReserves.BtcReserves)
-	} else {
-		reserveIdForProposal = reserveIdForProposal - 1
-	}
-
-	var reserveToBeUpdated BtcReserve
-	for _, reserve := range btcReserves.BtcReserves {
-		tempId, _ := strconv.Atoi(reserve.ReserveId)
-		if tempId == reserveIdForProposal {
-			reserveToBeUpdated = reserve
-			break
-		}
-	}
-
-	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
-	proposed := checkIfAddressIsProposed(int64(RoundId + 1))
-	if proposed {
-		return
-	}
-
 	unlockHeight := lastSweepAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
-	newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, currentJudgeReserve.ReserveAddress)
+	newReserveAddress, hexScript := generateAndRegisterNewProposedAddress(accountName, unlockHeight, oldAddress)
 
 	cosmos_client := getCosmosClient()
 	msg := &bridgetypes.MsgProposeSweepAddress{
 		BtcScript:    hexScript,
 		BtcAddress:   newReserveAddress,
 		JudgeAddress: oracleAddr,
-		ReserveId:    uint64(reserveIdForProposal),
-		RoundId:      uint64(RoundId + 1),
+		ReserveId:    reserveId,
+		RoundId:      roundId,
 	}
 
 	sendTransactionSweepAddressProposal(accountName, cosmos_client, msg)
-	insertProposedAddress(reserveToBeUpdated.ReserveAddress, newReserveAddress, unlockHeight, int64(RoundId+1), int64(reserveIdForProposal))
+	insertProposedAddress(oldAddress, newReserveAddress, unlockHeight, int64(roundId), int64(reserveId))
 
 	fmt.Println("finishing propose Address after proposing")
 }
@@ -255,6 +217,30 @@ func processProposeAddress(accountName string) {
 			continue
 		}
 
+		currentJudgeReserve := currentReservesForThisJudge[0]
+
+		reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
+		if reserveIdForProposal == 1 {
+			reserveIdForProposal = len(reserves.BtcReserves)
+		} else {
+			reserveIdForProposal = reserveIdForProposal - 1
+		}
+
+		var reserveToBeUpdated BtcReserve
+		for _, reserve := range reserves.BtcReserves {
+			tempId, _ := strconv.Atoi(reserve.ReserveId)
+			if tempId == reserveIdForProposal {
+				reserveToBeUpdated = reserve
+				break
+			}
+		}
+
+		RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
+		proposed := checkIfAddressIsProposed(int64(RoundId + 1))
+		if proposed {
+			return
+		}
+
 		for _, attestation := range resp.Attestations {
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
 
@@ -269,7 +255,9 @@ func processProposeAddress(accountName string) {
 					continue
 				}
 			}
-			proposeAddress(accountName)
+
+			fmt.Println("Sweep Address found, proposing address")
+			proposeAddress(accountName, uint64(reserveIdForProposal), uint64(RoundId+1), reserveToBeUpdated.ReserveAddress)
 		}
 	}
 }

@@ -577,12 +577,25 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 	}
 
 	for {
-		_, _, err := conn.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
 			fmt.Println("error in nyks event handler: ", err)
 			stopChan <- struct{}{} // Signal goroutine to stop
 			return
 		}
+
+		var event Event
+		err = json.Unmarshal(message, &event)
+		if err != nil {
+			fmt.Println("error unmarshalling event: ", err)
+			continue
+		}
+
+		fmt.Print("event : ", event)
+
+		// if event.Method == "subscribe" && event.Params.Query == fmt.Sprintf("tm.event='Tx' AND message.action='%s'", event) {
+		// 	continue
+		// }
 
 		switch functionCall {
 		case "signed_sweep_process":

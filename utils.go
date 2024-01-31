@@ -592,6 +592,7 @@ func nyksEventListener(event string, accountName string, functionCall string) {
 		}
 
 		fmt.Print("event : ", event)
+		fmt.Print("message : ", message)
 
 		// if event.Method == "subscribe" && event.Params.Query == fmt.Sprintf("tm.event='Tx' AND message.action='%s'", event) {
 		// 	continue

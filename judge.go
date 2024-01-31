@@ -697,7 +697,7 @@ func startJudge(accountName string) {
 	fmt.Println("starting judge")
 	go processProposeAddress(accountName)
 	go broadcastOnBtc()
-	go nyksEventListener("sweep_proposal", accountName, "sweep_process")
+	go nyksEventListener("propose_sweep_address", accountName, "sweep_process")
 	go nyksEventListener("unsigned_tx_sweep", accountName, "signed_sweep_process")
 	go nyksEventListener("unsigned_tx_sweep", accountName, "refund_process")
 	nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")

@@ -197,7 +197,7 @@ func processProposeAddress(accountName string) {
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
 	for {
-		resp := getAttestations("5")
+		resp := getAttestations("20")
 		if len(resp.Attestations) <= 0 {
 			time.Sleep(1 * time.Minute)
 			fmt.Println("no attestaions (start judge)")

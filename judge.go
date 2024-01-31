@@ -365,7 +365,7 @@ func processSweep(accountName string) {
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
-	resp := getAttestations("5")
+	resp := getAttestations("20")
 	if len(resp.Attestations) <= 0 {
 		time.Sleep(1 * time.Minute)
 		fmt.Println("no attestaions (start judge)")
@@ -471,7 +471,7 @@ func processRefund(accountName string) {
 	}
 
 	var reserveTobeProcessed *BtcReserve
-	minRoundId := 500
+	minRoundId := 500000000
 	// Iterate through the array and find the minimum roundId
 	for _, reserve := range currentReservesForThisJudge {
 		tempRoundId, _ := strconv.Atoi(reserve.RoundId)
@@ -538,7 +538,7 @@ func processSignedSweep(accountName string) {
 	}
 
 	var reserveTobeProcessed BtcReserve
-	minRoundId := 500
+	minRoundId := 500000000
 	// Iterate through the array and find the minimum roundId
 	for _, reserve := range currentReservesForThisJudge {
 		tempRoundId, _ := strconv.Atoi(reserve.RoundId)
@@ -606,7 +606,7 @@ func processSignedRefund(accountName string) {
 	}
 
 	var reserveTobeProcessed *BtcReserve
-	minRoundId := 500
+	minRoundId := 50000000
 	// Iterate through the array and find the minimum roundId
 	for _, reserve := range currentReservesForThisJudge {
 		tempRoundId, _ := strconv.Atoi(reserve.RoundId)

@@ -579,9 +579,9 @@ func getBtcReserves() BtcReserveResp {
 // }
 
 func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressResp {
-	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/propose_sweep_address/%d/%d", reserveId, roundId)
-	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		fmt.Println("error getting proposed address : ", err)
 	}
@@ -600,9 +600,9 @@ func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressRe
 }
 
 func getRefundSnapshot(reserveId uint64, roundId uint64) RefundTxSnapshot {
-	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/volt/refund_tx_snapshot/%d/%d", reserveId, roundId)
-	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		fmt.Println("error getting refund snapshot : ", err)
 	}
@@ -621,9 +621,9 @@ func getRefundSnapshot(reserveId uint64, roundId uint64) RefundTxSnapshot {
 }
 
 func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapshot {
-	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/volt/reserve_withdraw_snapshot/%d/%d", reserveId, roundId)
-	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		fmt.Println("error getting withdraw snapshot : ", err)
 	}
@@ -642,9 +642,9 @@ func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapsh
 }
 
 func getBroadCastedRefundTx(reserveId uint64, roundId uint64) BroadcastRefundMsg {
-	// nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/broadcast_tx_refund/%d/%d", reserveId, roundId)
-	resp, err := http.Get("https://nyks.twilight-explorer.com/api" + path)
+	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		fmt.Println("error getting broadcasted refund : ", err)
 	}

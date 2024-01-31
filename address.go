@@ -214,6 +214,7 @@ func processProposeAddress(accountName string) {
 
 		if len(currentReservesForThisJudge) == 0 {
 			time.Sleep(2 * time.Minute)
+			fmt.Println("no judge")
 			continue
 		}
 
@@ -238,7 +239,7 @@ func processProposeAddress(accountName string) {
 		RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
 		proposed := checkIfAddressIsProposed(int64(RoundId + 1))
 		if proposed {
-			return
+			continue
 		}
 
 		for _, attestation := range resp.Attestations {

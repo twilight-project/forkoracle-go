@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
@@ -56,6 +57,10 @@ func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Clie
 		if err == nil {
 			fmt.Println("sent Seen Chaintip transaction")
 			return
+		}
+		if strings.Contains(err.Error(), "duplicate") {
+			fmt.Println("duplicate error in chaintip transaction, not retrying... : ", err)
+			break
 		}
 		fmt.Println("error in chaintip transaction, retrying... : ", err)
 		time.Sleep(10 * time.Second)

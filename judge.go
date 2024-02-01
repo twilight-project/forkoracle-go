@@ -192,6 +192,9 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		}
 
 		minSignsRequired := noOfValidators * 2 / 3
+		if minSignsRequired < 1 {
+			minSignsRequired = 1
+		}
 
 		if len(filteredSweepSignatures)/minSignsRequired < 1 {
 			fmt.Println("INFO: ", "not enough sweep signatures")
@@ -255,6 +258,10 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		filteredRefundSignatures, JudgeSign := OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address)
 
 		minSignsRequired := noOfValidators * 2 / 3
+
+		if minSignsRequired < 1 {
+			minSignsRequired = 1
+		}
 
 		if len(filteredRefundSignatures) <= 0 {
 			continue

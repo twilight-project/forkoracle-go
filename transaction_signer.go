@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 )
 
 func processTxSigningSweep(accountName string) {
@@ -13,11 +14,16 @@ func processTxSigningSweep(accountName string) {
 	for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
 		reserveId, _ := strconv.Atoi(tx.ReserveId)
 		roundId, _ := strconv.Atoi(tx.RoundId)
-		correspondingRefundTx := getBroadCastedRefundTx(uint64(reserveId), uint64(roundId))
-		if correspondingRefundTx.ReserveId == "" {
+
+		for {
+			correspondingRefundTx := getBroadCastedRefundTx(uint64(reserveId), uint64(roundId))
+			if correspondingRefundTx.ReserveId != "" {
+				break
+			}
 			fmt.Printf("corresponding refund tx not found  reserve Id: %d roundid : %d\n", reserveId, roundId)
-			continue
+			time.Sleep(1 * time.Minute)
 		}
+
 		sweepTx, err := createTxFromHex(tx.BtcUnsignedSweepTx)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
@@ -85,6 +91,6 @@ func processTxSigningRefund(accountName string) {
 func startTransactionSigner(accountName string) {
 	fmt.Println("starting Transaction Signer")
 	go nyksEventListener("unsigned_tx_refund", accountName, "signing_refund")
-	nyksEventListener("unsigned_tx_sweep", accountName, "signing_sweep")
+	nyksEventListener("broadcast_tx_refund", accountName, "signing_sweep")
 	fmt.Println("finishing bridge")
 }

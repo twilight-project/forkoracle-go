@@ -149,7 +149,7 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	// weight := (baseSize * 3) + totalSize
 	// vsize := (weight + 3) / 4
 
-	// // Calculate the required fee
+	// // // Calculate the required fee
 	// requiredFee := vsize * feeRate.Priority
 
 	// validators := getDelegateAddresses()
@@ -275,7 +275,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		dataSig := make([][]byte, 0)
 
 		for _, sig := range filteredRefundSignatures {
-			sig, _ := hex.DecodeString(sig.RefundSignature)
+			sig, _ := hex.DecodeString(sig.RefundSignature[0])
 			dataSig = append(dataSig, sig)
 		}
 
@@ -285,7 +285,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		for i := 0; i < len(refundTx.TxIn); i++ {
 
 			witness := wire.TxWitness{}
-			witness = append(witness, []byte(JudgeSign.RefundSignature))
+			witness = append(witness, []byte(JudgeSign.RefundSignature[0]))
 			witness = append(witness, preimageFalse)
 			dummy := []byte{}
 			witness = append(witness, dummy)

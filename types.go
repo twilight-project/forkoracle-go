@@ -177,7 +177,7 @@ type RegisteredJudgeResp struct {
 type MsgSignRefund struct {
 	ReserveAddress   string
 	SignerAddress    string
-	RefundSignature  string
+	RefundSignature  []string
 	BtcOracleAddress string
 }
 

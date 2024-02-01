@@ -242,6 +242,8 @@ func processProposeAddress(accountName string) {
 			continue
 		}
 
+		fmt.Println("running propose address for reserve id : ", reserveIdForProposal)
+
 		for _, attestation := range resp.Attestations {
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
 
@@ -260,5 +262,8 @@ func processProposeAddress(accountName string) {
 			fmt.Println("Sweep Address found, proposing address")
 			proposeAddress(accountName, uint64(reserveIdForProposal), uint64(RoundId+1), reserveToBeUpdated.ReserveAddress)
 		}
+
+		fmt.Println("running propose address for next round")
+
 	}
 }

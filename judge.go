@@ -187,7 +187,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		filteredSweepSignatures := orderSignSweep(receivedSweepSignatures)
 
 		if len(filteredSweepSignatures) <= 0 {
-			fmt.Println("INFO: ", "no signature found")
+			fmt.Println("INFO: ", "no sweep signature found")
 			continue
 		}
 

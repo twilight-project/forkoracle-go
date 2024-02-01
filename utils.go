@@ -443,14 +443,19 @@ func orderSignSweep(sweepSignatures MsgSignSweepResp) []MsgSignSweep {
 
 func OrderSignRefund(refundSignatures MsgSignRefundResp, address string) ([]MsgSignRefund, MsgSignRefund) {
 	delegateAddresses := getDelegateAddresses()
+
 	//needs to change for multi judge > 2 with staking in place
 	registeredJudges := getRegisteredJudges()
 	var otherJudgeAddress RegisteredJudge
 
-	for _, judge := range registeredJudges.Judges {
-		if judge.JudgeAddress != oracleAddr {
-			otherJudgeAddress = judge
+	if len(registeredJudges.Judges) > 1 {
+		for _, judge := range registeredJudges.Judges {
+			if judge.JudgeAddress != oracleAddr {
+				otherJudgeAddress = judge
+			}
 		}
+	} else {
+		otherJudgeAddress = registeredJudges.Judges[0]
 	}
 
 	orderedSignRefund := make([]MsgSignRefund, 0)

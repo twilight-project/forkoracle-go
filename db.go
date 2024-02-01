@@ -279,7 +279,7 @@ func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
 }
 
 func querySweepAddress(addr string) []SweepAddress {
-	DB_reader, err := dbconn.Query("select * from address where address = $1")
+	DB_reader, err := dbconn.Query("select * from address where address = $1", addr)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}

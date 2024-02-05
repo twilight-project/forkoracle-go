@@ -520,11 +520,12 @@ func queryAllAddressOnly() []string {
 	return addresses
 }
 
-func insertTransaction(txid string, address string, reserve int16) {
-	_, err := dbconn.Exec("INSERT into transaction VALUES ($1, $2, $3)",
+func insertTransaction(txid string, address string, reserve uint64) {
+	_, err := dbconn.Exec("INSERT into transaction VALUES ($1, $2, $3, $4)",
 		txid,
 		address,
 		reserve,
+		true,
 	)
 	if err != nil {
 		fmt.Println("An error occured while executing insert watched transaction query: ", err)

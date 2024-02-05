@@ -87,7 +87,7 @@ func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
 		if err == nil {
-			fmt.Println("Sweep Transaction sent")
+			fmt.Println("Sweep proposal Transaction sent")
 			return
 		}
 		fmt.Println("error in sending sweep transaction proposal, retrying... : ", err)

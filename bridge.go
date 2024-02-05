@@ -64,6 +64,7 @@ func watchAddress(url url.URL) {
 		watchtower_notifications := c.Params
 		for _, notification := range watchtower_notifications {
 			insertNotifications(notification)
+			break
 		}
 
 	}
@@ -93,6 +94,15 @@ func kDeepService(accountName string) {
 	}
 }
 
+func isTxidInWatchedTxList(a WatchtowerNotification, watchedTxList []WatchedTx) bool {
+	for _, watchedTx := range watchedTxList {
+		if a.Receiving_txid == watchedTx.Txid {
+			return true
+		}
+	}
+	return false
+}
+
 func kDeepCheck(accountName string, height uint64) {
 	fmt.Println("running k deep check for height : ", height)
 	addresses := queryNotification()
@@ -100,9 +110,12 @@ func kDeepCheck(accountName string, height uint64) {
 	number := fmt.Sprintf("%v", viper.Get("confirmation_limit"))
 	confirmations, _ := strconv.ParseUint(number, 10, 64)
 	for _, a := range addresses {
-		if height-a.Height >= confirmations {
-			fmt.Println("reached height confirmations: ", height)
-			confirmBtcTransactionOnNyks(accountName, a)
+		if !isTxidInWatchedTxList(a, watchedTx) {
+			if height-a.Height >= confirmations {
+				fmt.Println("reached height confirmations: ", height)
+				confirmBtcTransactionOnNyks(accountName, a)
+			}
+		} else {
 
 			for _, tx := range watchedTx {
 				if a.Receiving_txid == tx.Txid {
@@ -116,7 +129,7 @@ func kDeepCheck(accountName string, height uint64) {
 					}
 
 					var reserveTobeProcessed BtcReserve
-					minRoundId := 500
+					minRoundId := 500000000
 					// Iterate through the array and find the minimum roundId
 					for _, reserve := range currentReservesForThisJudge {
 						tempRoundId, _ := strconv.Atoi(reserve.RoundId)
@@ -146,6 +159,7 @@ func kDeepCheck(accountName string, height uint64) {
 
 				}
 			}
+
 		}
 	}
 	fmt.Println("finishing k deep check for height : ", height)

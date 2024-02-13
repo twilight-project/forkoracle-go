@@ -114,15 +114,27 @@ func registerAddressOnValidators() {
 	// {add check to see if the address already exists}
 	fmt.Println("registering address on validators")
 	savedAddress := queryAllAddressOnly()
-	resp := getReserveddresses()
-	if len(resp.Addresses) > 0 {
-		for _, address := range resp.Addresses {
+	respReserve := getReserveAddresses()
+	if len(respReserve.Addresses) > 0 {
+		for _, address := range respReserve.Addresses {
 			if !stringInSlice(address.ReserveAddress, savedAddress) {
 				registerAddressOnForkscanner(address.ReserveAddress)
 				decodedScript := decodeBtcScript(address.ReserveScript)
 				height := getHeightFromScript(decodedScript)
 				reserveScript, _ := hex.DecodeString(address.ReserveScript)
 				insertSweepAddress(address.ReserveAddress, reserveScript, nil, height, "", false)
+			}
+		}
+	}
+	respProposed := getProposedAddresses()
+	if len(respProposed.ProposeSweepAddressMsgs) > 0 {
+		for _, address := range respProposed.ProposeSweepAddressMsgs {
+			if !stringInSlice(address.BtcAddress, savedAddress) {
+				registerAddressOnForkscanner(address.BtcAddress)
+				decodedScript := decodeBtcScript(address.BtcScript)
+				height := getHeightFromScript(decodedScript)
+				reserveScript, _ := hex.DecodeString(address.BtcAddress)
+				insertSweepAddress(address.BtcAddress, reserveScript, nil, height, "", false)
 			}
 		}
 	}

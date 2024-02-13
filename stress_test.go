@@ -300,4 +300,6 @@ package main
 // // nyksd tx gov deposit 1 10000000nyks --from validator-sfo --keyring-backend test --yes
 // // nyksd tx gov vote 1 yes --from validator-sfo --keyring-backend test --yes
 
-// // insert into notification (block, receiving, satoshis, height, txid, archived, sending, receiving_vout, sending_vout) values ('00000000000000000001aee19f28336e1f8eec388a9fe399623432a0218b3ef4', 'bc1qrp8j76s9mqpdfpdrv0cyj6kfqvql9cy5rsmvzekvfqhtk0t99zfsanwgqs', 50000, 827952, 'ab984a53d8d28d0e249c886eaf5076105ad493fb30e04fe98283d44b3d0e2d42', false, 'bc1q49kzd05aqxs8q7r4rnnxc35cdk6783sf0khepr', 0, -1);
+// // insert into notification (block, receiving, satoshis, height, txid, archived, sending, receiving_vout, sending_vout) values ('00000000000000000000b04721e393c334d833522dadd5e74e8bef76b70ae1cf', 'bc1q3nknc70aa2f99aqn89ajk3xqrmzve8hjjezzezaw4ynm2g9cz50supy6pt', 39000, 829105, 'fb588794cb1206fe991b40f8a7a85ed89654562a53c9170b71eedc0ab14daae3', false, 'bc1q49kzd05aqxs8q7r4rnnxc35cdk6783sf0khepr', 0, -1);
+
+// // nyksd tx bridge msg-confirm-btc-deposit bc1qs7a2rvz9caclkrsx6m6c59203hlwxe5vfmanrwd2m9jm7mk25zqsvw0ase 50000000 829185 000000000017d6689c065ae165831e934ff763ae46a2a6c152b3f1b60a8ce42e twilight1dk28mq9lv9xzhs645zk42zcjuapfmnkymka4fn  $(nyksd keys show validator-sfo -a --keyring-backend test) --from validator-sfo --chain-id nyks --keyring-backend test

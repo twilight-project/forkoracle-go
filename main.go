@@ -9,6 +9,8 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"github.com/tyler-smith/go-bip32"
 
@@ -22,6 +24,14 @@ var oracleAddr string
 var valAddr string
 var upgrader = websocket.Upgrader{}
 var WsHub *Hub
+
+var latestSweepTxHash = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "latest_sweep_tx_hash",
+		Help: "Hash of the latest swept transaction.",
+	},
+	[]string{"hash"},
+)
 
 func initialize() {
 	initConfigFile()
@@ -58,7 +68,8 @@ func main() {
 	time.Sleep(1 * time.Minute)
 	go startBridge(accountName, forkscanner_url)
 	go pubsubServer()
-	startTransactionSigner(accountName)
+	go startTransactionSigner(accountName)
+	prometheus_server()
 	fmt.Println("exiting main")
 }
 
@@ -90,7 +101,6 @@ func (c *Client) writePump() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-
 	for {
 		select {
 		case message, ok := <-c.send:
@@ -130,6 +140,31 @@ func pubsubServer() {
 	err := http.ListenAndServe(":2300", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func prometheus_server() {
+	// Create a new instance of a registry
+	reg := prometheus.NewRegistry()
+
+	// Optional: Add Go module build info.
+	reg.MustRegister(
+		latestSweepTxHash,
+	)
+
+	// Register the promhttp handler with the registry
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+
+	// Simple health check endpoint
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Server is running"))
+	})
+
+	// Start the server
+	log.Println("Starting prometheus server on :2555")
+	if err := http.ListenAndServe(":2555", nil); err != nil {
+		log.Fatalf("Error starting server: %s", err)
 	}
 }
 

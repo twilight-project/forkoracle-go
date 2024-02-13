@@ -94,15 +94,6 @@ func kDeepService(accountName string) {
 	}
 }
 
-func isTxidInWatchedTxList(a WatchtowerNotification, watchedTxList []WatchedTx) bool {
-	for _, watchedTx := range watchedTxList {
-		if a.Receiving_txid == watchedTx.Txid {
-			return true
-		}
-	}
-	return false
-}
-
 func kDeepCheck(accountName string, height uint64) {
 	fmt.Println("running k deep check for height : ", height)
 	addresses := queryNotification()
@@ -110,56 +101,60 @@ func kDeepCheck(accountName string, height uint64) {
 	number := fmt.Sprintf("%v", viper.Get("confirmation_limit"))
 	confirmations, _ := strconv.ParseUint(number, 10, 64)
 	for _, a := range addresses {
-		if !isTxidInWatchedTxList(a, watchedTx) {
-			if height-a.Height >= confirmations {
-				fmt.Println("reached height confirmations: ", height)
-				confirmBtcTransactionOnNyks(accountName, a)
-			}
-		} else {
+		if height-a.Height >= confirmations {
+			fmt.Println("reached height confirmations: ", height)
+			confirmBtcTransactionOnNyks(accountName, a)
+		}
 
-			for _, tx := range watchedTx {
-				if a.Receiving_txid == tx.Txid {
+		for _, tx := range watchedTx {
+			if a.Receiving_txid == tx.Txid {
 
-					var currentReservesForThisJudge []BtcReserve
-					reserves := getBtcReserves()
-					for _, reserve := range reserves.BtcReserves {
-						if reserve.JudgeAddress == oracleAddr {
-							currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-						}
+				var currentReservesForThisJudge []BtcReserve
+				reserves := getBtcReserves()
+				for _, reserve := range reserves.BtcReserves {
+					if reserve.JudgeAddress == oracleAddr {
+						currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 					}
-
-					var reserveTobeProcessed BtcReserve
-					minRoundId := 500000000
-					// Iterate through the array and find the minimum roundId
-					for _, reserve := range currentReservesForThisJudge {
-						tempRoundId, _ := strconv.Atoi(reserve.RoundId)
-						if tempRoundId < minRoundId {
-							minRoundId = tempRoundId
-							reserveTobeProcessed = reserve
-						}
-					}
-
-					roundId, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
-					reserveId, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
-
-					cosmos := getCosmosClient()
-					msg := &bridgetypes.MsgSweepProposal{
-						ReserveId:             uint64(reserveId),
-						NewReserveAddress:     tx.Address,
-						JudgeAddress:          oracleAddr,
-						BtcRelayCapacityValue: 0,
-						BtcTxHash:             tx.Txid,
-						UnlockHeight:          0,
-						RoundId:               uint64(roundId),
-						BtcBlockNumber:        0,
-					}
-					fmt.Println("Sending Sweep proposal message")
-					sendTransactionSweepProposal(accountName, cosmos, msg)
-					markTransactionProcessed(tx.Txid)
-
 				}
-			}
 
+				var reserveTobeProcessed BtcReserve
+				minRoundId := 500000000
+				// Iterate through the array and find the minimum roundId
+				for _, reserve := range currentReservesForThisJudge {
+					tempRoundId, _ := strconv.Atoi(reserve.RoundId)
+					if tempRoundId < minRoundId {
+						minRoundId = tempRoundId
+						reserveTobeProcessed = reserve
+					}
+				}
+
+				roundId, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
+				reserveId, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
+
+				addresses := querySweepAddress(tx.Address)
+				if len(addresses) <= 0 {
+					fmt.Println("no record of this address")
+					return
+				}
+
+				cosmos := getCosmosClient()
+				msg := &bridgetypes.MsgSweepProposal{
+					ReserveId:             uint64(reserveId),
+					NewReserveAddress:     tx.Address,
+					JudgeAddress:          oracleAddr,
+					BtcRelayCapacityValue: 0,
+					BtcTxHash:             tx.Txid,
+					UnlockHeight:          uint64(addresses[0].Unlock_height),
+					RoundId:               uint64(roundId),
+					BtcBlockNumber:        0,
+				}
+				fmt.Println("Sending Sweep proposal message")
+				sendTransactionSweepProposal(accountName, cosmos, msg)
+				markTransactionProcessed(tx.Txid)
+				latestSweepTxHash.Reset()
+				latestSweepTxHash.WithLabelValues(tx.Txid).Set(0)
+
+			}
 		}
 	}
 	fmt.Println("finishing k deep check for height : ", height)

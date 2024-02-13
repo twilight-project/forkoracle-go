@@ -360,3 +360,15 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 }
+
+type ProposeSweepAddressMsg struct {
+	BtcAddress   string `json:"btcAddress"`
+	BtcScript    string `json:"btcScript"`
+	ReserveId    string `json:"reserveId"`
+	RoundId      string `json:"roundId"`
+	JudgeAddress string `json:"judgeAddress"`
+}
+
+type ProposeSweepAddressMsgResp struct {
+	ProposeSweepAddressMsgs []ProposeSweepAddressMsg `json:"proposeSweepAddressMsgs"`
+}

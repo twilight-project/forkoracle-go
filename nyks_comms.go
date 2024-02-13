@@ -498,7 +498,7 @@ func getSignRefund(reserveId uint64, roundId uint64) MsgSignRefundResp {
 	return a
 }
 
-func getReserveddresses() ReserveAddressResp {
+func getReserveAddresses() ReserveAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_reserve_addresses")
 	if err != nil {
@@ -660,4 +660,24 @@ func getBroadCastedRefundTx(reserveId uint64, roundId uint64) BroadcastRefundMsg
 		fmt.Println("error unmarshalling broadcasted refund : ", err)
 	}
 	return a.BroadcastRefundMsg
+}
+
+func getProposedAddresses() ProposeSweepAddressMsgResp {
+	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/25")
+	if err != nil {
+		fmt.Println("error getting reserve addresses : ", err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error getting reserve addresses body : ", err)
+	}
+
+	a := ProposeSweepAddressMsgResp{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("error unmarshalling reserve addresses : ", err)
+	}
+	return a
 }

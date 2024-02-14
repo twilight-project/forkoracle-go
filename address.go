@@ -249,14 +249,9 @@ func processProposeAddress(accountName string) {
 				continue
 			}
 
-			judges := getRegisteredJudges()
-
 			addresses := querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), false)
-			if len(addresses) <= 0 && len(judges.Judges) == 1 {
-				addresses = querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), true)
-				if len(addresses) <= 0 {
-					continue
-				}
+			if len(addresses) <= 0 {
+				continue
 			}
 
 			fmt.Println("Sweep Address found, proposing address for reserve : {}, round : {}", reserveIdForProposal, RoundId+1)

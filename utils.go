@@ -133,7 +133,7 @@ func registerAddressOnValidators() {
 				registerAddressOnForkscanner(address.BtcAddress)
 				decodedScript := decodeBtcScript(address.BtcScript)
 				height := getHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.BtcAddress)
+				reserveScript, _ := hex.DecodeString(address.BtcScript)
 				insertSweepAddress(address.BtcAddress, reserveScript, nil, height, "", false)
 			}
 		}

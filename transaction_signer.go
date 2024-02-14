@@ -24,6 +24,8 @@ func processTxSigningSweep(accountName string) {
 			time.Sleep(1 * time.Minute)
 		}
 
+		fmt.Printf("corresponding refund tx found  reserve Id: %d roundid : %d\n", reserveId, roundId)
+
 		sweepTx, err := createTxFromHex(tx.BtcUnsignedSweepTx)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)

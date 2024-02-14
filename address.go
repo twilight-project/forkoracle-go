@@ -252,7 +252,7 @@ func processProposeAddress(accountName string) {
 			judges := getRegisteredJudges()
 
 			addresses := querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), false)
-			if len(addresses) <= 0 && len(judges.Judges) > 1 {
+			if len(addresses) <= 0 && len(judges.Judges) == 1 {
 				addresses = querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), true)
 				if len(addresses) <= 0 {
 					continue

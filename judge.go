@@ -179,7 +179,8 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress SweepAddress) []byte {
 	currentReserveScript := currentReserveAddress.Script
-	decodedScript := decodeBtcScript(string(currentReserveScript))
+	encoded := hex.EncodeToString(currentReserveScript)
+	decodedScript := decodeBtcScript(encoded)
 	minSignsRequired := getMinSignFromScript(decodedScript)
 	if minSignsRequired < 1 {
 		fmt.Println("INFO : MinSign required for sweep is 0, which means there is a fault with sweep address script")
@@ -251,7 +252,8 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	newReserveAddress := addresses[0]
 
 	newReserveScript := newReserveAddress.Script
-	decodedScript := decodeBtcScript(string(newReserveScript))
+	encoded := hex.EncodeToString(newReserveScript)
+	decodedScript := decodeBtcScript(encoded)
 	minSignsRequired := getMinSignFromScript(decodedScript)
 	if minSignsRequired < 1 {
 		fmt.Println("INFO : MinSign required for refund is 0, which means there is a fault with sweep address script")

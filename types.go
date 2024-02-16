@@ -144,8 +144,7 @@ type Utxo struct {
 }
 
 type MsgSignSweep struct {
-	ReserveAddress   string
-	SignerAddress    string
+	signerPublicKey  string
 	SweepSignature   []string
 	BtcOracleAddress string
 }
@@ -175,8 +174,7 @@ type RegisteredJudgeResp struct {
 }
 
 type MsgSignRefund struct {
-	ReserveAddress   string
-	SignerAddress    string
+	signerPublicKey  string
 	RefundSignature  []string
 	BtcOracleAddress string
 }
@@ -238,6 +236,7 @@ type WatchedTx struct {
 	Txid    string
 	Address string
 	Reserve uint16
+	Round   uint16
 	Watched bool
 }
 

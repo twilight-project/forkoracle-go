@@ -50,7 +50,7 @@ func processTxSigningSweep(accountName string) {
 		sendSweepSign(sweepSignatures, reserveAddress.Address, accountName, uint64(reserveId), uint64(roundId))
 
 		markAddressSignedSweep(reserveAddress.Address)
-		insertTransaction(sweepTx.TxHash().String(), reserveAddress.Address, uint64(reserveId))
+		insertTransaction(sweepTx.TxHash().String(), reserveAddress.Address, uint64(reserveId), uint64(roundId))
 	}
 
 	fmt.Println("finishing sweep tx signer")

@@ -436,12 +436,19 @@ func registerJudge(accountName string) {
 	fmt.Println("registered Judge")
 }
 
-func orderSignSweep(sweepSignatures MsgSignSweepResp) []MsgSignSweep {
+func filterAndOrderSignSweep(sweepSignatures MsgSignSweepResp, pubkeys []string) []MsgSignSweep {
+	filteresSignSweep := make([]MsgSignSweep, 0)
+	for _, sweepSig := range sweepSignatures.SignSweepMsg {
+		if stringInSlice(sweepSig.signerPublicKey, pubkeys) {
+			filteresSignSweep = append(filteresSignSweep, sweepSig)
+		}
+	}
+
 	delegateAddresses := getDelegateAddresses()
 	orderedSignSweep := make([]MsgSignSweep, 0)
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
-		for _, sweepSig := range sweepSignatures.SignSweepMsg {
+		for _, sweepSig := range filteresSignSweep {
 			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
 				orderedSignSweep = append(orderedSignSweep, sweepSig)
 			}
@@ -453,7 +460,7 @@ func orderSignSweep(sweepSignatures MsgSignSweepResp) []MsgSignSweep {
 	return orderedSignSweep
 }
 
-func OrderSignRefund(refundSignatures MsgSignRefundResp, address string) ([]MsgSignRefund, MsgSignRefund) {
+func OrderSignRefund(refundSignatures MsgSignRefundResp, address string, pubkeys []string) ([]MsgSignRefund, MsgSignRefund) {
 	delegateAddresses := getDelegateAddresses()
 
 	//needs to change for multi judge > 2 with staking in place
@@ -468,6 +475,13 @@ func OrderSignRefund(refundSignatures MsgSignRefundResp, address string) ([]MsgS
 		}
 	} else {
 		otherJudgeAddress = registeredJudges.Judges[0]
+	}
+
+	filteresSignRefund := make([]MsgSignRefund, 0)
+	for _, refundSig := range refundSignatures.SignRefundMsg {
+		if stringInSlice(refundSig.signerPublicKey, pubkeys) {
+			filteresSignRefund = append(filteresSignRefund, refundSig)
+		}
 	}
 
 	orderedSignRefund := make([]MsgSignRefund, 0)
@@ -539,6 +553,43 @@ func getHeightFromScript(script string) int64 {
 	}
 
 	return height
+}
+
+func getMinSignFromScript(script string) int64 {
+	// Split the decoded script into parts
+	minSignRequired := int64(0)
+	parts := strings.Split(script, " ")
+	if len(parts) < 4 {
+		return minSignRequired
+	}
+	// Reverse the byte order
+	for i, j := 0, len(parts[3])-2; i < j; i, j = i+2, j-2 {
+		parts[3] = parts[3][:i] + parts[3][j:j+2] + parts[3][i+2:j] + parts[3][i:i+2] + parts[3][j+2:]
+	}
+	// Convert the first part from hex to decimal
+	minSignRequired, err := strconv.ParseInt(parts[3], 16, 64)
+	if err != nil {
+		fmt.Println("Error converting block height from hex to decimal:", err)
+	}
+
+	return minSignRequired
+}
+
+func getPublicKeysFromScript(script string, limit int) []string {
+	// Split the decoded script into parts
+	pubkeys := []string{}
+	parts := strings.Split(script, " ")
+	if len(parts) <= 4+limit {
+		return pubkeys
+	}
+	// Reverse the byte order
+	for i, j := 0, len(parts[3])-2; i < j; i, j = i+2, j-2 {
+		parts[3] = parts[3][:i] + parts[3][j:j+2] + parts[3][i+2:j] + parts[3][i:i+2] + parts[3][j+2:]
+	}
+	// Convert the first part from hex to decimal
+	pubkeys = append(pubkeys, parts[4:4+limit]...)
+
+	return pubkeys
 }
 
 func nyksEventListener(event string, accountName string, functionCall string) {

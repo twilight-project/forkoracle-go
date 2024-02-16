@@ -109,28 +109,6 @@ func kDeepCheck(accountName string, height uint64) {
 		for _, tx := range watchedTx {
 			if a.Receiving_txid == tx.Txid {
 
-				var currentReservesForThisJudge []BtcReserve
-				reserves := getBtcReserves()
-				for _, reserve := range reserves.BtcReserves {
-					if reserve.JudgeAddress == oracleAddr {
-						currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-					}
-				}
-
-				var reserveTobeProcessed BtcReserve
-				minRoundId := 500000000
-				// Iterate through the array and find the minimum roundId
-				for _, reserve := range currentReservesForThisJudge {
-					tempRoundId, _ := strconv.Atoi(reserve.RoundId)
-					if tempRoundId < minRoundId {
-						minRoundId = tempRoundId
-						reserveTobeProcessed = reserve
-					}
-				}
-
-				roundId, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
-				reserveId, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
-
 				addresses := querySweepAddress(tx.Address)
 				if len(addresses) <= 0 {
 					fmt.Println("no record of this address")
@@ -139,20 +117,20 @@ func kDeepCheck(accountName string, height uint64) {
 
 				cosmos := getCosmosClient()
 				msg := &bridgetypes.MsgSweepProposal{
-					ReserveId:             uint64(reserveId),
+					ReserveId:             uint64(tx.Reserve),
 					NewReserveAddress:     tx.Address,
 					JudgeAddress:          oracleAddr,
 					BtcRelayCapacityValue: 0,
 					BtcTxHash:             tx.Txid,
 					UnlockHeight:          uint64(addresses[0].Unlock_height),
-					RoundId:               uint64(roundId),
+					RoundId:               uint64(tx.Round),
 					BtcBlockNumber:        0,
 				}
 				fmt.Println("Sending Sweep proposal message")
 				sendTransactionSweepProposal(accountName, cosmos, msg)
 				markTransactionProcessed(tx.Txid)
 				latestSweepTxHash.Reset()
-				latestSweepTxHash.WithLabelValues(tx.Txid).Set(0)
+				latestSweepTxHash.WithLabelValues(tx.Txid).Set(float64(tx.Reserve))
 
 			}
 		}

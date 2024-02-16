@@ -520,11 +520,12 @@ func queryAllAddressOnly() []string {
 	return addresses
 }
 
-func insertTransaction(txid string, address string, reserve uint64) {
-	_, err := dbconn.Exec("INSERT into transaction VALUES ($1, $2, $3, $4)",
+func insertTransaction(txid string, address string, reserve uint64, round uint64) {
+	_, err := dbconn.Exec("INSERT into transaction VALUES ($1, $2, $3, $4, $5)",
 		txid,
 		address,
 		reserve,
+		round,
 		true,
 	)
 	if err != nil {
@@ -547,6 +548,7 @@ func queryWatchedTransactions() []WatchedTx {
 			&tx.Txid,
 			&tx.Address,
 			&tx.Reserve,
+			&tx.Round,
 			&tx.Watched,
 		)
 		if err != nil {

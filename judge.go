@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -177,26 +178,27 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 }
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress SweepAddress) []byte {
+	currentReserveScript := currentReserveAddress.Script
+	decodedScript := decodeBtcScript(string(currentReserveScript))
+	minSignsRequired := getMinSignFromScript(decodedScript)
+	if minSignsRequired < 1 {
+		fmt.Println("INFO : MinSign required for sweep is 0, which means there is a fault with sweep address script")
+		return nil
+	}
+	pubkeys := getPublicKeysFromScript(decodedScript, int(minSignsRequired))
 
-	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
-	noOfValidators, _ := strconv.Atoi(number)
 	for {
 		time.Sleep(30 * time.Second)
-		receivedSweepSignatures := getSignSweep(reserveId, roundId)
 
-		filteredSweepSignatures := orderSignSweep(receivedSweepSignatures)
+		receivedSweepSignatures := getSignSweep(reserveId, roundId)
+		filteredSweepSignatures := filterAndOrderSignSweep(receivedSweepSignatures, pubkeys)
 
 		if len(filteredSweepSignatures) <= 0 {
 			fmt.Println("INFO: ", "no sweep signature found")
 			continue
 		}
 
-		minSignsRequired := noOfValidators * 2 / 3
-		if minSignsRequired < 1 {
-			minSignsRequired = 1
-		}
-
-		if len(filteredSweepSignatures)/minSignsRequired < 1 {
+		if len(filteredSweepSignatures)/int(minSignsRequired) < 1 {
 			fmt.Println("INFO: ", "not enough sweep signatures")
 			continue
 		}
@@ -214,7 +216,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			witness = append(witness, preimage)
 			dummy := []byte{}
 			witness = append(witness, dummy)
-			for j := 0; j < minSignsRequired; j++ {
+			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
 			}
 
@@ -236,10 +238,6 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 }
 
 func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64) ([]byte, SweepAddress, error) {
-
-	number := fmt.Sprintf("%v", viper.Get("no_of_validators"))
-	noOfValidators, _ := strconv.Atoi(number)
-
 	addrs := getProposedSweepAddress(reserveId, roundId)
 	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
 		return nil, SweepAddress{}, nil
@@ -252,22 +250,25 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	}
 	newReserveAddress := addresses[0]
 
+	newReserveScript := newReserveAddress.Script
+	decodedScript := decodeBtcScript(string(newReserveScript))
+	minSignsRequired := getMinSignFromScript(decodedScript)
+	if minSignsRequired < 1 {
+		fmt.Println("INFO : MinSign required for refund is 0, which means there is a fault with sweep address script")
+		return nil, SweepAddress{}, errors.New("MinSign required for refund is 0, which means there is a fault with sweep address script")
+	}
+	pubkeys := getPublicKeysFromScript(decodedScript, int(minSignsRequired))
+
 	for {
 		time.Sleep(30 * time.Second)
 		receiveRefundSignatures := getSignRefund(reserveId, roundId)
-		filteredRefundSignatures, JudgeSign := OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address)
-
-		minSignsRequired := noOfValidators * 2 / 3
-
-		if minSignsRequired < 1 {
-			minSignsRequired = 1
-		}
+		filteredRefundSignatures, JudgeSign := OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address, pubkeys)
 
 		if len(filteredRefundSignatures) <= 0 {
 			continue
 		}
 
-		if len(filteredRefundSignatures)/minSignsRequired < 1 {
+		if len(filteredRefundSignatures)/int(minSignsRequired) < 1 {
 			fmt.Println("INFO: ", "not enough refund signatures")
 			continue
 		}
@@ -289,7 +290,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 			witness = append(witness, preimageFalse)
 			dummy := []byte{}
 			witness = append(witness, dummy)
-			for j := 0; j < minSignsRequired; j++ {
+			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
 			}
 			witness = append(witness, script)

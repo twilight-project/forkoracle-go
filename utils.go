@@ -26,7 +26,7 @@ import (
 )
 
 func initConfigFile() {
-	viper.AddConfigPath("/testnet/btc-oracle/configs")
+	viper.AddConfigPath("./configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
 	viper.SetConfigType("json")   // Look for specific type
 	viper.ReadInConfig()
@@ -437,10 +437,12 @@ func registerJudge(accountName string) {
 }
 
 func filterAndOrderSignSweep(sweepSignatures MsgSignSweepResp, pubkeys []string) []MsgSignSweep {
-	filteresSignSweep := make([]MsgSignSweep, 0)
+	fmt.Println(sweepSignatures.SignSweepMsg)
+	fmt.Println(pubkeys)
+	filtereSignSweep := []MsgSignSweep{}
 	for _, sweepSig := range sweepSignatures.SignSweepMsg {
-		if stringInSlice(sweepSig.signerPublicKey, pubkeys) {
-			filteresSignSweep = append(filteresSignSweep, sweepSig)
+		if stringInSlice(sweepSig.SignerPublicKey, pubkeys) {
+			filtereSignSweep = append(filtereSignSweep, sweepSig)
 		}
 	}
 
@@ -448,7 +450,7 @@ func filterAndOrderSignSweep(sweepSignatures MsgSignSweepResp, pubkeys []string)
 	orderedSignSweep := make([]MsgSignSweep, 0)
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
-		for _, sweepSig := range filteresSignSweep {
+		for _, sweepSig := range filtereSignSweep {
 			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
 				orderedSignSweep = append(orderedSignSweep, sweepSig)
 			}

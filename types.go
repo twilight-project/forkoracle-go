@@ -144,7 +144,7 @@ type Utxo struct {
 }
 
 type MsgSignSweep struct {
-	signerPublicKey  string
+	SignerPublicKey  string
 	SweepSignature   []string
 	BtcOracleAddress string
 }

@@ -170,9 +170,20 @@ func prometheus_server() {
 
 // func main() {
 
-// 	x := "830572 OP_CHECKLOCKTIMEVERIFY OP_DROP 4 02ca505bf28698f0b6c26114a725f757b88d65537dd52a5b6455a9cac9581f1055 033e72f302ba2133eddd0c7416943d4fed4e7c60db32e6b8c58895d3b26e24f927 038b38721dbb1427fd9c65654f87cb424517df717ee2fea8b0a5c376a173494167 03b03fe3da02ac2d43a1c2ebcfc7b0497e89cc9f62b513c0fc14f10d3d1a2cd5e6 03bb3694e798f018a157f9e6dfb51b91f70a275443504393040892b52e45b255c3 03e2f80f2f5eb646df3e0642ae137bf13f5a9a6af4c05688e147c64e8fae196fe1 6 OP_CHECKMULTISIGVERIFY OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 e3dc0fa779409b9a538ab9f1ac4e66c08c657059 OP_EQUAL OP_IFDUP OP_NOTIF 02ca505bf28698f0b6c26114a725f757b88d65537dd52a5b6455a9cac9581f1055 OP_CHECKSIG OP_NOTIF 830583 OP_CHECKSEQUENCEVERIFY OP_DROP OP_ENDIF OP_ENDIF"
+// 	initialize()
+// 	// accountName := fmt.Sprintf("%v", viper.Get("accountName"))
+// 	sweeptx := getUnsignedSweepTx(1, 1)
+// 	tx := sweeptx.UnsignedTxSweepMsg.BtcUnsignedSweepTx
+// 	sweepTx, _ := createTxFromHex(tx)
 
-// 	y := getPublicKeysFromScript(x, 4)
-// 	// z, _ := convertHextoDec(y[0])
-// 	fmt.Println(y)
+// 	signatureSweep := getSignSweep(1, 1)
+// 	x := sweepTx.TxIn[0].Witness[0]
+// 	hx := hex.EncodeToString(x)
+// 	decodedscript := decodeBtcScript(hx)
+// 	min := getMinSignFromScript(decodedscript)
+// 	pubkeys := getPublicKeysFromScript(decodedscript, int(min))
+
+// 	t := filterAndOrderSignSweep(signatureSweep, pubkeys)
+
+// 	fmt.Println(t)
 // }

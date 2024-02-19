@@ -122,8 +122,6 @@ func kDeepCheck(accountName string, height uint64) {
 				var reserve BtcReserve
 				for _, res := range reserves.BtcReserves {
 					if res.ReserveId == strconv.Itoa(int(tx.Reserve)) {
-						fmt.Println(res)
-						fmt.Println(tx.Reserve)
 						reserve = res
 						break
 					}

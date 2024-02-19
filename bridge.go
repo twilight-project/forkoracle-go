@@ -107,6 +107,9 @@ func kDeepCheck(accountName string, height uint64) {
 		}
 
 		for _, tx := range watchedTx {
+			if height-a.Height <= confirmations {
+				continue
+			}
 			if a.Receiving_txid == tx.Txid {
 
 				addresses := querySweepAddress(tx.Address)
@@ -115,11 +118,25 @@ func kDeepCheck(accountName string, height uint64) {
 					return
 				}
 
+				reserves := getBtcReserves()
+				var reserve BtcReserve
+				for _, res := range reserves.BtcReserves {
+					if res.ReserveId == strconv.Itoa(int(tx.Reserve)) {
+						reserve = res
+						break
+					}
+				}
+				var emptyReserve BtcReserve
+				if reserve != emptyReserve {
+					fmt.Println("Reserve not found : ", tx.Reserve)
+					continue
+				}
+
 				cosmos := getCosmosClient()
 				msg := &bridgetypes.MsgSweepProposal{
 					ReserveId:             uint64(tx.Reserve),
 					NewReserveAddress:     tx.Address,
-					JudgeAddress:          oracleAddr,
+					JudgeAddress:          reserve.JudgeAddress,
 					BtcRelayCapacityValue: 0,
 					BtcTxHash:             tx.Txid,
 					UnlockHeight:          uint64(addresses[0].Unlock_height),

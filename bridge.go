@@ -129,7 +129,7 @@ func kDeepCheck(accountName string, height uint64) {
 					}
 				}
 				var emptyReserve BtcReserve
-				if reserve != emptyReserve {
+				if reserve == emptyReserve {
 					fmt.Println("Reserve not found : ", tx.Reserve)
 					continue
 				}

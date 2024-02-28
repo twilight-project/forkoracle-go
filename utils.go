@@ -122,7 +122,7 @@ func registerAddressOnValidators() {
 				decodedScript := decodeBtcScript(address.ReserveScript)
 				height := getHeightFromScript(decodedScript)
 				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				insertSweepAddress(address.ReserveAddress, reserveScript, nil, height, "", false)
+				insertSweepAddress(address.ReserveAddress, reserveScript, nil, height+1, "", false)
 			}
 		}
 	}
@@ -134,7 +134,7 @@ func registerAddressOnValidators() {
 				decodedScript := decodeBtcScript(address.BtcScript)
 				height := getHeightFromScript(decodedScript)
 				reserveScript, _ := hex.DecodeString(address.BtcScript)
-				insertSweepAddress(address.BtcAddress, reserveScript, nil, height, "", false)
+				insertSweepAddress(address.BtcAddress, reserveScript, nil, height+1, "", false)
 			}
 		}
 	}

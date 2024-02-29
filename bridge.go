@@ -64,7 +64,6 @@ func watchAddress(url url.URL) {
 		watchtower_notifications := c.Params
 		for _, notification := range watchtower_notifications {
 			insertNotifications(notification)
-			break
 		}
 
 	}

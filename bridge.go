@@ -10,7 +10,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
+
 	"github.com/twilight-project/nyks/x/bridge/types"
+
+	btcOracleTypes "github.com/twilight-project/btc-oracle/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
@@ -49,7 +52,7 @@ func watchAddress(url url.URL) {
 
 		fmt.Printf("recv watchtower noti: %s", message)
 
-		c := WatchtowerResponse{}
+		c := btcOracleTypes.WatchtowerResponse{}
 		err = json.Unmarshal(message, &c)
 		if err != nil {
 			fmt.Println("error in address watcher: ", err)
@@ -118,14 +121,14 @@ func kDeepCheck(accountName string, height uint64) {
 				}
 
 				reserves := getBtcReserves()
-				var reserve BtcReserve
+				var reserve btcOracleTypes.BtcReserve
 				for _, res := range reserves.BtcReserves {
 					if res.ReserveId == strconv.Itoa(int(tx.Reserve)) {
 						reserve = res
 						break
 					}
 				}
-				var emptyReserve BtcReserve
+				var emptyReserve btcOracleTypes.BtcReserve
 				if reserve == emptyReserve {
 					fmt.Println("Reserve not found : ", tx.Reserve)
 					continue
@@ -154,12 +157,12 @@ func kDeepCheck(accountName string, height uint64) {
 	fmt.Println("finishing k deep check for height : ", height)
 }
 
-func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {
+func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.WatchtowerNotification) {
 	fmt.Println("inside confirm btc transaction")
 	cosmos := getCosmosClient()
 
 	depositAddresses := getAllDepositAddress()
-	var depositAddress []DepositAddress
+	var depositAddress []btcOracleTypes.DepositAddress
 	for _, deposit := range depositAddresses.Addresses {
 		if deposit.BtcDepositAddress == data.Sending {
 			fmt.Println("inside equal address check")

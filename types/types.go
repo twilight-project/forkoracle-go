@@ -26,7 +26,7 @@ type WatchtowerTxInput struct {
 	Address string
 	Amount  uint64
 	Txid    string
-	vout    uint32
+	Vout    uint32
 }
 
 type WatchtowerNotification struct {
@@ -174,7 +174,7 @@ type RegisteredJudgeResp struct {
 }
 
 type MsgSignRefund struct {
-	signerPublicKey  string
+	SignerPublicKey  string
 	RefundSignature  []string
 	BtcOracleAddress string
 }
@@ -347,19 +347,6 @@ type BroadcastRefundMsgResp struct {
 	BroadcastRefundMsg BroadcastRefundMsg
 }
 
-type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
-}
-
-type Hub struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
-}
-
 type ProposeSweepAddressMsg struct {
 	BtcAddress   string `json:"btcAddress"`
 	BtcScript    string `json:"btcScript"`
@@ -370,4 +357,58 @@ type ProposeSweepAddressMsg struct {
 
 type ProposeSweepAddressMsgResp struct {
 	ProposeSweepAddressMsgs []ProposeSweepAddressMsg `json:"proposeSweepAddressMsgs"`
+}
+
+type Client struct {
+	Hub  *Hub
+	Conn *websocket.Conn
+	Send chan []byte
+}
+
+type Hub struct {
+	Clients    map[*Client]bool
+	Broadcast  chan []byte
+	Register   chan *Client
+	Unregister chan *Client
+}
+
+func (h *Hub) Run() {
+	for {
+		select {
+		case client := <-h.Register:
+			h.Clients[client] = true
+		case client := <-h.Unregister:
+			if _, ok := h.Clients[client]; ok {
+				delete(h.Clients, client)
+				close(client.Send)
+			}
+		case message := <-h.Broadcast:
+			for client := range h.Clients {
+				select {
+				case client.Send <- message:
+				default:
+					close(client.Send)
+					delete(h.Clients, client)
+				}
+			}
+		}
+	}
+}
+
+func (c *Client) WritePump() {
+	defer func() {
+		c.Hub.Unregister <- c
+		c.Conn.Close()
+	}()
+	for {
+		select {
+		case message, ok := <-c.Send:
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			c.Conn.WriteMessage(websocket.TextMessage, message)
+		}
+	}
 }

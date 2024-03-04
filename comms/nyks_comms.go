@@ -1,11 +1,11 @@
-package main
+package comms
 
 // contains all code communicating with nyksd chain (cosmos)
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -16,11 +16,12 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosclient"
 	"github.com/spf13/viper"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 	forktypes "github.com/twilight-project/nyks/x/forks/types"
 )
 
-func sendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgProposeSweepAddress) {
+func SendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgProposeSweepAddress) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -34,7 +35,7 @@ func sendTransactionSweepAddressProposal(accountName string, cosmos cosmosclient
 	fmt.Println("error in sending sweep address proposal after 5 attempts: ", err)
 }
 
-func sendTransactionRegisterReserveAddress(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterReserveAddress) (cosmosclient.Response, error) {
+func SendTransactionRegisterReserveAddress(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterReserveAddress) (cosmosclient.Response, error) {
 	var err error
 	var resp cosmosclient.Response
 	for i := 0; i < 5; i++ {
@@ -50,7 +51,7 @@ func sendTransactionRegisterReserveAddress(accountName string, cosmos cosmosclie
 	return resp, err
 }
 
-func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
+func SendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Client, data *forktypes.MsgSeenBtcChainTip) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -68,7 +69,7 @@ func sendTransactionSeenBtcChainTip(accountName string, cosmos cosmosclient.Clie
 	fmt.Println("error in chaintip transaction after 5 attempts: ", err)
 }
 
-func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {
+func SendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgConfirmBtcDeposit) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -82,7 +83,7 @@ func sendTransactionConfirmBtcdeposit(accountName string, cosmos cosmosclient.Cl
 	fmt.Println("error in confirm deposit transaction after 5 attempts: ", err)
 }
 
-func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
+func SendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSweepProposal) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -96,7 +97,7 @@ func sendTransactionSweepProposal(accountName string, cosmos cosmosclient.Client
 	fmt.Println("error in sending sweep transaction proposal after 5 attempts: ", err)
 }
 
-func sendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxSweep) {
+func SendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -110,7 +111,7 @@ func sendTransactionUnsignedSweepTx(accountName string, cosmos cosmosclient.Clie
 	fmt.Println("error in sending unsigned sweep transaction after 5 attempts: ", err)
 }
 
-func sendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxRefund) {
+func SendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgUnsignedTxRefund) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -124,7 +125,7 @@ func sendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Cli
 	fmt.Println("error in sending unsigned Refund transaction after 5 attempts: ", err)
 }
 
-func sendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterJudge) {
+func SendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgRegisterJudge) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -137,7 +138,7 @@ func sendTransactionRegisterJudge(accountName string, cosmos cosmosclient.Client
 	fmt.Println("error in sending register judge transaction after 5 attempts: ", err)
 }
 
-func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
+func SendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -151,7 +152,7 @@ func sendTransactionSignSweep(accountName string, cosmos cosmosclient.Client, da
 	fmt.Println("Error in sending sweep signature after 5 attempts: ", err)
 }
 
-func sendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignRefund) {
+func SendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgSignRefund) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -165,7 +166,7 @@ func sendTransactionSignRefund(accountName string, cosmos cosmosclient.Client, d
 	fmt.Println("Error in sending refund signature after 5 attempts: ", err)
 }
 
-func sendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
+func SendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxSweep) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -178,7 +179,7 @@ func sendTransactionBroadcastSweeptx(accountName string, cosmos cosmosclient.Cli
 	fmt.Println("error in Broadcasting Sweep Tx transaction after 5 attempts: ", err)
 }
 
-func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxRefund) {
+func SendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Client, data *bridgetypes.MsgBroadcastTxRefund) {
 	var err error
 	for i := 0; i < 5; i++ {
 		_, err = cosmos.BroadcastTx(accountName, data)
@@ -191,7 +192,7 @@ func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Cl
 	fmt.Println("error in Broadcasting Refund Tx transaction after 5 attempts: ", err)
 }
 
-func getCosmosClient() cosmosclient.Client {
+func GetCosmosClient() cosmosclient.Client {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -260,7 +261,7 @@ func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.A
 // 		fmt.Println("error getting deposit addresses : ", err)
 // 	}
 // 	//We Read the response body on the line below.
-// 	body, err := ioutil.ReadAll(resp.Body)
+// 	body, err := io.ReadAll(resp.Body)
 // 	if err != nil {
 // 		fmt.Println("error getting deposit addresses body : ", err)
 // 	}
@@ -279,7 +280,7 @@ func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.A
 // 	if err != nil {
 // 		fmt.Println("error getting deposit addresses : ", err)
 // 	}
-// 	body, err := ioutil.ReadAll(resp.Body)
+// 	body, err := io.ReadAll(resp.Body)
 // 	if err != nil {
 // 		fmt.Println("error getting deposit addresses body : ", err)
 // 	}
@@ -291,17 +292,17 @@ func getCosmosAddress(accountName string, cosmos cosmosclient.Client) sdktypes.A
 // 	return a
 // }
 
-func getAllDepositAddress() QueryDepositAddressResp {
+func GetAllDepositAddress() btcOracleTypes.QueryDepositAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_btc_deposit_addresses")
 	if err != nil {
 		fmt.Println("error getting deposit addresses : ", err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting deposit addresses body : ", err)
 	}
-	a := QueryDepositAddressResp{}
+	a := btcOracleTypes.QueryDepositAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling deposit addresses : ", err)
@@ -309,7 +310,7 @@ func getAllDepositAddress() QueryDepositAddressResp {
 	return a
 }
 
-func getAttestations(limit string) NyksAttestaionBlock {
+func GetAttestations(limit string) btcOracleTypes.NyksAttestaionBlock {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	req_url := fmt.Sprintf("%s/twilight-project/nyks/nyks/attestations?limit=%s&order_by=desc", nyksd_url, limit)
 	resp, err := http.Get(req_url)
@@ -317,12 +318,12 @@ func getAttestations(limit string) NyksAttestaionBlock {
 		log.Fatalln(err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	a := NyksAttestaionBlock{}
+	a := btcOracleTypes.NyksAttestaionBlock{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error getting attestations : ", err)
@@ -338,7 +339,7 @@ func getAttestations(limit string) NyksAttestaionBlock {
 // 		log.Fatalln(err)
 // 	}
 // 	//We Read the response body on the line below.
-// 	body, err := ioutil.ReadAll(resp.Body)
+// 	body, err := io.ReadAll(resp.Body)
 // 	if err != nil {
 // 		log.Fatalln(err)
 // 	}
@@ -349,7 +350,7 @@ func getAttestations(limit string) NyksAttestaionBlock {
 // 	return a
 // }
 
-func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
+func GetUnsignedSweepTx(reserveId uint64, roundId uint64) btcOracleTypes.UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -357,12 +358,12 @@ func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
 		log.Fatalln(err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	a := UnsignedTxSweepResp{}
+	a := btcOracleTypes.UnsignedTxSweepResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error getting unsigned sweep tx : ", err)
@@ -371,7 +372,7 @@ func getUnsignedSweepTx(reserveId uint64, roundId uint64) UnsignedTxSweepResp {
 	return a
 }
 
-func getAllUnsignedSweepTx() UnsignedTxSweepResp {
+func GetAllUnsignedSweepTx() btcOracleTypes.UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=5")
 	resp, err := http.Get(nyksd_url + path)
@@ -379,12 +380,12 @@ func getAllUnsignedSweepTx() UnsignedTxSweepResp {
 		log.Fatalln(err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	a := UnsignedTxSweepResp{}
+	a := btcOracleTypes.UnsignedTxSweepResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error getting all unsigned sweep tx : ", err)
@@ -393,7 +394,7 @@ func getAllUnsignedSweepTx() UnsignedTxSweepResp {
 	return a
 }
 
-func getUnsignedRefundTx(reserveId int64, roundId int64) UnsignedTxRefundResp {
+func GetUnsignedRefundTx(reserveId int64, roundId int64) btcOracleTypes.UnsignedTxRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_refund/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -401,12 +402,12 @@ func getUnsignedRefundTx(reserveId int64, roundId int64) UnsignedTxRefundResp {
 		log.Fatalln(err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	a := UnsignedTxRefundResp{}
+	a := btcOracleTypes.UnsignedTxRefundResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error getting unsigned refund tx : ", err)
@@ -415,19 +416,19 @@ func getUnsignedRefundTx(reserveId int64, roundId int64) UnsignedTxRefundResp {
 	return a
 }
 
-func getAllUnsignedRefundTx() UnsignedTxRefundResp {
+func GetAllUnsignedRefundTx() btcOracleTypes.UnsignedTxRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/unsigned_tx_refund_all?limit=5")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	a := UnsignedTxRefundResp{}
+	a := btcOracleTypes.UnsignedTxRefundResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error getting all unsigned refund tx : ", err)
@@ -436,19 +437,19 @@ func getAllUnsignedRefundTx() UnsignedTxRefundResp {
 	return a
 }
 
-func getDelegateAddresses() DelegateAddressesResp {
+func GetDelegateAddresses() btcOracleTypes.DelegateAddressesResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/forks/delegate_keys_all")
 	if err != nil {
 		fmt.Println("error getting delegate addresses : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error reading delegate addresses : ", err)
 	}
 
-	a := DelegateAddressesResp{}
+	a := btcOracleTypes.DelegateAddressesResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling delegate addresses : ", err)
@@ -456,7 +457,7 @@ func getDelegateAddresses() DelegateAddressesResp {
 	return a
 }
 
-func getSignSweep(reserveId uint64, roundId uint64) MsgSignSweepResp {
+func GetSignSweep(reserveId uint64, roundId uint64) btcOracleTypes.MsgSignSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/sign_sweep/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -464,12 +465,12 @@ func getSignSweep(reserveId uint64, roundId uint64) MsgSignSweepResp {
 		fmt.Println("error getting sign sweep : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting sign sweep body : ", err)
 	}
 
-	a := MsgSignSweepResp{}
+	a := btcOracleTypes.MsgSignSweepResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshallin sign sweep : ", err)
@@ -477,7 +478,7 @@ func getSignSweep(reserveId uint64, roundId uint64) MsgSignSweepResp {
 	return a
 }
 
-func getSignRefund(reserveId uint64, roundId uint64) MsgSignRefundResp {
+func GetSignRefund(reserveId uint64, roundId uint64) btcOracleTypes.MsgSignRefundResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/sign_refund/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -485,12 +486,12 @@ func getSignRefund(reserveId uint64, roundId uint64) MsgSignRefundResp {
 		fmt.Println("error getting refund signature : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting refund signature body : ", err)
 	}
 
-	a := MsgSignRefundResp{}
+	a := btcOracleTypes.MsgSignRefundResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling refund signature : ", err)
@@ -498,19 +499,19 @@ func getSignRefund(reserveId uint64, roundId uint64) MsgSignRefundResp {
 	return a
 }
 
-func getReserveAddresses() ReserveAddressResp {
+func GetReserveAddresses() btcOracleTypes.ReserveAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_reserve_addresses")
 	if err != nil {
 		fmt.Println("error getting reserve addresses : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting reserve addresses body : ", err)
 	}
 
-	a := ReserveAddressResp{}
+	a := btcOracleTypes.ReserveAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling reserve addresses : ", err)
@@ -518,19 +519,19 @@ func getReserveAddresses() ReserveAddressResp {
 	return a
 }
 
-func getRegisteredJudges() RegisteredJudgeResp {
+func GetRegisteredJudges() btcOracleTypes.RegisteredJudgeResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/registered_judges")
 	if err != nil {
 		fmt.Println("error getting registered judges : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting registered judges body : ", err)
 	}
 
-	a := RegisteredJudgeResp{}
+	a := btcOracleTypes.RegisteredJudgeResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling registered judges : ", err)
@@ -538,19 +539,19 @@ func getRegisteredJudges() RegisteredJudgeResp {
 	return a
 }
 
-func getBtcReserves() BtcReserveResp {
+func GetBtcReserves() btcOracleTypes.BtcReserveResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/volt/btc_reserve")
 	if err != nil {
 		fmt.Println("error getting btcreserves : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting btcreserves body : ", err)
 	}
 
-	a := BtcReserveResp{}
+	a := btcOracleTypes.BtcReserveResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling  btcreserves: ", err)
@@ -565,7 +566,7 @@ func getBtcReserves() BtcReserveResp {
 // 		fmt.Println("error getting proposed address : ", err)
 // 	}
 // 	//We Read the response body on the line below.
-// 	body, err := ioutil.ReadAll(resp.Body)
+// 	body, err := io.ReadAll(resp.Body)
 // 	if err != nil {
 // 		fmt.Println("error getting proposed address body : ", err)
 // 	}
@@ -578,7 +579,7 @@ func getBtcReserves() BtcReserveResp {
 // 	return a
 // }
 
-func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressResp {
+func GetProposedSweepAddress(reserveId uint64, roundId uint64) btcOracleTypes.ProposedAddressResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/propose_sweep_address/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -586,12 +587,12 @@ func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressRe
 		fmt.Println("error getting proposed address : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting proposed address body : ", err)
 	}
 
-	a := ProposedAddressResp{}
+	a := btcOracleTypes.ProposedAddressResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling proposed address : ", err)
@@ -599,7 +600,7 @@ func getProposedSweepAddress(reserveId uint64, roundId uint64) ProposedAddressRe
 	return a
 }
 
-func getRefundSnapshot(reserveId uint64, roundId uint64) RefundTxSnapshot {
+func GetRefundSnapshot(reserveId uint64, roundId uint64) btcOracleTypes.RefundTxSnapshot {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/volt/refund_tx_snapshot/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -607,12 +608,12 @@ func getRefundSnapshot(reserveId uint64, roundId uint64) RefundTxSnapshot {
 		fmt.Println("error getting refund snapshot : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting refund snapshot body : ", err)
 	}
 
-	a := RefundTxSnapshotResp{}
+	a := btcOracleTypes.RefundTxSnapshotResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling refund snapshot : ", err)
@@ -620,7 +621,7 @@ func getRefundSnapshot(reserveId uint64, roundId uint64) RefundTxSnapshot {
 	return a.RefundTxSnapshot
 }
 
-func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapshot {
+func GetWithdrawSnapshot(reserveId uint64, roundId uint64) btcOracleTypes.ReserveWithdrawSnapshot {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/volt/reserve_withdraw_snapshot/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -628,12 +629,12 @@ func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapsh
 		fmt.Println("error getting withdraw snapshot : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting withdraw snapshot body : ", err)
 	}
 
-	a := ReserveWithdrawSnapshotResp{}
+	a := btcOracleTypes.ReserveWithdrawSnapshotResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling withdraw snapshot : ", err)
@@ -641,7 +642,7 @@ func getWithdrawSnapshot(reserveId uint64, roundId uint64) ReserveWithdrawSnapsh
 	return a.ReserveWithdrawSnapshot
 }
 
-func getBroadCastedRefundTx(reserveId uint64, roundId uint64) BroadcastRefundMsg {
+func GetBroadCastedRefundTx(reserveId uint64, roundId uint64) btcOracleTypes.BroadcastRefundMsg {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	path := fmt.Sprintf("/twilight-project/nyks/bridge/broadcast_tx_refund/%d/%d", reserveId, roundId)
 	resp, err := http.Get(nyksd_url + path)
@@ -649,12 +650,12 @@ func getBroadCastedRefundTx(reserveId uint64, roundId uint64) BroadcastRefundMsg
 		fmt.Println("error getting broadcasted refund : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting broadcasted refund body : ", err)
 	}
 
-	a := BroadcastRefundMsgResp{}
+	a := btcOracleTypes.BroadcastRefundMsgResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling broadcasted refund : ", err)
@@ -662,19 +663,19 @@ func getBroadCastedRefundTx(reserveId uint64, roundId uint64) BroadcastRefundMsg
 	return a.BroadcastRefundMsg
 }
 
-func getProposedAddresses() ProposeSweepAddressMsgResp {
+func GetProposedAddresses() btcOracleTypes.ProposeSweepAddressMsgResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
 	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/bridge/propose_sweep_addresses_all/25")
 	if err != nil {
 		fmt.Println("error getting reserve addresses : ", err)
 	}
 	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error getting reserve addresses body : ", err)
 	}
 
-	a := ProposeSweepAddressMsgResp{}
+	a := btcOracleTypes.ProposeSweepAddressMsgResp{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("error unmarshalling reserve addresses : ", err)

@@ -15,6 +15,10 @@ import (
 	"github.com/tyler-smith/go-bip32"
 
 	"github.com/gorilla/websocket"
+	db "github.com/twilight-project/forkoracle-go/db"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
+	utils "github.com/twilight-project/forkoracle-go/utils"
+	wallet "github.com/twilight-project/forkoracle-go/wallet"
 )
 
 var dbconn *sql.DB
@@ -23,7 +27,7 @@ var judge bool
 var oracleAddr string
 var valAddr string
 var upgrader = websocket.Upgrader{}
-var WsHub *Hub
+var WsHub *btcOracleTypes.Hub
 
 var latestSweepTxHash = prometheus.NewGaugeVec(
 	prometheus.GaugeOpts{
@@ -34,10 +38,10 @@ var latestSweepTxHash = prometheus.NewGaugeVec(
 )
 
 func initialize() {
-	initConfigFile()
-	btcPubkey := initWallet()
-	dbconn = initDB()
-	setDelegator(btcPubkey)
+	utils.InitConfigFile()
+	btcPubkey := wallet.InitWallet(masterPrivateKey)
+	dbconn = db.InitDB()
+	utils.SetDelegator(btcPubkey, &valAddr, &oracleAddr)
 }
 
 func main() {
@@ -66,72 +70,31 @@ func main() {
 	}
 
 	time.Sleep(1 * time.Minute)
-	go startBridge(accountName, forkscanner_url)
+	go startBridge(accountName, forkscanner_url, dbconn)
 	go pubsubServer()
-	go startTransactionSigner(accountName)
+	go startTransactionSigner(accountName, masterPrivateKey, dbconn)
 	prometheus_server()
 	fmt.Println("exiting main")
 }
 
-func (h *Hub) run() {
-	for {
-		select {
-		case client := <-h.register:
-			h.clients[client] = true
-		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-			}
-		case message := <-h.broadcast:
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
-		}
-	}
-}
-
-func (c *Client) writePump() {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-	for {
-		select {
-		case message, ok := <-c.send:
-			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			c.conn.WriteMessage(websocket.TextMessage, message)
-		}
-	}
-}
-
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func serveWs(hub *btcOracleTypes.Hub, w http.ResponseWriter, r *http.Request) {
 	conn, _ := upgrader.Upgrade(w, r, nil)
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
+	client := &btcOracleTypes.Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256)}
+	client.Hub.Register <- client
 
-	go client.writePump()
+	go client.WritePump()
 }
 
 func pubsubServer() {
 	fmt.Println("starting pubsub server")
-	WsHub = &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+	WsHub = &btcOracleTypes.Hub{
+		Broadcast:  make(chan []byte),
+		Register:   make(chan *btcOracleTypes.Client),
+		Unregister: make(chan *btcOracleTypes.Client),
+		Clients:    make(map[*btcOracleTypes.Client]bool),
 	}
 
-	go WsHub.run()
+	go WsHub.Run()
 
 	http.HandleFunc("/tapinscription", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(WsHub, w, r)

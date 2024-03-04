@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"database/sql"
@@ -6,9 +6,10 @@ import (
 	"log"
 
 	"github.com/spf13/viper"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 )
 
-func initDB() *sql.DB {
+func InitDB() *sql.DB {
 	psqlconn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", viper.Get("DB_host"), viper.Get("DB_port"), viper.Get("DB_user"), viper.Get("DB_password"), viper.Get("DB_name"))
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
@@ -19,7 +20,7 @@ func initDB() *sql.DB {
 	return db
 }
 
-func insertNotifications(element WatchtowerNotification) {
+func InsertNotifications(dbconn *sql.DB, element btcOracleTypes.WatchtowerNotification) {
 	_, err := dbconn.Exec("INSERT into notification VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
 		element.Block,
 		element.Receiving,
@@ -36,7 +37,7 @@ func insertNotifications(element WatchtowerNotification) {
 	}
 }
 
-func markProcessedNotifications(element WatchtowerNotification) {
+func MarkProcessedNotifications(dbconn *sql.DB, element btcOracleTypes.WatchtowerNotification) {
 	_, err := dbconn.Exec("update notification set archived = true where txid = $1 and sending = $2",
 		element.Receiving_txid,
 		element.Sending,
@@ -46,17 +47,17 @@ func markProcessedNotifications(element WatchtowerNotification) {
 	}
 }
 
-func queryNotification() []WatchtowerNotification {
+func QueryNotification(dbconn *sql.DB) []btcOracleTypes.WatchtowerNotification {
 	DB_reader, err := dbconn.Query("select * from notification where archived = false")
 	if err != nil {
 		fmt.Println("An error occured while query Notification query: ", err)
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]WatchtowerNotification, 0)
+	addresses := make([]btcOracleTypes.WatchtowerNotification, 0)
 
 	for DB_reader.Next() {
-		address := WatchtowerNotification{}
+		address := btcOracleTypes.WatchtowerNotification{}
 		err := DB_reader.Scan(
 			&address.Block,
 			&address.Receiving,
@@ -76,17 +77,17 @@ func queryNotification() []WatchtowerNotification {
 	return addresses
 }
 
-func queryUtxo(address string) []Utxo {
+func QueryUtxo(dbconn *sql.DB, address string) []btcOracleTypes.Utxo {
 	DB_reader, err := dbconn.Query("select txid, Receiving_vout, satoshis from notification where receiving = $1", address)
 	if err != nil {
 		fmt.Println("An error occured while query utxo: ", err)
 	}
 
 	defer DB_reader.Close()
-	utxos := make([]Utxo, 0)
+	utxos := make([]btcOracleTypes.Utxo, 0)
 
 	for DB_reader.Next() {
-		utxo := Utxo{}
+		utxo := btcOracleTypes.Utxo{}
 		err := DB_reader.Scan(
 			&utxo.Txid,
 			&utxo.Vout,
@@ -100,7 +101,7 @@ func queryUtxo(address string) []Utxo {
 	return utxos
 }
 
-func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
+func QueryAmount(dbconn *sql.DB, receiving_vout uint32, receiving_txid string) uint64 {
 	DB_reader, err := dbconn.Query("select satoshis from notification where receiving_vout = $1 and txid = $2", receiving_vout, receiving_txid)
 	if err != nil {
 		fmt.Println("An error occured query amount query: ", err)
@@ -119,7 +120,7 @@ func queryAmount(receiving_vout uint32, receiving_txid string) uint64 {
 	return intValue
 }
 
-func insertSweepAddress(address string, script []byte, preimage []byte, unlock_height int64, parent_address string, owned bool) {
+func InsertSweepAddress(dbconn *sql.DB, address string, script []byte, preimage []byte, unlock_height int64, parent_address string, owned bool) {
 	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
 		address,
 		script,
@@ -158,7 +159,7 @@ func insertSweepAddress(address string, script []byte, preimage []byte, unlock_h
 // 	}
 // }
 
-func markAddressSignedSweep(address string) {
+func MarkAddressSignedSweep(dbconn *sql.DB, address string) {
 	_, err := dbconn.Exec("update address set signed_sweep = $1 where address = $2",
 		true,
 		address,
@@ -168,7 +169,7 @@ func markAddressSignedSweep(address string) {
 	}
 }
 
-func markAddressBroadcastedSweep(address string) {
+func MarkAddressBroadcastedSweep(dbconn *sql.DB, address string) {
 	_, err := dbconn.Exec("update address set broadcast_sweep = $1 where address = $2",
 		true,
 		address,
@@ -178,7 +179,7 @@ func markAddressBroadcastedSweep(address string) {
 	}
 }
 
-func markAddressBroadcastedRefund(address string) {
+func MarkAddressBroadcastedRefund(dbconn *sql.DB, address string) {
 	_, err := dbconn.Exec("update address set broadcast_refund = $1 where address = $2",
 		true,
 		address,
@@ -188,7 +189,7 @@ func markAddressBroadcastedRefund(address string) {
 	}
 }
 
-func markAddressArchived(address string) {
+func MarkAddressArchived(dbconn *sql.DB, address string) {
 	_, err := dbconn.Exec("update address set archived = $1 where address = $2",
 		true,
 		address,
@@ -198,7 +199,7 @@ func markAddressArchived(address string) {
 	}
 }
 
-func UpdateAddressUnlockHeight(address string, height int64) {
+func UpdateAddressUnlockHeight(dbconn *sql.DB, address string, height int64) {
 	_, err := dbconn.Exec("update address set unlock_height = $1 where address = $2",
 		height,
 		address,
@@ -208,7 +209,7 @@ func UpdateAddressUnlockHeight(address string, height int64) {
 	}
 }
 
-func markAddressSignedRefund(address string) {
+func MarkAddressSignedRefund(dbconn *sql.DB, address string) {
 	_, err := dbconn.Exec("update address set signed_refund = $1 where address = $2",
 		true,
 		address,
@@ -218,7 +219,7 @@ func markAddressSignedRefund(address string) {
 	}
 }
 
-func querySweepAddressesByHeight(height uint64, owned bool) []SweepAddress {
+func QuerySweepAddressesByHeight(dbconn *sql.DB, height uint64, owned bool) []btcOracleTypes.SweepAddress {
 	// fmt.Println("getting address for height: ", height)
 	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where unlock_height = $1 and archived = false and owned = $2", height, owned)
 	if err != nil {
@@ -226,10 +227,10 @@ func querySweepAddressesByHeight(height uint64, owned bool) []SweepAddress {
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+	addresses := make([]btcOracleTypes.SweepAddress, 0)
 
 	for DB_reader.Next() {
-		address := SweepAddress{}
+		address := btcOracleTypes.SweepAddress{}
 		err := DB_reader.Scan(
 			&address.Address,
 			&address.Script,
@@ -245,17 +246,17 @@ func querySweepAddressesByHeight(height uint64, owned bool) []SweepAddress {
 	return addresses
 }
 
-func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
+func QuerySweepAddressesOrderByHeight(dbconn *sql.DB, limit int) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("SELECT * FROM address WHERE archived = false ORDER BY unlock_height DESC LIMIT $1", limit)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+	addresses := make([]btcOracleTypes.SweepAddress, 0)
 
 	for DB_reader.Next() {
-		address := SweepAddress{}
+		address := btcOracleTypes.SweepAddress{}
 		err := DB_reader.Scan(
 			&address.Address,
 			&address.Script,
@@ -278,17 +279,17 @@ func querySweepAddressesOrderByHeight(limit int) []SweepAddress {
 	return addresses
 }
 
-func querySweepAddress(addr string) []SweepAddress {
+func QuerySweepAddress(dbconn *sql.DB, addr string) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select * from address where address = $1", addr)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+	addresses := make([]btcOracleTypes.SweepAddress, 0)
 
 	for DB_reader.Next() {
-		address := SweepAddress{}
+		address := btcOracleTypes.SweepAddress{}
 		err := DB_reader.Scan(
 			&address.Address,
 			&address.Script,
@@ -311,17 +312,17 @@ func querySweepAddress(addr string) []SweepAddress {
 	return addresses
 }
 
-func queryAllSweepAddresses() []SweepAddress {
+func QueryAllSweepAddresses(dbconn *sql.DB) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select address, script, preimage, parent_address from address where archived = false")
 	if err != nil {
 		fmt.Println("An error occured while query all sweep addresses: ", err)
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+	addresses := make([]btcOracleTypes.SweepAddress, 0)
 
 	for DB_reader.Next() {
-		address := SweepAddress{}
+		address := btcOracleTypes.SweepAddress{}
 		err := DB_reader.Scan(
 			&address.Address,
 			&address.Script,
@@ -337,17 +338,17 @@ func queryAllSweepAddresses() []SweepAddress {
 	return addresses
 }
 
-func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
+func QueryUnsignedSweepAddressByScript(dbconn *sql.DB, script []byte) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select * from address where script = $1", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+	addresses := make([]btcOracleTypes.SweepAddress, 0)
 
 	for DB_reader.Next() {
-		address := SweepAddress{}
+		address := btcOracleTypes.SweepAddress{}
 		err := DB_reader.Scan(
 			&address.Address,
 			&address.Script,
@@ -370,17 +371,17 @@ func queryUnsignedSweepAddressByScript(script []byte) []SweepAddress {
 	return addresses
 }
 
-func queryUnsignedRefundAddressByScript(script []byte) []SweepAddress {
+func QueryUnsignedRefundAddressByScript(dbconn *sql.DB, script []byte) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select * from address where script = $1 and signed_refund = false and archived = false", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
 	}
 
 	defer DB_reader.Close()
-	addresses := make([]SweepAddress, 0)
+	addresses := make([]btcOracleTypes.SweepAddress, 0)
 
 	for DB_reader.Next() {
-		address := SweepAddress{}
+		address := btcOracleTypes.SweepAddress{}
 		err := DB_reader.Scan(
 			&address.Address,
 			&address.Script,
@@ -403,7 +404,7 @@ func queryUnsignedRefundAddressByScript(script []byte) []SweepAddress {
 	return addresses
 }
 
-func querySweepAddressScript(address string) []byte {
+func QuerySweepAddressScript(dbconn *sql.DB, address string) []byte {
 	DB_reader, err := dbconn.Query("select script from address where address = $1", address)
 	if err != nil {
 		fmt.Println("An error occured while query script sweep address: ", err)
@@ -498,7 +499,7 @@ func querySweepAddressScript(address string) []byte {
 // 	return addresses
 // }
 
-func queryAllAddressOnly() []string {
+func QueryAllAddressOnly(dbconn *sql.DB) []string {
 	DB_reader, err := dbconn.Query("select address from address;")
 	if err != nil {
 		fmt.Println("An error occured while query address: ", err)
@@ -520,7 +521,7 @@ func queryAllAddressOnly() []string {
 	return addresses
 }
 
-func insertTransaction(txid string, address string, reserve uint64, round uint64) {
+func InsertTransaction(dbconn *sql.DB, txid string, address string, reserve uint64, round uint64) {
 	_, err := dbconn.Exec("INSERT into transaction VALUES ($1, $2, $3, $4, $5)",
 		txid,
 		address,
@@ -533,17 +534,17 @@ func insertTransaction(txid string, address string, reserve uint64, round uint64
 	}
 }
 
-func queryWatchedTransactions() []WatchedTx {
+func QueryWatchedTransactions(dbconn *sql.DB) []btcOracleTypes.WatchedTx {
 	DB_reader, err := dbconn.Query("select * from transaction where watched = true;")
 	if err != nil {
 		fmt.Println("An error occured while query transactions: ", err)
 	}
 
 	defer DB_reader.Close()
-	txs := make([]WatchedTx, 0)
+	txs := make([]btcOracleTypes.WatchedTx, 0)
 
 	for DB_reader.Next() {
-		tx := WatchedTx{}
+		tx := btcOracleTypes.WatchedTx{}
 		err := DB_reader.Scan(
 			&tx.Txid,
 			&tx.Address,
@@ -559,7 +560,7 @@ func queryWatchedTransactions() []WatchedTx {
 	return txs
 }
 
-func markTransactionProcessed(txid string) {
+func MarkTransactionProcessed(dbconn *sql.DB, txid string) {
 	_, err := dbconn.Exec("update transaction set watched = false where txid = $1",
 		txid,
 	)
@@ -568,7 +569,7 @@ func markTransactionProcessed(txid string) {
 	}
 }
 
-func insertProposedAddress(current string, proposed string, unlock_height int64, roundID int64, reserveID int64) {
+func InsertProposedAddress(dbconn *sql.DB, current string, proposed string, unlock_height int64, roundID int64, reserveID int64) {
 	_, err := dbconn.Exec("INSERT into proposed_address VALUES ($1, $2, $3, $4, $5)",
 		current,
 		proposed,
@@ -601,7 +602,7 @@ func insertProposedAddress(current string, proposed string, unlock_height int64,
 // 	return length
 // }
 
-func checkIfAddressIsProposed(roundID int64) bool {
+func CheckIfAddressIsProposed(dbconn *sql.DB, roundID int64) bool {
 	DB_reader, err := dbconn.Query("SELECT 1 FROM proposed_address WHERE \"roundId\" = $1 LIMIT 1;", roundID)
 	if err != nil {
 		fmt.Println("An error occurred while querying proposed addresses:", err)
@@ -612,7 +613,7 @@ func checkIfAddressIsProposed(roundID int64) bool {
 	return DB_reader.Next() // Return true if there is at least one result row
 }
 
-func insertSignedtx(tx []byte, unlock_height int64) {
+func InsertSignedtx(dbconn *sql.DB, tx []byte, unlock_height int64) {
 	_, err := dbconn.Exec("INSERT into signed_tx VALUES ($1, $2)",
 		tx,
 		unlock_height,
@@ -622,7 +623,7 @@ func insertSignedtx(tx []byte, unlock_height int64) {
 	}
 }
 
-func querySignedTx(unlock_height int64) [][]byte {
+func QuerySignedTx(dbconn *sql.DB, unlock_height int64) [][]byte {
 	DB_reader, err := dbconn.Query("select tx from signed_tx where unlock_height <= $1", unlock_height)
 	if err != nil {
 		fmt.Println("An error occured while query script signed tx: ", err)
@@ -645,7 +646,7 @@ func querySignedTx(unlock_height int64) [][]byte {
 	return txs
 }
 
-func deleteSignedTx(tx []byte) {
+func DeleteSignedTx(dbconn *sql.DB, tx []byte) {
 	_, err := dbconn.Exec("DELETE FROM signed_tx WHERE tx = $1", tx)
 	if err != nil {
 		fmt.Println("An error occurred while executing delete signed tx: ", err)

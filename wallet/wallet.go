@@ -1,4 +1,4 @@
-package main
+package wallet
 
 import (
 	"encoding/hex"
@@ -157,7 +157,7 @@ func readFromFile(name string) ([]byte, error) {
 	return data, nil
 }
 
-func initWallet() string {
+func InitWallet(masterPrivateKey *bip32.Key) string {
 	new_wallet := flag.Bool("new_wallet", true, "set to true if you want to create a new wallet")
 	mnemonic := flag.String("mnemonic", "", "mnemonic for the wallet, leave empty to generate a new nemonic")
 	flag.Parse()
@@ -205,12 +205,11 @@ func initWallet() string {
 
 }
 
-func getBtcPublicKey() string {
+func GetBtcPublicKey(masterPrivateKey *bip32.Key) string {
 	privkeybytes, err := masterPrivateKey.Serialize()
 	if err != nil {
 		fmt.Println("Error: converting private key to bytes : ", err)
 	}
-
 	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
 	btcPubkey := hex.EncodeToString(privkey.PubKey().SerializeCompressed())

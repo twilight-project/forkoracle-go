@@ -1,7 +1,8 @@
-package main
+package utils
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -20,19 +20,22 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
+	comms "github.com/twilight-project/forkoracle-go/comms"
+	db "github.com/twilight-project/forkoracle-go/db"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
+	"github.com/tyler-smith/go-bip32"
 )
 
-func initConfigFile() {
+func InitConfigFile() {
 	viper.AddConfigPath("./configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
 	viper.SetConfigType("json")   // Look for specific type
 	viper.ReadInConfig()
 }
 
-func setDelegator(btcPubkey string) {
+func SetDelegator(btcPubkey string, valAddr *string, oracleAddr *string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
 	args := strings.Fields(command)
@@ -44,8 +47,8 @@ func setDelegator(btcPubkey string) {
 		return
 	}
 
-	valAddr = string(valAddr_)
-	valAddr = strings.ReplaceAll(valAddr, "\n", "")
+	*valAddr = string(valAddr_)
+	*valAddr = strings.ReplaceAll(*valAddr, "\n", "")
 	fmt.Println("Val Address : ", valAddr)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
@@ -58,8 +61,8 @@ func setDelegator(btcPubkey string) {
 		return
 	}
 
-	oracleAddr = string(oracleAddr_)
-	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
+	*oracleAddr = string(oracleAddr_)
+	*oracleAddr = strings.ReplaceAll(*oracleAddr, "\n", "")
 	fmt.Println("Oracle Address : ", oracleAddr)
 
 	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, accountName)
@@ -110,36 +113,6 @@ func broadcastBtcTransaction(tx *wire.MsgTx) {
 	fmt.Println("broadcasted btc transaction, txhash : ", txHash)
 }
 
-func registerAddressOnValidators() {
-	// {add check to see if the address already exists}
-	fmt.Println("registering address on validators")
-	savedAddress := queryAllAddressOnly()
-	respReserve := getReserveAddresses()
-	if len(respReserve.Addresses) > 0 {
-		for _, address := range respReserve.Addresses {
-			if !stringInSlice(address.ReserveAddress, savedAddress) {
-				registerAddressOnForkscanner(address.ReserveAddress)
-				decodedScript := decodeBtcScript(address.ReserveScript)
-				height := getHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				insertSweepAddress(address.ReserveAddress, reserveScript, nil, height+1, "", false)
-			}
-		}
-	}
-	respProposed := getProposedAddresses()
-	if len(respProposed.ProposeSweepAddressMsgs) > 0 {
-		for _, address := range respProposed.ProposeSweepAddressMsgs {
-			if !stringInSlice(address.BtcAddress, savedAddress) {
-				registerAddressOnForkscanner(address.BtcAddress)
-				decodedScript := decodeBtcScript(address.BtcScript)
-				height := getHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.BtcScript)
-				insertSweepAddress(address.BtcAddress, reserveScript, nil, height+1, "", false)
-			}
-		}
-	}
-}
-
 // func getReserveForAddress(address string) BtcReserve {
 // 	btcReserves := getBtcReserves()
 // 	for _, reserve := range btcReserves.BtcReserves {
@@ -150,75 +123,7 @@ func registerAddressOnValidators() {
 // 	return BtcReserve{}
 // }
 
-func registerReserveAddressOnNyks(accountName string, address string, script []byte) {
-
-	cosmos := getCosmosClient()
-
-	reserveScript := hex.EncodeToString(script)
-
-	msg := &bridgetypes.MsgRegisterReserveAddress{
-		ReserveScript:  reserveScript,
-		ReserveAddress: address,
-		JudgeAddress:   oracleAddr,
-	}
-
-	// store response in txResp
-	txResp, err := sendTransactionRegisterReserveAddress(accountName, cosmos, msg)
-	if err != nil {
-		fmt.Println("error in registering reserve address : ", err)
-	}
-
-	// print response from broadcasting a transaction
-	fmt.Println("MsgRegisterReserveAddress : ")
-	fmt.Println(txResp)
-}
-
-func registerAddressOnForkscanner(address string) {
-	dt := time.Now().UTC()
-	dt = dt.AddDate(1, 0, 0)
-
-	request_body := map[string]interface{}{
-		"method":  "add_watched_addresses",
-		"id":      1,
-		"jsonrpc": "2.0",
-		"params": map[string]interface{}{
-			"add": []interface{}{
-				map[string]string{
-					"address":     address,
-					"watch_until": dt.Format(time.RFC3339),
-				},
-			},
-		},
-	}
-
-	data, err := json.Marshal(request_body)
-	if err != nil {
-		log.Fatalf("Post: %v", err)
-	}
-	fmt.Println(string(data))
-
-	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
-	if err != nil {
-		log.Fatalf("Post: %v", err)
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("ReadAll: %v", err)
-	}
-	result := make(map[string]interface{})
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
-	}
-	log.Println(result)
-
-	fmt.Println("registered address on forkscanner : ", address)
-
-}
-
-func createTxFromHex(txHex string) (*wire.MsgTx, error) {
+func CreateTxFromHex(txHex string) (*wire.MsgTx, error) {
 	// Decode the transaction hex string
 	txBytes, err := hex.DecodeString(txHex)
 	if err != nil {
@@ -237,12 +142,12 @@ func createTxFromHex(txHex string) (*wire.MsgTx, error) {
 	return tx, nil
 }
 
-func signTx(tx *wire.MsgTx, script []byte) []string {
+func SignTx(dbconn *sql.DB, masterPrivateKey *bip32.Key, tx *wire.MsgTx, script []byte) []string {
 	signatures := []string{}
 
 	for i, input := range tx.TxIn {
 
-		amount := queryAmount(input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
+		amount := db.QueryAmount(dbconn, input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
 		sighashes := txscript.NewTxSigHashes(tx)
 
 		privkeybytes, err := masterPrivateKey.Serialize()
@@ -292,7 +197,7 @@ func signTx(tx *wire.MsgTx, script []byte) []string {
 // 	return arr
 // }
 
-func stringInSlice(str string, slice []string) bool {
+func StringInSlice(str string, slice []string) bool {
 	for _, s := range slice {
 		if s == str {
 			return true
@@ -320,7 +225,7 @@ func CreateTxOut(addr string, amount int64) (*wire.TxOut, error) {
 
 }
 
-func CreateTxIn(utxo Utxo) (*wire.TxIn, error) {
+func CreateTxIn(utxo btcOracleTypes.Utxo) (*wire.TxIn, error) {
 	utxoHash, err := chainhash.NewHashFromStr(utxo.Txid)
 	if err != nil {
 		log.Println("error with UTXO")
@@ -331,46 +236,46 @@ func CreateTxIn(utxo Utxo) (*wire.TxIn, error) {
 	return txIn, nil
 }
 
-func sendUnsignedSweepTx(reserveId uint64, roundId uint64, sweepTx string, sweeptxId string, accountName string) {
-	cosmos := getCosmosClient()
+func sendUnsignedSweepTx(reserveId uint64, roundId uint64, sweepTx string, sweeptxId string, accountName string, oracleAddr string) {
+	cosmos := comms.GetCosmosClient()
 	msg := bridgetypes.NewMsgUnsignedTxSweep(sweeptxId, sweepTx, reserveId, roundId, oracleAddr)
-	sendTransactionUnsignedSweepTx(accountName, cosmos, msg)
+	comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
 }
 
-func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, accountName string) {
-	cosmos := getCosmosClient()
+func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, accountName string, oracleAddr string) {
+	cosmos := comms.GetCosmosClient()
 	msg := bridgetypes.NewMsgUnsignedTxRefund(reserveId, roundId, refundTx, oracleAddr)
-	sendTransactionUnsignedRefundTx(accountName, cosmos, msg)
+	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 }
 
-func sendSweepSign(hexSignatures []string, address string, accountName string, reserveId uint64, roundId uint64) {
-	cosmos := getCosmosClient()
-	msg := &bridgetypes.MsgSignSweep{
-		ReserveId:        reserveId,
-		RoundId:          roundId,
-		SignerPublicKey:  getBtcPublicKey(),
-		SweepSignature:   hexSignatures,
-		BtcOracleAddress: oracleAddr,
-	}
+// func SendSweepSign(hexSignatures []string, address string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
+// 	cosmos := comms.GetCosmosClient()
+// 	msg := &bridgetypes.MsgSignSweep{
+// 		ReserveId:        reserveId,
+// 		RoundId:          roundId,
+// 		SignerPublicKey:  getBtcPublicKey(),
+// 		SweepSignature:   hexSignatures,
+// 		BtcOracleAddress: oracleAddr,
+// 	}
 
-	sendTransactionSignSweep(accountName, cosmos, msg)
-}
+// 	comms.SendTransactionSignSweep(accountName, cosmos, msg)
+// }
 
-func sendRefundSign(hexSignatures string, address string, accountName string, reserveId uint64, roundId uint64) {
-	cosmos := getCosmosClient()
-	msg := &bridgetypes.MsgSignRefund{
-		ReserveId:        reserveId,
-		RoundId:          roundId,
-		SignerPublicKey:  getBtcPublicKey(),
-		RefundSignature:  []string{hexSignatures},
-		BtcOracleAddress: oracleAddr,
-	}
+// func sendRefundSign(hexSignatures string, address string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
+// 	cosmos := comms.GetCosmosClient()
+// 	msg := &bridgetypes.MsgSignRefund{
+// 		ReserveId:        reserveId,
+// 		RoundId:          roundId,
+// 		SignerPublicKey:  getBtcPublicKey(),
+// 		RefundSignature:  []string{hexSignatures},
+// 		BtcOracleAddress: oracleAddr,
+// 	}
 
-	sendTransactionSignRefund(accountName, cosmos, msg)
-}
+// 	comms.SendTransactionSignRefund(accountName, cosmos, msg)
+// }
 
-func broadcastSweeptxNYKS(sweepTxHex string, accountName string, reserveId uint64, roundId uint64) {
-	cosmos := getCosmosClient()
+func broadcastSweeptxNYKS(sweepTxHex string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
+	cosmos := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgBroadcastTxSweep{
 		SignedSweepTx: sweepTxHex,
 		JudgeAddress:  oracleAddr,
@@ -378,11 +283,11 @@ func broadcastSweeptxNYKS(sweepTxHex string, accountName string, reserveId uint6
 		RoundId:       roundId,
 	}
 
-	sendTransactionBroadcastSweeptx(accountName, cosmos, msg)
+	comms.SendTransactionBroadcastSweeptx(accountName, cosmos, msg)
 }
 
-func broadcastRefundtxNYKS(refundTxHex string, accountName string, reserveId uint64, roundId uint64) {
-	cosmos := getCosmosClient()
+func broadcastRefundtxNYKS(refundTxHex string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
+	cosmos := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgBroadcastTxRefund{
 		SignedRefundTx: refundTxHex,
 		JudgeAddress:   oracleAddr,
@@ -390,64 +295,33 @@ func broadcastRefundtxNYKS(refundTxHex string, accountName string, reserveId uin
 		RoundId:        roundId,
 	}
 
-	sendTransactionBroadcastRefundtx(accountName, cosmos, msg)
+	comms.SendTransactionBroadcastRefundtx(accountName, cosmos, msg)
 }
 
-func generateAndRegisterNewBtcReserveAddress(accountName string, height int64) string {
-	newSweepAddress, reserveScript := generateAddress(height, "")
-	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript)
-	registerAddressOnForkscanner(newSweepAddress)
-
-	// BtcReserves := getBtcReserves()
-	// var currentReserve BtcReserve
-	// for _, reserve := range BtcReserves.BtcReserves {
-	// 	if reserve.JudgeAddress == oracleAddr {
-	// 		currentReserve = reserve
-	// 	}
-	// }
-
-	// reserveId, _ := strconv.Atoi(currentReserve.ReserveId)
-
-	// if reserveId == 1 {
-	// 	UpdateAddressUnlockHeight(newSweepAddress, height+int64(144))
-	// } else if reserveId == 2 {
-	// 	UpdateAddressUnlockHeight(newSweepAddress, height+int64(72))
-	// }
-
-	return newSweepAddress
-}
-
-func generateAndRegisterNewProposedAddress(accountName string, height int64, oldReserveAddress string) (string, string) {
-	newSweepAddress, script := generateAddress(height, oldReserveAddress)
-	registerAddressOnForkscanner(newSweepAddress)
-	hexScript := hex.EncodeToString(script)
-	return newSweepAddress, hexScript
-}
-
-func registerJudge(accountName string) {
-	cosmos := getCosmosClient()
+func registerJudge(accountName string, oracleAddr string, valAddr string) {
+	cosmos := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgRegisterJudge{
 		Creator:          oracleAddr,
 		JudgeAddress:     oracleAddr,
 		ValidatorAddress: valAddr,
 	}
 
-	sendTransactionRegisterJudge(accountName, cosmos, msg)
+	comms.SendTransactionRegisterJudge(accountName, cosmos, msg)
 	fmt.Println("registered Judge")
 }
 
-func filterAndOrderSignSweep(sweepSignatures MsgSignSweepResp, pubkeys []string) []MsgSignSweep {
+func filterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string) []btcOracleTypes.MsgSignSweep {
 	fmt.Println(sweepSignatures.SignSweepMsg)
 	fmt.Println(pubkeys)
-	filtereSignSweep := []MsgSignSweep{}
+	filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
 	for _, sweepSig := range sweepSignatures.SignSweepMsg {
-		if stringInSlice(sweepSig.SignerPublicKey, pubkeys) {
+		if StringInSlice(sweepSig.SignerPublicKey, pubkeys) {
 			filtereSignSweep = append(filtereSignSweep, sweepSig)
 		}
 	}
 
-	delegateAddresses := getDelegateAddresses()
-	orderedSignSweep := make([]MsgSignSweep, 0)
+	delegateAddresses := comms.GetDelegateAddresses()
+	orderedSignSweep := make([]btcOracleTypes.MsgSignSweep, 0)
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
 		for _, sweepSig := range filtereSignSweep {
@@ -462,12 +336,13 @@ func filterAndOrderSignSweep(sweepSignatures MsgSignSweepResp, pubkeys []string)
 	return orderedSignSweep
 }
 
-func OrderSignRefund(refundSignatures MsgSignRefundResp, address string, pubkeys []string) ([]MsgSignRefund, MsgSignRefund) {
-	delegateAddresses := getDelegateAddresses()
+func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address string,
+	pubkeys []string, oracleAddr string) ([]btcOracleTypes.MsgSignRefund, btcOracleTypes.MsgSignRefund) {
 
+	delegateAddresses := comms.GetDelegateAddresses()
 	//needs to change for multi judge > 2 with staking in place
-	registeredJudges := getRegisteredJudges()
-	var otherJudgeAddress RegisteredJudge
+	registeredJudges := comms.GetRegisteredJudges()
+	var otherJudgeAddress btcOracleTypes.RegisteredJudge
 
 	if len(registeredJudges.Judges) > 1 {
 		for _, judge := range registeredJudges.Judges {
@@ -479,15 +354,15 @@ func OrderSignRefund(refundSignatures MsgSignRefundResp, address string, pubkeys
 		otherJudgeAddress = registeredJudges.Judges[0]
 	}
 
-	filteresSignRefund := make([]MsgSignRefund, 0)
+	filteresSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
 	for _, refundSig := range refundSignatures.SignRefundMsg {
-		if stringInSlice(refundSig.signerPublicKey, pubkeys) {
+		if StringInSlice(refundSig.SignerPublicKey, pubkeys) {
 			filteresSignRefund = append(filteresSignRefund, refundSig)
 		}
 	}
 
-	orderedSignRefund := make([]MsgSignRefund, 0)
-	var judgeSign MsgSignRefund
+	orderedSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
+	var judgeSign btcOracleTypes.MsgSignRefund
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
 		for _, refundSig := range refundSignatures.SignRefundMsg {
@@ -504,7 +379,7 @@ func OrderSignRefund(refundSignatures MsgSignRefundResp, address string, pubkeys
 	return orderedSignRefund, judgeSign
 }
 
-func getBtcFeeRate() FeeRate {
+func getBtcFeeRate() btcOracleTypes.FeeRate {
 	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
 	if err != nil {
 		log.Fatalln(err)
@@ -515,7 +390,7 @@ func getBtcFeeRate() FeeRate {
 		log.Fatalln(err)
 	}
 
-	a := FeeRate{}
+	a := btcOracleTypes.FeeRate{}
 	err = json.Unmarshal(body, &a)
 	if err != nil {
 		fmt.Println("Error decoding Fee Rate : ", err)
@@ -524,7 +399,7 @@ func getBtcFeeRate() FeeRate {
 	return a
 }
 
-func decodeBtcScript(script string) string {
+func DecodeBtcScript(script string) string {
 	decoded, err := hex.DecodeString(script)
 	if err != nil {
 		fmt.Println("Error decoding script Hex : ", err)
@@ -537,7 +412,7 @@ func decodeBtcScript(script string) string {
 	return decodedScript
 }
 
-func getHeightFromScript(script string) int64 {
+func GetHeightFromScript(script string) int64 {
 	// Split the decoded script into parts
 	height := int64(0)
 	parts := strings.Split(script, " ")
@@ -557,7 +432,7 @@ func getHeightFromScript(script string) int64 {
 	return height
 }
 
-func getMinSignFromScript(script string) int64 {
+func GetMinSignFromScript(script string) int64 {
 	// Split the decoded script into parts
 	minSignRequired := int64(0)
 	parts := strings.Split(script, " ")
@@ -592,100 +467,4 @@ func getPublicKeysFromScript(script string, limit int) []string {
 	pubkeys = append(pubkeys, parts[4:4+limit]...)
 
 	return pubkeys
-}
-
-func nyksEventListener(event string, accountName string, functionCall string) {
-	headers := make(map[string][]string)
-	headers["Content-Type"] = []string{"application/json"}
-	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_socket_url"))
-	conn, _, err := websocket.DefaultDialer.Dial(nyksd_url, headers)
-	if err != nil {
-		fmt.Println("nyks event listerner dial:", err)
-	}
-	defer conn.Close()
-
-	// Set up ping/pong connection health check
-	pingPeriod := 30 * time.Second
-	pongWait := 60 * time.Second
-	stopChan := make(chan struct{}) // Create the stop channel
-
-	conn.SetReadDeadline(time.Now().Add(pongWait))
-	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
-
-	go func() {
-		ticker := time.NewTicker(pingPeriod)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-					return
-				}
-			case <-stopChan: // Listen to the stop channel
-				return
-			}
-		}
-	}()
-
-	payload := `{
-        "jsonrpc": "2.0",
-        "method": "subscribe",
-        "id": 0,
-        "params": {
-            "query": "tm.event='Tx' AND message.action='%s'"
-        }
-    }`
-	payload = fmt.Sprintf(payload, event)
-
-	err = conn.WriteMessage(websocket.TextMessage, []byte(payload))
-	if err != nil {
-		fmt.Println("error in nyks event handler: ", err)
-		stopChan <- struct{}{} // Signal goroutine to stop
-		return
-	}
-
-	for {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("error in nyks event handler: ", err)
-			stopChan <- struct{}{} // Signal goroutine to stop
-			return
-		}
-
-		// var event Event
-		// err = json.Unmarshal(message, &event)
-		// if err != nil {
-		// 	fmt.Println("error unmarshalling event: ", err)
-		// 	continue
-		// }
-
-		// fmt.Print("event : ", event)
-		// fmt.Print("event : ", message)
-
-		// if event.Method == "subscribe" && event.Params.Query == fmt.Sprintf("tm.event='Tx' AND message.action='%s'", event) {
-		// 	continue
-		// }
-
-		switch functionCall {
-		case "signed_sweep_process":
-			go processSignedSweep(accountName)
-		case "refund_process":
-			go processRefund(accountName)
-		case "signed_refund_process":
-			go processSignedRefund(accountName)
-		case "register_res_addr_validators":
-			go registerAddressOnValidators()
-		case "signing_sweep":
-			go processTxSigningSweep(accountName)
-		case "signing_refund":
-			go processTxSigningRefund(accountName)
-		case "sweep_process":
-			go processSweep(accountName)
-		default:
-			log.Println("Unknown function :", functionCall)
-		}
-	}
 }

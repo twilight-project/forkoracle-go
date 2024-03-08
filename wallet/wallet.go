@@ -157,15 +157,16 @@ func readFromFile(name string) ([]byte, error) {
 	return data, nil
 }
 
-func InitWallet(masterPrivateKey *bip32.Key) string {
+func InitWallet() (string, *bip32.Key) {
 	new_wallet := flag.Bool("new_wallet", true, "set to true if you want to create a new wallet")
 	mnemonic := flag.String("mnemonic", "", "mnemonic for the wallet, leave empty to generate a new nemonic")
 	flag.Parse()
 
 	var err error
+	var masterPrivateKey *bip32.Key
 
 	walletPassphrase := fmt.Sprintf("%v", viper.Get("wallet_passphrase"))
-	if *new_wallet == true {
+	if *new_wallet {
 		if *mnemonic != "" {
 			masterPrivateKey, err = createWalletFromMnemonic(*mnemonic, walletPassphrase)
 			if err != nil {
@@ -201,7 +202,7 @@ func InitWallet(masterPrivateKey *bip32.Key) string {
 
 	fmt.Println("Wallet initialized")
 
-	return btcPubkey
+	return btcPubkey, masterPrivateKey
 
 }
 

@@ -1,4 +1,4 @@
-package main
+package bridge
 
 import (
 	"database/sql"
@@ -10,18 +10,17 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 
-	address "github.com/twilight-project/forkoracle-go/address"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
-	eventhandler "github.com/twilight-project/forkoracle-go/eventhandler"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	"github.com/twilight-project/nyks/x/bridge/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func watchAddress(url url.URL, dbconn *sql.DB) {
+func WatchAddress(url url.URL, dbconn *sql.DB) {
 	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
@@ -77,7 +76,7 @@ func watchAddress(url url.URL, dbconn *sql.DB) {
 
 }
 
-func kDeepService(accountName string) {
+func KDeepService(accountName string, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string) {
 	fmt.Println("running k deep service")
 	for {
 		resp := comms.GetAttestations("5")
@@ -90,7 +89,7 @@ func kDeepService(accountName string) {
 					if err != nil {
 						fmt.Println(err)
 					}
-					kDeepCheck(accountName, uint64(height))
+					kDeepCheck(accountName, uint64(height), dbconn, latestSweepTxHash, oracleAddr)
 					break
 				}
 			}
@@ -100,7 +99,7 @@ func kDeepService(accountName string) {
 	}
 }
 
-func kDeepCheck(accountName string, height uint64) {
+func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string) {
 	fmt.Println("running k deep check for height : ", height)
 	addresses := db.QueryNotification(dbconn)
 	watchedTx := db.QueryWatchedTransactions(dbconn)
@@ -109,7 +108,7 @@ func kDeepCheck(accountName string, height uint64) {
 	for _, a := range addresses {
 		if height-a.Height >= confirmations {
 			fmt.Println("reached height confirmations: ", height)
-			confirmBtcTransactionOnNyks(accountName, a)
+			confirmBtcTransactionOnNyks(accountName, a, dbconn, oracleAddr)
 		}
 
 		for _, tx := range watchedTx {
@@ -161,7 +160,7 @@ func kDeepCheck(accountName string, height uint64) {
 	fmt.Println("finishing k deep check for height : ", height)
 }
 
-func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.WatchtowerNotification) {
+func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.WatchtowerNotification, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("inside confirm btc transaction")
 	cosmos := comms.GetCosmosClient()
 
@@ -193,14 +192,4 @@ func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.Watchto
 	comms.SendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
 	fmt.Println("deleting notifiction after procesing")
 	db.MarkProcessedNotifications(dbconn, data)
-
-}
-
-func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB) {
-	fmt.Println("starting bridge")
-	address.RegisterAddressOnValidators(dbconn)
-	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", nil, nil)
-	go watchAddress(forkscanner_url, dbconn)
-	kDeepService(accountName)
-	fmt.Println("finishing bridge")
 }

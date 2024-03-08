@@ -1,6 +1,10 @@
 package types
 
-import "github.com/gorilla/websocket"
+import (
+	"fmt"
+
+	"github.com/gorilla/websocket"
+)
 
 type ChainTip struct {
 	Block           string `json:"block"`
@@ -400,15 +404,12 @@ func (c *Client) WritePump() {
 		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
-	for {
-		select {
-		case message, ok := <-c.Send:
-			if !ok {
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
 
-			c.Conn.WriteMessage(websocket.TextMessage, message)
+	for message := range c.Send {
+		err := c.Conn.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			fmt.Println("error in pushing to refund tx channel: ", err)
+			return
 		}
 	}
 }

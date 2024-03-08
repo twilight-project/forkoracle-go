@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,8 +13,10 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -32,10 +35,13 @@ func InitConfigFile() {
 	viper.AddConfigPath("./configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
 	viper.SetConfigType("json")   // Look for specific type
-	viper.ReadInConfig()
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Println("Error reading config file: ", err)
+	}
 }
 
-func SetDelegator(btcPubkey string, valAddr *string, oracleAddr *string) {
+func SetDelegator(btcPubkey string) (string, string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
 	args := strings.Fields(command)
@@ -44,11 +50,11 @@ func SetDelegator(btcPubkey string, valAddr *string, oracleAddr *string) {
 	valAddr_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
-		return
+		return "", ""
 	}
 
-	*valAddr = string(valAddr_)
-	*valAddr = strings.ReplaceAll(*valAddr, "\n", "")
+	valAddr := string(valAddr_)
+	valAddr = strings.ReplaceAll(valAddr, "\n", "")
 	fmt.Println("Val Address : ", valAddr)
 
 	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
@@ -58,11 +64,11 @@ func SetDelegator(btcPubkey string, valAddr *string, oracleAddr *string) {
 	oracleAddr_, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
-		return
+		return "", ""
 	}
 
-	*oracleAddr = string(oracleAddr_)
-	*oracleAddr = strings.ReplaceAll(*oracleAddr, "\n", "")
+	oracleAddr := string(oracleAddr_)
+	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
 	fmt.Println("Oracle Address : ", oracleAddr)
 
 	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, accountName)
@@ -83,6 +89,7 @@ func SetDelegator(btcPubkey string, valAddr *string, oracleAddr *string) {
 	}
 
 	fmt.Println("Delegate Address Set")
+	return valAddr, oracleAddr
 }
 
 func getBitcoinRpcClient() *rpcclient.Client {
@@ -102,7 +109,7 @@ func getBitcoinRpcClient() *rpcclient.Client {
 	return client
 }
 
-func broadcastBtcTransaction(tx *wire.MsgTx) {
+func BroadcastBtcTransaction(tx *wire.MsgTx) {
 	client := getBitcoinRpcClient()
 	txHash, err := client.SendRawTransaction(tx, true)
 	if err != nil {
@@ -236,18 +243,6 @@ func CreateTxIn(utxo btcOracleTypes.Utxo) (*wire.TxIn, error) {
 	return txIn, nil
 }
 
-func sendUnsignedSweepTx(reserveId uint64, roundId uint64, sweepTx string, sweeptxId string, accountName string, oracleAddr string) {
-	cosmos := comms.GetCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxSweep(sweeptxId, sweepTx, reserveId, roundId, oracleAddr)
-	comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
-}
-
-func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, accountName string, oracleAddr string) {
-	cosmos := comms.GetCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxRefund(reserveId, roundId, refundTx, oracleAddr)
-	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
-}
-
 // func SendSweepSign(hexSignatures []string, address string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
 // 	cosmos := comms.GetCosmosClient()
 // 	msg := &bridgetypes.MsgSignSweep{
@@ -274,31 +269,7 @@ func sendUnsignedRefundTx(refundTx string, reserveId uint64, roundId uint64, acc
 // 	comms.SendTransactionSignRefund(accountName, cosmos, msg)
 // }
 
-func broadcastSweeptxNYKS(sweepTxHex string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
-	cosmos := comms.GetCosmosClient()
-	msg := &bridgetypes.MsgBroadcastTxSweep{
-		SignedSweepTx: sweepTxHex,
-		JudgeAddress:  oracleAddr,
-		ReserveId:     reserveId,
-		RoundId:       roundId,
-	}
-
-	comms.SendTransactionBroadcastSweeptx(accountName, cosmos, msg)
-}
-
-func broadcastRefundtxNYKS(refundTxHex string, accountName string, reserveId uint64, roundId uint64, oracleAddr string) {
-	cosmos := comms.GetCosmosClient()
-	msg := &bridgetypes.MsgBroadcastTxRefund{
-		SignedRefundTx: refundTxHex,
-		JudgeAddress:   oracleAddr,
-		ReserveId:      reserveId,
-		RoundId:        roundId,
-	}
-
-	comms.SendTransactionBroadcastRefundtx(accountName, cosmos, msg)
-}
-
-func registerJudge(accountName string, oracleAddr string, valAddr string) {
+func RegisterJudge(accountName string, oracleAddr string, valAddr string) {
 	cosmos := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgRegisterJudge{
 		Creator:          oracleAddr,
@@ -310,7 +281,7 @@ func registerJudge(accountName string, oracleAddr string, valAddr string) {
 	fmt.Println("registered Judge")
 }
 
-func filterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string) []btcOracleTypes.MsgSignSweep {
+func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string) []btcOracleTypes.MsgSignSweep {
 	fmt.Println(sweepSignatures.SignSweepMsg)
 	fmt.Println(pubkeys)
 	filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
@@ -379,7 +350,69 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 	return orderedSignRefund, judgeSign
 }
 
-func getBtcFeeRate() btcOracleTypes.FeeRate {
+func GetCurrentReserveandRound(oracleAddr string) (btcOracleTypes.BtcReserve, uint64, uint64, error) {
+
+	empty := btcOracleTypes.BtcReserve{"", "", "", "", "", "", "", "", "", ""}
+	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
+	reserves := comms.GetBtcReserves()
+	for _, reserve := range reserves.BtcReserves {
+		if reserve.JudgeAddress == oracleAddr {
+			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
+		}
+	}
+
+	if len(currentReservesForThisJudge) == 0 {
+		time.Sleep(2 * time.Minute)
+		fmt.Println("no judge")
+		return empty, 0, 0, errors.New("No Judge Found")
+	}
+
+	currentJudgeReserve := currentReservesForThisJudge[0]
+
+	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
+	if reserveIdForProposal == 1 {
+		reserveIdForProposal = len(reserves.BtcReserves)
+	} else {
+		reserveIdForProposal = reserveIdForProposal - 1
+	}
+
+	var reserveToBeUpdated btcOracleTypes.BtcReserve
+	for _, reserve := range reserves.BtcReserves {
+		tempId, _ := strconv.Atoi(reserve.ReserveId)
+		if tempId == reserveIdForProposal {
+			reserveToBeUpdated = reserve
+			break
+		}
+	}
+
+	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
+	return currentJudgeReserve, uint64(reserveIdForProposal), uint64(RoundId), nil
+}
+
+func btcToSats(btc float64) int64 {
+	return int64(btc * 1e8)
+}
+
+func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
+	client := getBitcoinRpcClient()
+	result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
+	if err != nil {
+		fmt.Println("Failed to get fee from btc node : ", err)
+		log.Fatal(err)
+	}
+	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
+	feeRate := btcToSats(*result.FeeRate)
+	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
+	baseSize := tx.SerializeSizeStripped()
+	totalSize := tx.SerializeSize()
+	weight := (baseSize * 3) + totalSize
+	vsize := (weight + 3) / 4
+	fmt.Println("tx size in bytes : ", vsize)
+	fee := float64(vsize) * float64(feeRate/1024)
+	return int64(fee), nil
+}
+
+func GetBtcFeeRate() btcOracleTypes.FeeRate {
 	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
 	if err != nil {
 		log.Fatalln(err)
@@ -452,7 +485,7 @@ func GetMinSignFromScript(script string) int64 {
 	return minSignRequired
 }
 
-func getPublicKeysFromScript(script string, limit int) []string {
+func GetPublicKeysFromScript(script string, limit int) []string {
 	// Split the decoded script into parts
 	pubkeys := []string{}
 	parts := strings.Split(script, " ")

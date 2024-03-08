@@ -8,10 +8,15 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
+	"github.com/twilight-project/forkoracle-go/address"
+	"github.com/twilight-project/forkoracle-go/judge"
+	"github.com/twilight-project/forkoracle-go/transaction_signer"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	"github.com/tyler-smith/go-bip32"
 )
 
-func NyksEventListener(event string, accountName string, functionCall string, masterPrivateKey *bip32.Key, dbconn *sql.DB) {
+func NyksEventListener(event string, accountName string, functionCall string, masterPrivateKey *bip32.Key, dbconn *sql.DB,
+	oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
 	headers := make(map[string][]string)
 	headers["Content-Type"] = []string{"application/json"}
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_socket_url"))
@@ -26,9 +31,15 @@ func NyksEventListener(event string, accountName string, functionCall string, ma
 	pongWait := 60 * time.Second
 	stopChan := make(chan struct{}) // Create the stop channel
 
-	conn.SetReadDeadline(time.Now().Add(pongWait))
+	err = conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err != nil {
+		fmt.Println("error setting read deadline: ", err)
+	}
 	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(pongWait))
+		err = conn.SetReadDeadline(time.Now().Add(pongWait))
+		if err != nil {
+			fmt.Println("error setting read deadline: ", err)
+		}
 		return nil
 	})
 
@@ -88,19 +99,19 @@ func NyksEventListener(event string, accountName string, functionCall string, ma
 
 		switch functionCall {
 		case "signed_sweep_process":
-			go processSignedSweep(accountName)
+			go judge.ProcessSignedSweep(accountName, oracleAddr, dbconn)
 		case "refund_process":
-			go processRefund(accountName)
+			go judge.ProcessRefund(accountName, oracleAddr)
 		case "signed_refund_process":
-			go processSignedRefund(accountName)
+			go judge.ProcessSignedRefund(accountName, oracleAddr, dbconn, WsHub)
 		case "register_res_addr_validators":
-			go registerAddressOnValidators()
+			go address.RegisterAddressOnValidators(dbconn)
 		case "signing_sweep":
-			go processTxSigningSweep(accountName)
+			go transaction_signer.ProcessTxSigningSweep(accountName, masterPrivateKey, dbconn)
 		case "signing_refund":
-			go processTxSigningRefund(accountName)
+			go transaction_signer.ProcessTxSigningRefund(accountName, masterPrivateKey, dbconn)
 		case "sweep_process":
-			go processSweep(accountName)
+			go judge.ProcessSweep(accountName, dbconn, oracleAddr)
 		default:
 			log.Println("Unknown function :", functionCall)
 		}

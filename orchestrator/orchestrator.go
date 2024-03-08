@@ -1,4 +1,4 @@
-package main
+package orchestrator
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ import (
 	"github.com/twilight-project/nyks/x/forks/types"
 )
 
-func orchestrator(accountName string, forkscanner_url url.URL) {
+func Orchestrator(accountName string, forkscanner_url url.URL, oracleAddr string) {
 	log.SetFlags(0)
 
 	fmt.Println("starting orchestrator")
@@ -40,7 +40,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 				log.Println("read:", err)
 				return
 			}
-			process_message(accountName, message)
+			process_message(accountName, message, oracleAddr)
 			// log.Printf("recv: %s", message)
 		}
 	}()
@@ -87,7 +87,7 @@ func orchestrator(accountName string, forkscanner_url url.URL) {
 }
 
 // This function is a buffer between websocket and send_transaction to add future functionality
-func process_message(accountName string, message []byte) {
+func process_message(accountName string, message []byte, oracleAddr string) {
 	var c btcOracleTypes.BtcFkBlockData
 	err := json.Unmarshal(message, &c)
 	if err != nil {

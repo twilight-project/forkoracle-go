@@ -3,132 +3,108 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
 	"net/url"
 	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"github.com/tyler-smith/go-bip32"
 
 	"github.com/gorilla/websocket"
+	address "github.com/twilight-project/forkoracle-go/address"
+	"github.com/twilight-project/forkoracle-go/bridge"
 	db "github.com/twilight-project/forkoracle-go/db"
+	"github.com/twilight-project/forkoracle-go/eventhandler"
+	"github.com/twilight-project/forkoracle-go/judge"
+	"github.com/twilight-project/forkoracle-go/orchestrator"
+	"github.com/twilight-project/forkoracle-go/servers"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
 	wallet "github.com/twilight-project/forkoracle-go/wallet"
 )
 
-var dbconn *sql.DB
-var masterPrivateKey *bip32.Key
-var judge bool
-var oracleAddr string
-var valAddr string
-var upgrader = websocket.Upgrader{}
-var WsHub *btcOracleTypes.Hub
-
-var latestSweepTxHash = prometheus.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name: "latest_sweep_tx_hash",
-		Help: "Hash of the latest swept transaction.",
-	},
-	[]string{"hash"},
-)
-
-func initialize() {
+func initialize() (string, string, *sql.DB, *bip32.Key) {
 	utils.InitConfigFile()
-	btcPubkey := wallet.InitWallet(masterPrivateKey)
-	dbconn = db.InitDB()
-	utils.SetDelegator(btcPubkey, &valAddr, &oracleAddr)
+	btcPubkey, masterPrivateKey := wallet.InitWallet()
+	dbconn := db.InitDB()
+	valAddr, oracleAddr := utils.SetDelegator(btcPubkey)
+	return valAddr, oracleAddr, dbconn, masterPrivateKey
 }
 
 func main() {
+	var activeJudge bool
 
-	initialize()
+	var upgrader = websocket.Upgrader{}
+	var WsHub *btcOracleTypes.Hub
+
+	var latestSweepTxHash = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "latest_sweep_tx_hash",
+			Help: "Hash of the latest swept transaction.",
+		},
+		[]string{"hash"},
+	)
+	valAddr, oracleAddr, dbconn, masterPrivateKey := initialize()
+	fmt.Println("valAddr : ", valAddr)
+	fmt.Println("oracleAddr : ", oracleAddr)
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
 	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-stg" {
-		judge = true
+		activeJudge = true
 	}
 
 	time.Sleep(30 * time.Second)
 
-	go orchestrator(accountName, forkscanner_url)
+	go orchestrator.Orchestrator(accountName, forkscanner_url, oracleAddr)
 
-	initJudge(accountName)
+	if activeJudge {
+		judge.InitJudge(accountName, dbconn, oracleAddr, valAddr)
+	}
 
 	time.Sleep(1 * time.Minute)
-	if judge {
-		go startJudge(accountName)
+	if activeJudge {
+		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, masterPrivateKey)
 	} else {
 		time.Sleep(2 * time.Minute)
 	}
 
 	time.Sleep(1 * time.Minute)
-	go startBridge(accountName, forkscanner_url, dbconn)
-	go pubsubServer()
-	go startTransactionSigner(accountName, masterPrivateKey, dbconn)
-	prometheus_server()
+	go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, masterPrivateKey, valAddr, WsHub)
+	go servers.PubsubServer(WsHub, upgrader)
+	go startTransactionSigner(accountName, masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	servers.Prometheus_server(latestSweepTxHash)
 	fmt.Println("exiting main")
 }
 
-func serveWs(hub *btcOracleTypes.Hub, w http.ResponseWriter, r *http.Request) {
-	conn, _ := upgrader.Upgrade(w, r, nil)
-	client := &btcOracleTypes.Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256)}
-	client.Hub.Register <- client
-
-	go client.WritePump()
+func startTransactionSigner(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
+	fmt.Println("starting Transaction Signer")
+	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	fmt.Println("finishing bridge")
 }
 
-func pubsubServer() {
-	fmt.Println("starting pubsub server")
-	WsHub = &btcOracleTypes.Hub{
-		Broadcast:  make(chan []byte),
-		Register:   make(chan *btcOracleTypes.Client),
-		Unregister: make(chan *btcOracleTypes.Client),
-		Clients:    make(map[*btcOracleTypes.Client]bool),
-	}
-
-	go WsHub.Run()
-
-	http.HandleFunc("/tapinscription", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(WsHub, w, r)
-	})
-
-	err := http.ListenAndServe(":2300", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+func startJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, masterPrivateKey *bip32.Key) {
+	fmt.Println("starting judge")
+	go address.ProcessProposeAddress(accountName, oracleAddr, dbconn)
+	go judge.BroadcastOnBtc(dbconn)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
 }
 
-func prometheus_server() {
-	// Create a new instance of a registry
-	reg := prometheus.NewRegistry()
-
-	// Optional: Add Go module build info.
-	reg.MustRegister(
-		latestSweepTxHash,
-	)
-
-	// Register the promhttp handler with the registry
-	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-
-	// Simple health check endpoint
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Server is running"))
-	})
-
-	// Start the server
-	log.Println("Starting prometheus server on :2555")
-	if err := http.ListenAndServe(":2555", nil); err != nil {
-		log.Fatalf("Error starting server: %s", err)
-	}
+func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string,
+	masterPrivateKey *bip32.Key, valAddr string, WsHub *btcOracleTypes.Hub) {
+	fmt.Println("starting bridge")
+	address.RegisterAddressOnValidators(dbconn)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	go bridge.WatchAddress(forkscanner_url, dbconn)
+	bridge.KDeepService(accountName, dbconn, latestSweepTxHash, oracleAddr)
+	fmt.Println("finishing bridge")
 }
 
 // func main() {

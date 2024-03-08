@@ -374,7 +374,7 @@ func GetUnsignedSweepTx(reserveId uint64, roundId uint64) btcOracleTypes.Unsigne
 
 func GetAllUnsignedSweepTx() btcOracleTypes.UnsignedTxSweepResp {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	path := fmt.Sprintf("/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=5")
+	path := "/twilight-project/nyks/bridge/unsigned_tx_sweep_all?limit=5"
 	resp, err := http.Get(nyksd_url + path)
 	if err != nil {
 		log.Fatalln(err)

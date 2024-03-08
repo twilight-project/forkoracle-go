@@ -40,7 +40,7 @@ func hash160(data []byte) []byte {
 	return hash160
 }
 
-func preimage() ([]byte, error) {
+func Preimage() ([]byte, error) {
 	preimage := make([]byte, 32)
 	_, err := rand.Read(preimage)
 	if err != nil {
@@ -144,7 +144,7 @@ func buildWitnessScript(redeemScript []byte) []byte {
 }
 
 func GenerateAddress(unlock_height int64, oldReserveAddress string, oracleAddr string, dbconn *sql.DB) (string, []byte) {
-	preimage, err := preimage()
+	preimage, err := Preimage()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -202,7 +202,7 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 	fmt.Println("finishing propose Address after proposing")
 }
 
-func processProposeAddress(accountName string, oracleAddr string, dbconn *sql.DB) {
+func ProcessProposeAddress(accountName string, oracleAddr string, dbconn *sql.DB) {
 	fmt.Println("Process propose address started")
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
@@ -215,40 +215,18 @@ func processProposeAddress(accountName string, oracleAddr string, dbconn *sql.DB
 			continue
 		}
 
-		var currentReservesForThisJudge []btcOracleTypes.BtcReserve
-		reserves := comms.GetBtcReserves()
-		for _, reserve := range reserves.BtcReserves {
-			if reserve.JudgeAddress == oracleAddr {
-				currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-			}
-		}
-
-		if len(currentReservesForThisJudge) == 0 {
-			time.Sleep(2 * time.Minute)
-			fmt.Println("no judge")
+		reserveToBeUpdated, reserveIdForProposal, roundId, err := utils.GetCurrentReserveandRound(oracleAddr)
+		if err != nil {
+			fmt.Println("error in getting current reserve and round : ", err)
 			continue
 		}
 
-		currentJudgeReserve := currentReservesForThisJudge[0]
-
-		reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
-		if reserveIdForProposal == 1 {
-			reserveIdForProposal = len(reserves.BtcReserves)
-		} else {
-			reserveIdForProposal = reserveIdForProposal - 1
+		if reserveToBeUpdated.ReserveAddress == "" {
+			fmt.Println("no reserve found")
+			continue
 		}
 
-		var reserveToBeUpdated btcOracleTypes.BtcReserve
-		for _, reserve := range reserves.BtcReserves {
-			tempId, _ := strconv.Atoi(reserve.ReserveId)
-			if tempId == reserveIdForProposal {
-				reserveToBeUpdated = reserve
-				break
-			}
-		}
-
-		RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
-		proposed := db.CheckIfAddressIsProposed(dbconn, int64(RoundId+1))
+		proposed := db.CheckIfAddressIsProposed(dbconn, int64(roundId+1))
 		if proposed {
 			continue
 		}
@@ -272,8 +250,8 @@ func processProposeAddress(accountName string, oracleAddr string, dbconn *sql.DB
 				}
 			}
 
-			fmt.Println("Sweep Address found, proposing address for reserve : {}, round : {}", reserveIdForProposal, RoundId+1)
-			proposeAddress(accountName, uint64(reserveIdForProposal), uint64(RoundId+1), reserveToBeUpdated.ReserveAddress, oracleAddr, dbconn)
+			fmt.Println("Sweep Address found, proposing address for reserve : {}, round : {}", reserveIdForProposal, roundId+1)
+			proposeAddress(accountName, uint64(reserveIdForProposal), uint64(roundId+1), reserveToBeUpdated.ReserveAddress, oracleAddr, dbconn)
 		}
 
 	}
@@ -286,7 +264,7 @@ func GenerateAndRegisterNewProposedAddress(dbconn *sql.DB, accountName string, h
 	return newSweepAddress, hexScript
 }
 
-func generateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, oracleAddr string) string {
+func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, oracleAddr string) string {
 	newSweepAddress, reserveScript := GenerateAddress(height, "", oracleAddr, dbconn)
 	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript, oracleAddr)
 	registerAddressOnForkscanner(newSweepAddress)
@@ -332,6 +310,46 @@ func registerAddressOnForkscanner(address string) {
 					"watch_until": dt.Format(time.RFC3339),
 				},
 			},
+		},
+	}
+
+	data, err := json.Marshal(request_body)
+	if err != nil {
+		log.Fatalf("Post: %v", err)
+	}
+	fmt.Println(string(data))
+
+	resp, err := http.Post("http://0.0.0.0:8339", "application/json", strings.NewReader(string(data)))
+	if err != nil {
+		log.Fatalf("Post: %v", err)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("ReadAll: %v", err)
+	}
+	result := make(map[string]interface{})
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Fatalf("Unmarshal: %v", err)
+	}
+	log.Println(result)
+
+	fmt.Println("registered address on forkscanner : ", address)
+
+}
+
+func UnRegisterAddressOnForkscanner(address string) {
+	dt := time.Now().UTC()
+	dt = dt.AddDate(1, 0, 0)
+
+	request_body := map[string]interface{}{
+		"method":  "remove_watched_addresses",
+		"id":      1,
+		"jsonrpc": "2.0",
+		"params": map[string]interface{}{
+			"remove": []string{address},
 		},
 	}
 

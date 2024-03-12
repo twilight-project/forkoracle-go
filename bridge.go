@@ -147,7 +147,7 @@ func kDeepCheck(accountName string, height uint64) {
 				markTransactionProcessed(tx.Txid)
 				latestSweepTxHash.Reset()
 				latestSweepTxHash.WithLabelValues(tx.Txid).Set(float64(tx.Reserve))
-
+				saveSweepTx(tx.Txid + " " + string(tx.Reserve))
 			}
 		}
 	}

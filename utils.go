@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -592,6 +593,27 @@ func getPublicKeysFromScript(script string, limit int) []string {
 	pubkeys = append(pubkeys, parts[4:4+limit]...)
 
 	return pubkeys
+}
+
+func saveSweepTx(data string) {
+	f, err := os.Create("sweeptx.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func readSweepTx() string {
+	data, err := os.ReadFile("sweeptx.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(data)
 }
 
 func nyksEventListener(event string, accountName string, functionCall string) {

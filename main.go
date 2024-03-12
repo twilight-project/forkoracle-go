@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -69,6 +71,11 @@ func main() {
 	go startBridge(accountName, forkscanner_url)
 	go pubsubServer()
 	go startTransactionSigner(accountName)
+
+	lastSweep := readSweepTx()
+	parts := strings.Split(lastSweep, " ")
+	reserve, _ := strconv.ParseFloat(parts[1], 64)
+	latestSweepTxHash.WithLabelValues(parts[0]).Set(reserve)
 	prometheus_server()
 	fmt.Println("exiting main")
 }

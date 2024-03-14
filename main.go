@@ -73,6 +73,7 @@ func main() {
 	go startTransactionSigner(accountName)
 
 	time.Sleep(10 * time.Minute)
+	fmt.Println("===============================")
 	processSweep(accountName)
 
 	lastSweep := readSweepTx()

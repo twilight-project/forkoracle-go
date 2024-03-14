@@ -72,6 +72,8 @@ func main() {
 	go pubsubServer()
 	go startTransactionSigner(accountName)
 
+	processSweep(accountName)
+
 	lastSweep := readSweepTx()
 	parts := strings.Split(lastSweep, " ")
 	reserve, _ := strconv.ParseFloat(parts[1], 64)

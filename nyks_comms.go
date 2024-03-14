@@ -118,7 +118,7 @@ func sendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Cli
 			fmt.Println("unsigned Refund Transaction sent")
 			return
 		}
-		if strings.Contains(err.Error(), "Duplicate") {
+		if strings.Contains(err.Error(), "duplicate") {
 			fmt.Println("duplicate error in refund transaction, not retrying... : ", err)
 			break
 		}
@@ -189,6 +189,10 @@ func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Cl
 		_, err = cosmos.BroadcastTx(accountName, data)
 		if err == nil {
 			return
+		}
+		if strings.Contains(err.Error(), "duplicate") {
+			fmt.Println("duplicate error in Broadcasting refund transaction, not retrying... : ", err)
+			break
 		}
 		fmt.Println("error in Broadcasting Refund Tx transaction, retrying... : ", err)
 		time.Sleep(10 * time.Second)

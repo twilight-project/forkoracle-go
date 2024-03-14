@@ -668,7 +668,7 @@ func processSignedRefund(accountName string) {
 	broadcastRefundtxNYKS(signedRefundTxHex, accountName, uint64(reserveIdForSweep), uint64(currentRoundId+1))
 	markAddressBroadcastedRefund(newReserveAddress.Address)
 
-	WsHub.broadcast <- signedRefundTx
+	// WsHub.broadcast <- signedRefundTx
 
 	// add tapscript inscription here
 

@@ -121,10 +121,10 @@ func sendTransactionUnsignedRefundTx(accountName string, cosmos cosmosclient.Cli
 		if strings.Contains(err.Error(), "duplicate") {
 			fmt.Println("duplicate error in refund transaction, not retrying... : ", err)
 			break
+		} else {
+			fmt.Println("error in sending unsigned Refund transaction, retrying... : ", err)
+			time.Sleep(10 * time.Second)
 		}
-
-		fmt.Println("error in sending unsigned Refund transaction, retrying... : ", err)
-		time.Sleep(10 * time.Second)
 	}
 	fmt.Println("error in sending unsigned Refund transaction after 5 attempts: ", err)
 }
@@ -193,9 +193,10 @@ func sendTransactionBroadcastRefundtx(accountName string, cosmos cosmosclient.Cl
 		if strings.Contains(err.Error(), "duplicate") {
 			fmt.Println("duplicate error in Broadcasting refund transaction, not retrying... : ", err)
 			break
+		} else {
+			fmt.Println("error in Broadcasting Refund Tx transaction, retrying... : ", err)
+			time.Sleep(10 * time.Second)
 		}
-		fmt.Println("error in Broadcasting Refund Tx transaction, retrying... : ", err)
-		time.Sleep(10 * time.Second)
 	}
 	fmt.Println("error in Broadcasting Refund Tx transaction after 5 attempts: ", err)
 }

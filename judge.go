@@ -418,7 +418,7 @@ func processSweep(accountName string) {
 			// need to decide if this needs to be enabled
 			// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 			fmt.Println("INFO : No funds in address : ", currentSweepAddress.Address, " generating new address : ")
-			fmt.Println("finishing sweep process")
+			fmt.Println("finishing sweep process: no funds")
 			return
 		}
 
@@ -453,7 +453,7 @@ func processSweep(accountName string) {
 		sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos)
 		if err != nil {
 			fmt.Println("Error in generating a Sweep transaction: ", err)
-			fmt.Println("finishing sweep process")
+			fmt.Println("finishing sweep process: error in generating a Sweep transaction")
 			return
 		}
 		if sweepTxHex == "" {
@@ -467,7 +467,7 @@ func processSweep(accountName string) {
 		markAddressArchived(currentSweepAddress.Address)
 	}
 
-	fmt.Println("finishing sweep process")
+	fmt.Println("finishing sweep process: final")
 }
 
 func processRefund(accountName string) {

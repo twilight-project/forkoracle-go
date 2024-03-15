@@ -50,7 +50,7 @@ func main() {
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
-	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-stg" {
+	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-dev" {
 		judge = true
 	}
 
@@ -58,23 +58,21 @@ func main() {
 
 	go orchestrator(accountName, forkscanner_url)
 
-	initJudge(accountName)
+	// initJudge(accountName)
 
-	time.Sleep(1 * time.Minute)
-	if judge {
-		go startJudge(accountName)
-	} else {
-		time.Sleep(2 * time.Minute)
-	}
+	// time.Sleep(1 * time.Minute)
+	// if judge {
+	// 	go startJudge(accountName)
+	// } else {
+	// 	time.Sleep(2 * time.Minute)
+	// }
 
 	time.Sleep(1 * time.Minute)
 	go startBridge(accountName, forkscanner_url)
-	go pubsubServer()
-	go startTransactionSigner(accountName)
+	// go pubsubServer()
+	// go startTransactionSigner(accountName)
 
 	time.Sleep(10 * time.Minute)
-	fmt.Println("===============================")
-	processSweep(accountName)
 
 	lastSweep := readSweepTx()
 	parts := strings.Split(lastSweep, " ")

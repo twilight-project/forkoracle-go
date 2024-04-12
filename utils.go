@@ -41,7 +41,7 @@ func setDelegator(btcPubkey string) {
 
 	valAddr_, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("Error in running delegator: %s\n", err)
+		fmt.Printf("Error in running delegator 1 : %s\n", err)
 		return
 	}
 
@@ -55,7 +55,7 @@ func setDelegator(btcPubkey string) {
 
 	oracleAddr_, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("Error in running delegator: %s\n", err)
+		fmt.Printf("Error in running delegator 2 : %s\n", err)
 		return
 	}
 

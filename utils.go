@@ -36,6 +36,10 @@ func initConfigFile() {
 func setDelegator(btcPubkey string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
+
+	fmt.Println("command : ", command)
+	fmt.Println("account name : ", accountName)
+
 	args := strings.Fields(command)
 	cmd := exec.Command(args[0], args[1:]...)
 

@@ -50,6 +50,8 @@ func main() {
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
+	fmt.Println("====================================================")
+	fmt.Println("forkscanner url : ", forkscanner_url)
 	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-dev" {
 		judge = true
 	}

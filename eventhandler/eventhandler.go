@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/twilight-project/forkoracle-go/address"
 	"github.com/twilight-project/forkoracle-go/judge"
@@ -16,7 +17,7 @@ import (
 )
 
 func NyksEventListener(event string, accountName string, functionCall string, masterPrivateKey *bip32.Key, dbconn *sql.DB,
-	oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
+	oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
 	headers := make(map[string][]string)
 	headers["Content-Type"] = []string{"application/json"}
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_socket_url"))
@@ -103,7 +104,7 @@ func NyksEventListener(event string, accountName string, functionCall string, ma
 		case "refund_process":
 			go judge.ProcessRefund(accountName, oracleAddr)
 		case "signed_refund_process":
-			go judge.ProcessSignedRefund(accountName, oracleAddr, dbconn, WsHub)
+			go judge.ProcessSignedRefund(accountName, oracleAddr, dbconn, WsHub, latestRefundTxHash)
 		case "register_res_addr_validators":
 			go address.RegisterAddressOnValidators(dbconn)
 		case "signing_sweep":

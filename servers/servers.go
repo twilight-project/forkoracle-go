@@ -40,13 +40,14 @@ func PubsubServer(hub *btcOracleTypes.Hub, upgrader websocket.Upgrader) {
 	}
 }
 
-func Prometheus_server(latestSweepTxHash *prometheus.GaugeVec) {
+func Prometheus_server(latestSweepTxHash *prometheus.GaugeVec, latestRefundTxHash *prometheus.GaugeVec) {
 	// Create a new instance of a registry
 	reg := prometheus.NewRegistry()
 
 	// Optional: Add Go module build info.
 	reg.MustRegister(
 		latestSweepTxHash,
+		latestRefundTxHash,
 	)
 
 	// Register the promhttp handler with the registry

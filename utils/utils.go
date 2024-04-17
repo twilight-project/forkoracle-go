@@ -71,7 +71,7 @@ func SetDelegator(btcPubkey string) (string, string) {
 	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
 	fmt.Println("Oracle Address : ", oracleAddr)
 
-	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, accountName)
+	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, oracleAddr, accountName)
 	fmt.Println("delegate command : ", command)
 
 	args = strings.Fields(command)

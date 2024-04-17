@@ -45,6 +45,14 @@ func main() {
 		},
 		[]string{"hash"},
 	)
+
+	var latestRefundTxHash = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "latest_refund_tx_hash",
+			Help: "Hash of the latest swept transaction.",
+		},
+		[]string{"hash"},
+	)
 	valAddr, oracleAddr, dbconn, masterPrivateKey := initialize()
 	fmt.Println("valAddr : ", valAddr)
 	fmt.Println("oracleAddr : ", oracleAddr)
@@ -67,7 +75,7 @@ func main() {
 
 	time.Sleep(1 * time.Minute)
 	if activeJudge {
-		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, masterPrivateKey)
+		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, masterPrivateKey, latestRefundTxHash)
 	} else {
 		time.Sleep(2 * time.Minute)
 	}
@@ -76,32 +84,32 @@ func main() {
 	go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, masterPrivateKey, valAddr, WsHub)
 	go servers.PubsubServer(WsHub, upgrader)
 	go startTransactionSigner(accountName, masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
-	servers.Prometheus_server(latestSweepTxHash)
+	servers.Prometheus_server(latestSweepTxHash, latestRefundTxHash)
 	fmt.Println("exiting main")
 }
 
 func startTransactionSigner(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
 	fmt.Println("starting Transaction Signer")
-	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
-	eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
 	fmt.Println("finishing bridge")
 }
 
-func startJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, masterPrivateKey *bip32.Key) {
+func startJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, masterPrivateKey *bip32.Key, latestRefundTxHash *prometheus.GaugeVec) {
 	fmt.Println("starting judge")
 	go address.ProcessProposeAddress(accountName, oracleAddr, dbconn)
 	go judge.BroadcastOnBtc(dbconn)
-	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
-	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
-	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
-	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, latestRefundTxHash)
+	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
 }
 
 func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string,
 	masterPrivateKey *bip32.Key, valAddr string, WsHub *btcOracleTypes.Hub) {
 	fmt.Println("starting bridge")
 	address.RegisterAddressOnValidators(dbconn)
-	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
 	go bridge.WatchAddress(forkscanner_url, dbconn)
 	bridge.KDeepService(accountName, dbconn, latestSweepTxHash, oracleAddr)
 	fmt.Println("finishing bridge")

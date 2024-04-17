@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/wire"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/twilight-project/forkoracle-go/address"
 	"github.com/twilight-project/forkoracle-go/comms"
@@ -81,7 +82,6 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		sweepTx.TxOut[0].Value = int64(totalAmountTxIn - totalAmountTxOut)
 	}
 
-	//uncomment when done testing
 	requiredFee, err := utils.GetFeeFromBtcNode(sweepTx)
 	if err != nil {
 		fmt.Println("error in getting fee from btc node : ", err)
@@ -629,7 +629,7 @@ func ProcessSignedSweep(accountName string, oracleAddr string, dbconn *sql.DB) {
 
 }
 
-func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, WsHub *btcOracleTypes.Hub) {
+func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
 	fmt.Println("Process signed Refund started")
 
 	reserves := comms.GetBtcReserves()
@@ -701,7 +701,8 @@ func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, 
 
 	WsHub.Broadcast <- signedRefundTx
 
-	// add tapscript inscription here
+	latestRefundTxHash.Reset()
+	latestRefundTxHash.WithLabelValues(refundTx.TxHash().String()).Set(float64(currentReserveId))
 
 	fmt.Println("finishing signed refund process")
 }

@@ -116,6 +116,7 @@ type DelegateAddress struct {
 	ValidatorAddress string
 	BtcOracleAddress string
 	BtcPublicKey     string
+	ZkOracleAddress  string
 }
 
 type DelegateAddressesResp struct {

@@ -134,3 +134,5 @@ func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, la
 
 // 	fmt.Println(t)
 // }
+
+// nyksd tx bridge sign-refund 1 1 03b03fe3da02ac2d43a1c2ebcfc7b0497e89cc9f62b513c0fc14f10d3d1a2cd5e6 3045022100978ef8d96b62a0738b5c4a109720985609fb5ca39244b09905979d3373cfb78802206e6ddf5653d1a7fe5be605dd12b5fcfc022950c29711f39d05d5fac8bf81de8001 --from validator-fra --chain-id nyks  --keyring-backend test

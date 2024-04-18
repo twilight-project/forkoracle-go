@@ -108,9 +108,9 @@ func NyksEventListener(event string, accountName string, functionCall string, ma
 		case "register_res_addr_validators":
 			go address.RegisterAddressOnValidators(dbconn)
 		case "signing_sweep":
-			go transaction_signer.ProcessTxSigningSweep(accountName, masterPrivateKey, dbconn)
+			go transaction_signer.ProcessTxSigningSweep(accountName, masterPrivateKey, dbconn, oracleAddr)
 		case "signing_refund":
-			go transaction_signer.ProcessTxSigningRefund(accountName, masterPrivateKey, dbconn)
+			go transaction_signer.ProcessTxSigningRefund(accountName, masterPrivateKey, dbconn, oracleAddr)
 		case "sweep_process":
 			go judge.ProcessSweep(accountName, dbconn, oracleAddr)
 		default:

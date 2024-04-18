@@ -15,7 +15,7 @@ import (
 	"github.com/tyler-smith/go-bip32"
 )
 
-func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB) {
+func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("starting Sweep Tx Signer")
 	SweepTxs := comms.GetAllUnsignedSweepTx()
 
@@ -61,7 +61,7 @@ func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbco
 			RoundId:          uint64(roundId),
 			SignerPublicKey:  wallet.GetBtcPublicKey(masterPrivateKey),
 			SweepSignature:   sweepSignatures,
-			BtcOracleAddress: reserveAddress.Address,
+			BtcOracleAddress: oracleAddr,
 		}
 
 		comms.SendTransactionSignSweep(accountName, cosmos, msg)
@@ -73,7 +73,7 @@ func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbco
 	fmt.Println("finishing sweep tx signer")
 }
 
-func ProcessTxSigningRefund(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB) {
+func ProcessTxSigningRefund(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("starting Refund Tx Signer")
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
@@ -106,7 +106,7 @@ func ProcessTxSigningRefund(accountName string, masterPrivateKey *bip32.Key, dbc
 			RoundId:          uint64(roundId),
 			SignerPublicKey:  wallet.GetBtcPublicKey(masterPrivateKey),
 			RefundSignature:  []string{refundSignature[0]},
-			BtcOracleAddress: reserveAddress.Address,
+			BtcOracleAddress: oracleAddr,
 		}
 
 		comms.SendTransactionSignRefund(accountName, cosmos, msg)

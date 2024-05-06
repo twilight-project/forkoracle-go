@@ -164,7 +164,7 @@ func SignTx(dbconn *sql.DB, masterPrivateKey *bip32.Key, tx *wire.MsgTx, script 
 
 		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
 
-		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, i, int64(amount), script, txscript.SigHashAll, privkey)
+		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, i, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
 		if err != nil {
 			fmt.Println("Error:", err)
 		}

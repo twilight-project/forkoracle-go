@@ -53,6 +53,7 @@ func main() {
 		},
 		[]string{"hash"},
 	)
+
 	valAddr, oracleAddr, dbconn, masterPrivateKey := initialize()
 	fmt.Println("valAddr : ", valAddr)
 	fmt.Println("oracleAddr : ", oracleAddr)

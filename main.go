@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tyler-smith/go-bip32"
 
-	"github.com/gorilla/websocket"
 	address "github.com/twilight-project/forkoracle-go/address"
 	"github.com/twilight-project/forkoracle-go/bridge"
 	db "github.com/twilight-project/forkoracle-go/db"
@@ -35,7 +34,7 @@ func initialize() (string, string, *sql.DB, *bip32.Key) {
 func main() {
 	var activeJudge bool
 
-	var upgrader = websocket.Upgrader{}
+	// var upgrader = websocket.Upgrader{}
 	var WsHub *btcOracleTypes.Hub
 
 	var latestSweepTxHash = prometheus.NewGaugeVec(
@@ -83,7 +82,7 @@ func main() {
 
 	time.Sleep(1 * time.Minute)
 	go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, masterPrivateKey, valAddr, WsHub)
-	go servers.PubsubServer(WsHub, upgrader)
+	// go servers.PubsubServer(WsHub, upgrader)
 	go startTransactionSigner(accountName, masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
 	servers.Prometheus_server(latestSweepTxHash, latestRefundTxHash)
 	fmt.Println("exiting main")

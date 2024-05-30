@@ -699,7 +699,7 @@ func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, 
 	comms.SendTransactionBroadcastRefundtx(accountName, cosmos, msg)
 	db.MarkAddressBroadcastedRefund(dbconn, newReserveAddress.Address)
 
-	WsHub.Broadcast <- signedRefundTx
+	// WsHub.Broadcast <- signedRefundTx
 
 	latestRefundTxHash.Reset()
 	latestRefundTxHash.WithLabelValues(refundTx.TxHash().String()).Set(float64(currentReserveId))

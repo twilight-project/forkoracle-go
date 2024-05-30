@@ -176,7 +176,7 @@ func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.Watchto
 
 	if len(depositAddress) == 0 {
 		fmt.Println("zero addresses bridge")
-		db.MarkProcessedNotifications(dbconn, data)
+		// db.MarkProcessedNotifications(dbconn, data)
 		return
 	}
 

@@ -151,6 +151,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 				fmt.Println("Sending Sweep proposal message")
 				comms.SendTransactionSweepProposal(accountName, cosmos, msg)
 				db.MarkTransactionProcessed(dbconn, tx.Txid)
+				db.MarkProcessedNotifications(dbconn, a)
 				latestSweepTxHash.Reset()
 				latestSweepTxHash.WithLabelValues(tx.Txid).Set(float64(tx.Reserve))
 

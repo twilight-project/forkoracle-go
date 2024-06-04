@@ -82,21 +82,21 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		sweepTx.TxOut[0].Value = int64(totalAmountTxIn - totalAmountTxOut)
 	}
 
-	requiredFee, err := utils.GetFeeFromBtcNode(sweepTx)
-	if err != nil {
-		fmt.Println("error in getting fee from btc node : ", err)
-		return "", "", 0, err
-	}
+	// requiredFee , err := utils.GetFeeFromBtcNode(sweepTx)
+	// if err != nil {
+	// 	fmt.Println("error in getting fee from btc node : ", err)
+	// 	return "", "", 0, err
+	// }
 
-	newReserveOutput := sweepTx.TxOut[0]
-	if newReserveOutput.Value < int64(requiredFee) {
-		fmt.Println("Change output is smaller than required fee")
-		return "", "", 0, nil
-	}
+	// newReserveOutput := sweepTx.TxOut[0]
+	// if newReserveOutput.Value < int64(requiredFee) {
+	// 	fmt.Println("Change output is smaller than required fee")
+	// 	return "", "", 0, nil
+	// }
 
-	// Deduct the fee from the change output
-	newReserveOutput.Value = newReserveOutput.Value - int64(requiredFee)
-	sweepTx.TxOut[0] = newReserveOutput
+	// // Deduct the fee from the change output
+	// newReserveOutput.Value = newReserveOutput.Value - int64(requiredFee)
+	// sweepTx.TxOut[0] = newReserveOutput
 
 	script := db.QuerySweepAddressScript(dbconn, sweepAddress)
 	witness := wire.TxWitness{}

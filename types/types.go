@@ -1,6 +1,10 @@
-package main
+package types
 
-import "github.com/gorilla/websocket"
+import (
+	"fmt"
+
+	"github.com/gorilla/websocket"
+)
 
 type ChainTip struct {
 	Block           string `json:"block"`
@@ -26,7 +30,7 @@ type WatchtowerTxInput struct {
 	Address string
 	Amount  uint64
 	Txid    string
-	vout    uint32
+	Vout    uint32
 }
 
 type WatchtowerNotification struct {
@@ -112,6 +116,7 @@ type DelegateAddress struct {
 	ValidatorAddress string
 	BtcOracleAddress string
 	BtcPublicKey     string
+	ZkOracleAddress  string
 }
 
 type DelegateAddressesResp struct {
@@ -174,7 +179,7 @@ type RegisteredJudgeResp struct {
 }
 
 type MsgSignRefund struct {
-	signerPublicKey  string
+	SignerPublicKey  string
 	RefundSignature  []string
 	BtcOracleAddress string
 }
@@ -347,19 +352,6 @@ type BroadcastRefundMsgResp struct {
 	BroadcastRefundMsg BroadcastRefundMsg
 }
 
-type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
-}
-
-type Hub struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
-}
-
 type ProposeSweepAddressMsg struct {
 	BtcAddress   string `json:"btcAddress"`
 	BtcScript    string `json:"btcScript"`
@@ -370,4 +362,55 @@ type ProposeSweepAddressMsg struct {
 
 type ProposeSweepAddressMsgResp struct {
 	ProposeSweepAddressMsgs []ProposeSweepAddressMsg `json:"proposeSweepAddressMsgs"`
+}
+
+type Client struct {
+	Hub  *Hub
+	Conn *websocket.Conn
+	Send chan []byte
+}
+
+type Hub struct {
+	Clients    map[*Client]bool
+	Broadcast  chan []byte
+	Register   chan *Client
+	Unregister chan *Client
+}
+
+func (h *Hub) Run() {
+	for {
+		select {
+		case client := <-h.Register:
+			h.Clients[client] = true
+		case client := <-h.Unregister:
+			if _, ok := h.Clients[client]; ok {
+				delete(h.Clients, client)
+				close(client.Send)
+			}
+		case message := <-h.Broadcast:
+			for client := range h.Clients {
+				select {
+				case client.Send <- message:
+				default:
+					close(client.Send)
+					delete(h.Clients, client)
+				}
+			}
+		}
+	}
+}
+
+func (c *Client) WritePump() {
+	defer func() {
+		c.Hub.Unregister <- c
+		c.Conn.Close()
+	}()
+
+	for message := range c.Send {
+		err := c.Conn.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			fmt.Println("error in pushing to refund tx channel: ", err)
+			return
+		}
+	}
 }

@@ -3,180 +3,116 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
 	"net/url"
-	"strconv"
-	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"github.com/tyler-smith/go-bip32"
 
-	"github.com/gorilla/websocket"
+	address "github.com/twilight-project/forkoracle-go/address"
+	"github.com/twilight-project/forkoracle-go/bridge"
+	db "github.com/twilight-project/forkoracle-go/db"
+	"github.com/twilight-project/forkoracle-go/eventhandler"
+	"github.com/twilight-project/forkoracle-go/judge"
+	"github.com/twilight-project/forkoracle-go/orchestrator"
+	"github.com/twilight-project/forkoracle-go/servers"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
+	utils "github.com/twilight-project/forkoracle-go/utils"
+	wallet "github.com/twilight-project/forkoracle-go/wallet"
 )
 
-var dbconn *sql.DB
-var masterPrivateKey *bip32.Key
-var judge bool
-var oracleAddr string
-var valAddr string
-var upgrader = websocket.Upgrader{}
-var WsHub *Hub
-
-var latestSweepTxHash = prometheus.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name: "latest_sweep_tx_hash",
-		Help: "Hash of the latest swept transaction.",
-	},
-	[]string{"hash"},
-)
-
-func initialize() {
-	initConfigFile()
-	btcPubkey := initWallet()
-	dbconn = initDB()
-	setDelegator(btcPubkey)
+func initialize() (string, string, *sql.DB, *bip32.Key) {
+	utils.InitConfigFile()
+	btcPubkey, masterPrivateKey := wallet.InitWallet()
+	dbconn := db.InitDB()
+	valAddr, oracleAddr := utils.SetDelegator(btcPubkey)
+	return valAddr, oracleAddr, dbconn, masterPrivateKey
 }
 
 func main() {
+	var activeJudge bool
 
-	initialize()
+	// var upgrader = websocket.Upgrader{}
+	var WsHub *btcOracleTypes.Hub
+
+	var latestSweepTxHash = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "latest_sweep_tx_hash",
+			Help: "Hash of the latest swept transaction.",
+		},
+		[]string{"hash"},
+	)
+
+	var latestRefundTxHash = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "latest_refund_tx_hash",
+			Help: "Hash of the latest swept transaction.",
+		},
+		[]string{"hash"},
+	)
+
+	valAddr, oracleAddr, dbconn, masterPrivateKey := initialize()
+	fmt.Println("valAddr : ", valAddr)
+	fmt.Println("oracleAddr : ", oracleAddr)
 
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
 	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-stg" {
-		judge = true
+		activeJudge = true
 	}
 
 	time.Sleep(30 * time.Second)
 
-	go orchestrator(accountName, forkscanner_url)
+	go orchestrator.Orchestrator(accountName, forkscanner_url, oracleAddr)
 
-	initJudge(accountName)
+	if activeJudge {
+		judge.InitJudge(accountName, dbconn, oracleAddr, valAddr)
+	}
 
 	time.Sleep(1 * time.Minute)
-	if judge {
-		go startJudge(accountName)
+	if activeJudge {
+		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, masterPrivateKey, latestRefundTxHash)
 	} else {
 		time.Sleep(2 * time.Minute)
 	}
 
 	time.Sleep(1 * time.Minute)
-	go startBridge(accountName, forkscanner_url)
-	go pubsubServer()
-	go startTransactionSigner(accountName)
-
-	time.Sleep(10 * time.Minute)
-	fmt.Println("===============================")
-	processSweep(accountName)
-
-	lastSweep := readSweepTx()
-	parts := strings.Split(lastSweep, " ")
-	reserve, _ := strconv.ParseFloat(parts[1], 64)
-	latestSweepTxHash.WithLabelValues(parts[0]).Set(reserve)
-	prometheus_server()
+	go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, masterPrivateKey, valAddr, WsHub)
+	// go servers.PubsubServer(WsHub, upgrader)
+	go startTransactionSigner(accountName, masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	servers.Prometheus_server(latestSweepTxHash, latestRefundTxHash)
 	fmt.Println("exiting main")
 }
 
-func (h *Hub) run() {
-	for {
-		select {
-		case client := <-h.register:
-			h.clients[client] = true
-		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-			}
-		case message := <-h.broadcast:
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}
-		}
-	}
+func startTransactionSigner(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
+	fmt.Println("starting Transaction Signer")
+	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	fmt.Println("finishing bridge")
 }
 
-func (c *Client) writePump() {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-	for {
-		select {
-		case message, ok := <-c.send:
-			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			c.conn.WriteMessage(websocket.TextMessage, message)
-		}
-	}
+func startJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, masterPrivateKey *bip32.Key, latestRefundTxHash *prometheus.GaugeVec) {
+	fmt.Println("starting judge")
+	go address.ProcessProposeAddress(accountName, oracleAddr, dbconn)
+	go judge.BroadcastOnBtc(dbconn)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, latestRefundTxHash)
+	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
 }
 
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, _ := upgrader.Upgrade(w, r, nil)
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.hub.register <- client
-
-	go client.writePump()
-}
-
-func pubsubServer() {
-	fmt.Println("starting pubsub server")
-	WsHub = &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
-	}
-
-	go WsHub.run()
-
-	http.HandleFunc("/tapinscription", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(WsHub, w, r)
-	})
-
-	err := http.ListenAndServe(":2300", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
-}
-
-func prometheus_server() {
-	// Create a new instance of a registry
-	reg := prometheus.NewRegistry()
-
-	// Optional: Add Go module build info.
-	reg.MustRegister(
-		latestSweepTxHash,
-	)
-
-	// Register the promhttp handler with the registry
-	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-
-	// Simple health check endpoint
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Server is running"))
-	})
-
-	// Start the server
-	log.Println("Starting prometheus server on :2555")
-	if err := http.ListenAndServe(":2555", nil); err != nil {
-		log.Fatalf("Error starting server: %s", err)
-	}
+func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string,
+	masterPrivateKey *bip32.Key, valAddr string, WsHub *btcOracleTypes.Hub) {
+	fmt.Println("starting bridge")
+	address.RegisterAddressOnValidators(dbconn)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go bridge.WatchAddress(forkscanner_url, dbconn)
+	bridge.KDeepService(accountName, dbconn, latestSweepTxHash, oracleAddr)
+	fmt.Println("finishing bridge")
 }
 
 // func main() {
@@ -198,3 +134,5 @@ func prometheus_server() {
 
 // 	fmt.Println(t)
 // }
+
+// nyksd tx bridge sign-refund 1 1 03b03fe3da02ac2d43a1c2ebcfc7b0497e89cc9f62b513c0fc14f10d3d1a2cd5e6 3045022100978ef8d96b62a0738b5c4a109720985609fb5ca39244b09905979d3373cfb78802206e6ddf5653d1a7fe5be605dd12b5fcfc022950c29711f39d05d5fac8bf81de8001 --from validator-fra --chain-id nyks  --keyring-backend test

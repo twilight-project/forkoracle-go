@@ -1,6 +1,7 @@
-package main
+package bridge
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,12 +10,17 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
+
+	comms "github.com/twilight-project/forkoracle-go/comms"
+	db "github.com/twilight-project/forkoracle-go/db"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	"github.com/twilight-project/nyks/x/bridge/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func watchAddress(url url.URL) {
+func WatchAddress(url url.URL, dbconn *sql.DB) {
 	conn, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
@@ -49,7 +55,7 @@ func watchAddress(url url.URL) {
 
 		fmt.Printf("recv watchtower noti: %s", message)
 
-		c := WatchtowerResponse{}
+		c := btcOracleTypes.WatchtowerResponse{}
 		err = json.Unmarshal(message, &c)
 		if err != nil {
 			fmt.Println("error in address watcher: ", err)
@@ -63,17 +69,17 @@ func watchAddress(url url.URL) {
 
 		watchtower_notifications := c.Params
 		for _, notification := range watchtower_notifications {
-			insertNotifications(notification)
+			db.InsertNotifications(dbconn, notification)
 		}
 
 	}
 
 }
 
-func kDeepService(accountName string) {
+func KDeepService(accountName string, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string) {
 	fmt.Println("running k deep service")
 	for {
-		resp := getAttestations("5")
+		resp := comms.GetAttestations("5")
 		if len(resp.Attestations) > 0 {
 			fmt.Println("INFO : k deep : latest attestaion is : ", resp.Attestations[0])
 			for _, attestation := range resp.Attestations {
@@ -83,7 +89,7 @@ func kDeepService(accountName string) {
 					if err != nil {
 						fmt.Println(err)
 					}
-					kDeepCheck(accountName, uint64(height))
+					kDeepCheck(accountName, uint64(height), dbconn, latestSweepTxHash, oracleAddr)
 					break
 				}
 			}
@@ -93,16 +99,16 @@ func kDeepService(accountName string) {
 	}
 }
 
-func kDeepCheck(accountName string, height uint64) {
+func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string) {
 	fmt.Println("running k deep check for height : ", height)
-	addresses := queryNotification()
-	watchedTx := queryWatchedTransactions()
+	addresses := db.QueryNotification(dbconn)
+	watchedTx := db.QueryWatchedTransactions(dbconn)
 	number := fmt.Sprintf("%v", viper.Get("confirmation_limit"))
 	confirmations, _ := strconv.ParseUint(number, 10, 64)
 	for _, a := range addresses {
 		if height-a.Height >= confirmations {
 			fmt.Println("reached height confirmations: ", height)
-			confirmBtcTransactionOnNyks(accountName, a)
+			confirmBtcTransactionOnNyks(accountName, a, dbconn, oracleAddr)
 		}
 
 		for _, tx := range watchedTx {
@@ -111,27 +117,27 @@ func kDeepCheck(accountName string, height uint64) {
 			}
 			if a.Receiving_txid == tx.Txid {
 
-				addresses := querySweepAddress(tx.Address)
+				addresses := db.QuerySweepAddress(dbconn, tx.Address)
 				if len(addresses) <= 0 {
 					fmt.Println("no record of this address")
 					return
 				}
 
-				reserves := getBtcReserves()
-				var reserve BtcReserve
+				reserves := comms.GetBtcReserves()
+				var reserve btcOracleTypes.BtcReserve
 				for _, res := range reserves.BtcReserves {
 					if res.ReserveId == strconv.Itoa(int(tx.Reserve)) {
 						reserve = res
 						break
 					}
 				}
-				var emptyReserve BtcReserve
+				var emptyReserve btcOracleTypes.BtcReserve
 				if reserve == emptyReserve {
 					fmt.Println("Reserve not found : ", tx.Reserve)
 					continue
 				}
 
-				cosmos := getCosmosClient()
+				cosmos := comms.GetCosmosClient()
 				msg := &bridgetypes.MsgSweepProposal{
 					ReserveId:             uint64(tx.Reserve),
 					NewReserveAddress:     tx.Address,
@@ -143,23 +149,24 @@ func kDeepCheck(accountName string, height uint64) {
 					BtcBlockNumber:        0,
 				}
 				fmt.Println("Sending Sweep proposal message")
-				sendTransactionSweepProposal(accountName, cosmos, msg)
-				markTransactionProcessed(tx.Txid)
+				comms.SendTransactionSweepProposal(accountName, cosmos, msg)
+				db.MarkTransactionProcessed(dbconn, tx.Txid)
+				db.MarkProcessedNotifications(dbconn, a)
 				latestSweepTxHash.Reset()
 				latestSweepTxHash.WithLabelValues(tx.Txid).Set(float64(tx.Reserve))
-				saveSweepTx(tx.Txid + " " + string(tx.Reserve))
+
 			}
 		}
 	}
 	fmt.Println("finishing k deep check for height : ", height)
 }
 
-func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification) {
+func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.WatchtowerNotification, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("inside confirm btc transaction")
-	cosmos := getCosmosClient()
+	cosmos := comms.GetCosmosClient()
 
-	depositAddresses := getAllDepositAddress()
-	var depositAddress []DepositAddress
+	depositAddresses := comms.GetAllDepositAddress()
+	var depositAddress []btcOracleTypes.DepositAddress
 	for _, deposit := range depositAddresses.Addresses {
 		if deposit.BtcDepositAddress == data.Sending {
 			fmt.Println("inside equal address check")
@@ -170,7 +177,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 
 	if len(depositAddress) == 0 {
 		fmt.Println("zero addresses bridge")
-		markProcessedNotifications(data)
+		// db.MarkProcessedNotifications(dbconn, data)
 		return
 	}
 
@@ -183,17 +190,7 @@ func confirmBtcTransactionOnNyks(accountName string, data WatchtowerNotification
 		OracleAddress:          oracleAddr,
 	}
 	fmt.Println("confirming btc transaction")
-	sendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
+	comms.SendTransactionConfirmBtcdeposit(accountName, cosmos, msg)
 	fmt.Println("deleting notifiction after procesing")
-	markProcessedNotifications(data)
-
-}
-
-func startBridge(accountName string, forkscanner_url url.URL) {
-	fmt.Println("starting bridge")
-	registerAddressOnValidators()
-	go nyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators")
-	go watchAddress(forkscanner_url)
-	kDeepService(accountName)
-	fmt.Println("finishing bridge")
+	db.MarkProcessedNotifications(dbconn, data)
 }

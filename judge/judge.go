@@ -1,7 +1,8 @@
-package main
+package judge
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,10 +11,20 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/wire"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
+	"github.com/twilight-project/forkoracle-go/address"
+	"github.com/twilight-project/forkoracle-go/comms"
+	db "github.com/twilight-project/forkoracle-go/db"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
+	utils "github.com/twilight-project/forkoracle-go/utils"
+	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func generateSweepTx(sweepAddress string, newSweepAddress string, accountName string, withdrawRequests []WithdrawRequest, unlockHeight int64, utxos []Utxo) (string, string, uint64, error) {
+func generateSweepTx(sweepAddress string, newSweepAddress string,
+	accountName string, withdrawRequests []btcOracleTypes.WithdrawRequest,
+	unlockHeight int64, utxos []btcOracleTypes.Utxo, dbconn *sql.DB) (string, string, uint64, error) {
+
 	fmt.Println(withdrawRequests)
 	fmt.Println("sweep address : ", newSweepAddress)
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
@@ -23,9 +34,9 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 		// need to decide if this needs to be enabled
 		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 		fmt.Println("INFO : No funds in address : ", sweepAddress, " generating new address : ")
-		markAddressSignedRefund(sweepAddress)
-		markAddressSignedSweep(sweepAddress)
-		markAddressArchived(sweepAddress)
+		db.MarkAddressSignedRefund(dbconn, sweepAddress)
+		db.MarkAddressSignedSweep(dbconn, sweepAddress)
+		db.MarkAddressArchived(dbconn, sweepAddress)
 		return "", "", 0, nil
 	}
 
@@ -34,7 +45,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 
 	sweepTx := wire.NewMsgTx(wire.TxVersion)
 	for _, utxo := range utxos {
-		txIn, err := CreateTxIn(utxo)
+		txIn, err := utils.CreateTxIn(utxo)
 		if err != nil {
 			fmt.Println("error while add tx in : ", err)
 			return "", "", 0, err
@@ -44,7 +55,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 		sweepTx.AddTxIn(txIn)
 	}
 
-	txOut, err := CreateTxOut(newSweepAddress, int64(0))
+	txOut, err := utils.CreateTxOut(newSweepAddress, int64(0))
 	if err != nil {
 		log.Println("error with txout", err)
 		return "", "", 0, err
@@ -57,7 +68,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 			fmt.Println("error while txout amount conversion : ", err)
 			return "", "", 0, err
 		}
-		txOut, err := CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
+		txOut, err := utils.CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
 		if err != nil {
 			fmt.Println("error while txout : ", err)
 			return "", "", 0, err
@@ -71,34 +82,34 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 		sweepTx.TxOut[0].Value = int64(totalAmountTxIn - totalAmountTxOut)
 	}
 
-	//uncomment when done testing
-	feeRate := getBtcFeeRate()
-	baseSize := sweepTx.SerializeSizeStripped()
-	totalSize := sweepTx.SerializeSize()
-	weight := (baseSize * 3) + totalSize
-	vsize := (weight + 3) / 4
+	// requiredFee , err := utils.GetFeeFromBtcNode(sweepTx)
+	// if err != nil {
+	// 	fmt.Println("error in getting fee from btc node : ", err)
+	// 	return "", "", 0, err
+	// }
 
-	// Calculate the required fee
-	requiredFee := vsize * feeRate.Priority
+	// newReserveOutput := sweepTx.TxOut[0]
+	// if newReserveOutput.Value < int64(requiredFee) {
+	// 	fmt.Println("Change output is smaller than required fee")
+	// 	return "", "", 0, nil
+	// }
 
-	newReserveOutput := sweepTx.TxOut[0]
-	if newReserveOutput.Value < int64(requiredFee) {
-		fmt.Println("Change output is smaller than required fee")
-		return "", "", 0, nil
-	}
+	// // Deduct the fee from the change output
+	// newReserveOutput.Value = newReserveOutput.Value - int64(requiredFee)
+	// sweepTx.TxOut[0] = newReserveOutput
 
-	// Deduct the fee from the change output
-	newReserveOutput.Value = newReserveOutput.Value - int64(requiredFee)
-	sweepTx.TxOut[0] = newReserveOutput
-
-	script := querySweepAddressScript(sweepAddress)
+	script := db.QuerySweepAddressScript(dbconn, sweepAddress)
 	witness := wire.TxWitness{}
 	witness = append(witness, script)
 	sweepTx.TxIn[0].Witness = witness
 	sweepTx.LockTime = uint32(unlockHeight + int64(sweepPreblock))
 
 	var UnsignedTx bytes.Buffer
-	sweepTx.Serialize(&UnsignedTx)
+	err = sweepTx.Serialize(&UnsignedTx)
+	if err != nil {
+		fmt.Println("error in serializing sweep tx : ", err)
+		return "", "", 0, err
+	}
 	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
 	fmt.Println("transaction UnSigned Sweep: ", hexTx)
 	txid := sweepTx.TxHash().String()
@@ -107,7 +118,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string, accountName st
 }
 
 func generateRefundTx(txHex string, script string, reserveId uint64, roundId uint64) (string, error) {
-	sweepTx, err := createTxFromHex(txHex)
+	sweepTx, err := utils.CreateTxFromHex(txHex)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
 	}
@@ -115,13 +126,13 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	inputTx := sweepTx.TxHash().String()
 	vout := 0 // since we are always setting the sweep tx at vout = 0
 
-	utxo := Utxo{
-		inputTx,
-		uint32(vout),
-		0,
+	utxo := btcOracleTypes.Utxo{
+		Txid:   inputTx,
+		Vout:   uint32(vout),
+		Amount: 0,
 	}
 	refundTx := wire.NewMsgTx(wire.TxVersion)
-	txIn, err := CreateTxIn(utxo)
+	txIn, err := utils.CreateTxIn(utxo)
 	if err != nil {
 		fmt.Println("error while add tx in : ", err)
 		return "", err
@@ -129,14 +140,14 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	txIn.Sequence = wire.MaxTxInSequenceNum - 10
 	refundTx.AddTxIn(txIn)
 
-	refundSnapshots := getRefundSnapshot(reserveId, roundId)
+	refundSnapshots := comms.GetRefundSnapshot(reserveId, roundId)
 	for _, refund := range refundSnapshots.RefundAccounts {
 		amount, err := strconv.Atoi(refund.Amount)
 		if err != nil {
 			fmt.Println("error in amount of refund snapshot : ", err)
 			return "", err
 		}
-		txout, err := CreateTxOut(refund.BtcDepositAddress, int64(amount))
+		txout, err := utils.CreateTxOut(refund.BtcDepositAddress, int64(amount))
 		if err != nil {
 			fmt.Println("error while add tx out : ", err)
 			return "", err
@@ -170,29 +181,32 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	refundTx.TxIn[0].Witness = witness
 
 	var UnsignedTx bytes.Buffer
-	refundTx.Serialize(&UnsignedTx)
+	err = refundTx.Serialize(&UnsignedTx)
+	if err != nil {
+		fmt.Println("error in serializing refund tx : ", err)
+	}
 	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
 	fmt.Println("transaction UnSigned Refund: ", hexTx)
 
 	return hexTx, nil
 }
 
-func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress SweepAddress) []byte {
+func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress btcOracleTypes.SweepAddress) []byte {
 	currentReserveScript := currentReserveAddress.Script
 	encoded := hex.EncodeToString(currentReserveScript)
-	decodedScript := decodeBtcScript(encoded)
-	minSignsRequired := getMinSignFromScript(decodedScript)
+	decodedScript := utils.DecodeBtcScript(encoded)
+	minSignsRequired := utils.GetMinSignFromScript(decodedScript)
 	if minSignsRequired < 1 {
 		fmt.Println("INFO : MinSign required for sweep is 0, which means there is a fault with sweep address script")
 		return nil
 	}
-	pubkeys := getPublicKeysFromScript(decodedScript, int(minSignsRequired))
+	pubkeys := utils.GetPublicKeysFromScript(decodedScript, int(minSignsRequired))
 
 	for {
 		time.Sleep(30 * time.Second)
 
-		receivedSweepSignatures := getSignSweep(reserveId, roundId)
-		filteredSweepSignatures := filterAndOrderSignSweep(receivedSweepSignatures, pubkeys)
+		receivedSweepSignatures := comms.GetSignSweep(reserveId, roundId)
+		filteredSweepSignatures := utils.FilterAndOrderSignSweep(receivedSweepSignatures, pubkeys)
 
 		if len(filteredSweepSignatures) <= 0 {
 			fmt.Println("INFO: ", "no sweep signature found")
@@ -207,7 +221,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		script := currentReserveAddress.Script
 		preimage := currentReserveAddress.Preimage
 
-		for i, _ := range sweepTx.TxIn {
+		for i := range sweepTx.TxIn {
 			dataSig := make([][]byte, 0)
 			for _, sig := range filteredSweepSignatures {
 				sig, _ := hex.DecodeString(sig.SweepSignature[i])
@@ -238,33 +252,33 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 	}
 }
 
-func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64) ([]byte, SweepAddress, error) {
-	addrs := getProposedSweepAddress(reserveId, roundId)
+func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId uint64, roundId uint64, dbconn *sql.DB, oracleAddr string) ([]byte, btcOracleTypes.SweepAddress, error) {
+	addrs := comms.GetProposedSweepAddress(reserveId, roundId)
 	if addrs.ProposeSweepAddressMsg.BtcAddress == "" {
-		return nil, SweepAddress{}, nil
+		return nil, btcOracleTypes.SweepAddress{}, nil
 	}
 
-	addresses := querySweepAddress(addrs.ProposeSweepAddressMsg.BtcAddress)
+	addresses := db.QuerySweepAddress(dbconn, addrs.ProposeSweepAddressMsg.BtcAddress)
 	if len(addresses) <= 0 {
 		fmt.Println("address not found in DB")
-		return nil, SweepAddress{}, nil
+		return nil, btcOracleTypes.SweepAddress{}, nil
 	}
 	newReserveAddress := addresses[0]
 
 	newReserveScript := newReserveAddress.Script
 	encoded := hex.EncodeToString(newReserveScript)
-	decodedScript := decodeBtcScript(encoded)
-	minSignsRequired := getMinSignFromScript(decodedScript)
+	decodedScript := utils.DecodeBtcScript(encoded)
+	minSignsRequired := utils.GetMinSignFromScript(decodedScript)
 	if minSignsRequired < 1 {
 		fmt.Println("INFO : MinSign required for refund is 0, which means there is a fault with sweep address script")
-		return nil, SweepAddress{}, errors.New("MinSign required for refund is 0, which means there is a fault with sweep address script")
+		return nil, btcOracleTypes.SweepAddress{}, errors.New("MinSign required for refund is 0, which means there is a fault with sweep address script")
 	}
-	pubkeys := getPublicKeysFromScript(decodedScript, int(minSignsRequired))
+	pubkeys := utils.GetPublicKeysFromScript(decodedScript, int(minSignsRequired))
 
 	for {
 		time.Sleep(30 * time.Second)
-		receiveRefundSignatures := getSignRefund(reserveId, roundId)
-		filteredRefundSignatures, JudgeSign := OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address, pubkeys)
+		receiveRefundSignatures := comms.GetSignRefund(reserveId, roundId)
+		filteredRefundSignatures, JudgeSign := utils.OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address, pubkeys, oracleAddr)
 
 		if len(filteredRefundSignatures) <= 0 {
 			continue
@@ -283,7 +297,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		}
 
 		script := newReserveAddress.Script
-		preimageFalse, _ := preimage()
+		preimageFalse, _ := address.Preimage()
 
 		for i := 0; i < len(refundTx.TxIn); i++ {
 
@@ -315,28 +329,25 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 // 	return signTx(tx, script)
 // }
 
-func initJudge(accountName string) {
+func InitJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string) {
 	fmt.Println("init judge")
-
-	if judge {
-		addr := queryAllSweepAddresses()
-		if len(addr) <= 0 {
-			time.Sleep(2 * time.Minute)
-			initReserve(accountName)
-		}
+	addr := db.QueryAllSweepAddresses(dbconn)
+	if len(addr) <= 0 {
+		time.Sleep(2 * time.Minute)
+		initReserve(accountName, oracleAddr, valAddr, dbconn)
 	}
 }
 
-func initReserve(accountName string) {
+func initReserve(accountName string, oracleAddr string, valAddr string, dbconn *sql.DB) {
 	fmt.Println("init reserve")
 	height := 0
 
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
 	unlockingTimeInBlocks, _ := strconv.Atoi(number)
 
-	judges := getRegisteredJudges()
+	judges := comms.GetRegisteredJudges()
 	if len(judges.Judges) == 0 {
-		registerJudge(accountName)
+		utils.RegisterJudge(accountName, oracleAddr, valAddr)
 	} else {
 		registered := false
 		for _, judge := range judges.Judges {
@@ -345,12 +356,12 @@ func initReserve(accountName string) {
 			}
 		}
 		if !registered {
-			registerJudge(accountName)
+			utils.RegisterJudge(accountName, oracleAddr, valAddr)
 		}
 	}
 
 	for {
-		resp := getAttestations("1")
+		resp := comms.GetAttestations("1")
 		if len(resp.Attestations) <= 0 {
 			time.Sleep(30 * time.Second)
 			continue
@@ -366,17 +377,17 @@ func initReserve(accountName string) {
 		}
 	}
 
-	_ = generateAndRegisterNewBtcReserveAddress(accountName, int64(height+unlockingTimeInBlocks))
+	_ = address.GenerateAndRegisterNewBtcReserveAddress(dbconn, accountName, int64(height+unlockingTimeInBlocks), oracleAddr)
 	fmt.Println("judge initialized")
 }
 
-func processSweep(accountName string) {
+func ProcessSweep(accountName string, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("Process Sweep unsigned started")
 	time.Sleep(2 * time.Minute)
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
-	resp := getAttestations("20")
+	resp := comms.GetAttestations("20")
 	if len(resp.Attestations) <= 0 {
 		time.Sleep(1 * time.Minute)
 		fmt.Println("no attestaions (start judge)")
@@ -384,8 +395,8 @@ func processSweep(accountName string) {
 		return
 	}
 
-	var currentReservesForThisJudge []BtcReserve
-	reserves := getBtcReserves()
+	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
+	reserves := comms.GetBtcReserves()
 	for _, reserve := range reserves.BtcReserves {
 		if reserve.JudgeAddress == oracleAddr {
 			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
@@ -405,7 +416,7 @@ func processSweep(accountName string) {
 			continue
 		}
 
-		addresses := querySweepAddressesByHeight(uint64(height+sweepInitateBlockHeight), true)
+		addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
 		if len(addresses) <= 0 {
 			continue
 		}
@@ -413,7 +424,7 @@ func processSweep(accountName string) {
 		fmt.Println("sweep address found")
 
 		currentSweepAddress := addresses[0]
-		utxos := queryUtxo(currentSweepAddress.Address)
+		utxos := db.QueryUtxo(dbconn, currentSweepAddress.Address)
 		if len(utxos) <= 0 {
 			// need to decide if this needs to be enabled
 			// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
@@ -423,7 +434,7 @@ func processSweep(accountName string) {
 		}
 
 		var newSweepAddress *string
-		var reserveTobeProcessed BtcReserve
+		var reserveTobeProcessed btcOracleTypes.BtcReserve
 
 		minRoundId := 50000000
 		// Iterate through the array and find the minimum roundId
@@ -439,7 +450,7 @@ func processSweep(accountName string) {
 		currentReserveId, _ := strconv.Atoi(reserveTobeProcessed.ReserveId)
 
 		for {
-			sweepAddresses := getProposedSweepAddress(uint64(currentReserveId), uint64(currentRoundId+1))
+			sweepAddresses := comms.GetProposedSweepAddress(uint64(currentReserveId), uint64(currentRoundId+1))
 			if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
 				fmt.Println("no proposed sweep address found ")
 				time.Sleep(2 * time.Minute)
@@ -449,8 +460,8 @@ func processSweep(accountName string) {
 			break
 		}
 
-		withdrawRequests := getWithdrawSnapshot(uint64(currentReserveId), uint64(currentRoundId+1)).WithdrawRequests
-		sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos)
+		withdrawRequests := comms.GetWithdrawSnapshot(uint64(currentReserveId), uint64(currentRoundId+1)).WithdrawRequests
+		sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos, dbconn)
 		if err != nil {
 			fmt.Println("Error in generating a Sweep transaction: ", err)
 			fmt.Println("finishing sweep process: error in generating a Sweep transaction")
@@ -462,26 +473,28 @@ func processSweep(accountName string) {
 			time.Sleep(1 * time.Minute)
 			return
 		}
+		cosmos := comms.GetCosmosClient()
+		msg := bridgetypes.NewMsgUnsignedTxSweep(sweepTxId, sweepTxHex, uint64(currentReserveId), uint64(currentRoundId+1), oracleAddr)
+		comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
 
-		sendUnsignedSweepTx(uint64(currentReserveId), uint64(currentRoundId+1), sweepTxHex, sweepTxId, accountName)
-		markAddressArchived(currentSweepAddress.Address)
+		db.MarkAddressArchived(dbconn, currentSweepAddress.Address)
 	}
 
 	fmt.Println("finishing sweep process: final")
 }
 
-func processRefund(accountName string) {
+func ProcessRefund(accountName string, oracleAddr string) {
 	fmt.Println("Process unsigned Refund started")
 
-	reserves := getBtcReserves()
-	var currentReservesForThisJudge []BtcReserve
+	reserves := comms.GetBtcReserves()
+	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
 	for _, reserve := range reserves.BtcReserves {
 		if reserve.JudgeAddress == oracleAddr {
 			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 		}
 	}
 
-	var reserveTobeProcessed *BtcReserve
+	var reserveTobeProcessed *btcOracleTypes.BtcReserve
 	minRoundId := 500000000
 	// Iterate through the array and find the minimum roundId
 	for _, reserve := range currentReservesForThisJudge {
@@ -510,7 +523,7 @@ func processRefund(accountName string) {
 		reserveIdForRefund = currentReserveId - 1
 	}
 
-	sweepTxs := getUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
+	sweepTxs := comms.GetUnsignedSweepTx(uint64(reserveIdForRefund), uint64(currentRoundId+1))
 	if sweepTxs.Code > 0 {
 		fmt.Println("refund : no unsigned sweep tx found : ", reserveIdForRefund, "   ", uint64(currentRoundId+1))
 		fmt.Println("finishing refund process")
@@ -519,7 +532,7 @@ func processRefund(accountName string) {
 
 	sweeptx := sweepTxs.UnsignedTxSweepMsg
 
-	sweepAddresses := getProposedSweepAddress(uint64(reserveIdForRefund), uint64(currentRoundId+1))
+	sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveIdForRefund), uint64(currentRoundId+1))
 	if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
 		fmt.Println("issue with sweep address while creating refund tx")
 		fmt.Println("finishing refund process")
@@ -532,23 +545,25 @@ func processRefund(accountName string) {
 		fmt.Println("finishing refund process")
 		return
 	}
-	sendUnsignedRefundTx(refundTxHex, uint64(reserveIdForRefund), uint64(currentRoundId+1), accountName)
+	cosmos := comms.GetCosmosClient()
+	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveIdForRefund), uint64(currentRoundId+1), refundTxHex, oracleAddr)
+	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 
 	fmt.Println("finishing refund process")
 }
 
-func processSignedSweep(accountName string) {
+func ProcessSignedSweep(accountName string, oracleAddr string, dbconn *sql.DB) {
 	fmt.Println("Process signed sweep started")
 
-	var currentReservesForThisJudge []BtcReserve
-	reserves := getBtcReserves()
+	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
+	reserves := comms.GetBtcReserves()
 	for _, reserve := range reserves.BtcReserves {
 		if reserve.JudgeAddress == oracleAddr {
 			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 		}
 	}
 
-	var reserveTobeProcessed BtcReserve
+	var reserveTobeProcessed btcOracleTypes.BtcReserve
 	minRoundId := 500000000
 	// Iterate through the array and find the minimum roundId
 	for _, reserve := range currentReservesForThisJudge {
@@ -563,7 +578,7 @@ func processSignedSweep(accountName string) {
 	roundIdForSweepTx, _ := strconv.Atoi(reserveTobeProcessed.RoundId)
 	roundIdForSweepTx = roundIdForSweepTx + 1
 
-	sweepTxs := getUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
+	sweepTxs := comms.GetUnsignedSweepTx(uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
 	if sweepTxs.Code > 0 {
 		fmt.Println("Signed Sweep: No Unsigned Sweep tx found : ", reserveIdForSweepTx, "   ", roundIdForSweepTx)
 		fmt.Println("finishing signed sweep process")
@@ -571,13 +586,13 @@ func processSignedSweep(accountName string) {
 	}
 
 	unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg.BtcUnsignedSweepTx
-	sweepTx, err := createTxFromHex(unsignedSweepTxHex)
+	sweepTx, err := utils.CreateTxFromHex(unsignedSweepTxHex)
 	if err != nil {
 		fmt.Println("error decoding sweep tx : inside judge")
 		fmt.Println(err)
 	}
 
-	reserveAddresses := queryUnsignedSweepAddressByScript(sweepTx.TxIn[0].Witness[0])
+	reserveAddresses := db.QueryUnsignedSweepAddressByScript(dbconn, sweepTx.TxIn[0].Witness[0])
 
 	if len(reserveAddresses) == 0 {
 		fmt.Println("No address found")
@@ -597,26 +612,35 @@ func processSignedSweep(accountName string) {
 	signedSweepTxHex := hex.EncodeToString(signedSweepTx)
 	fmt.Println("Signed P2WSH Sweep transaction with preimage:", signedSweepTxHex)
 
-	broadcastSweeptxNYKS(signedSweepTxHex, accountName, uint64(reserveIdForSweepTx), uint64(roundIdForSweepTx))
-	insertSignedtx(signedSweepTx, currentReserveAddress.Unlock_height)
-	markAddressBroadcastedSweep(currentReserveAddress.Address)
+	cosmos := comms.GetCosmosClient()
+	msg := &bridgetypes.MsgBroadcastTxSweep{
+		SignedSweepTx: signedSweepTxHex,
+		JudgeAddress:  oracleAddr,
+		ReserveId:     uint64(reserveIdForSweepTx),
+		RoundId:       uint64(roundIdForSweepTx),
+	}
+
+	comms.SendTransactionBroadcastSweeptx(accountName, cosmos, msg)
+	db.InsertSignedtx(dbconn, signedSweepTx, currentReserveAddress.Unlock_height)
+	db.MarkAddressBroadcastedSweep(dbconn, currentReserveAddress.Address)
+	address.UnRegisterAddressOnForkscanner(currentReserveAddress.Address)
 
 	fmt.Println("finishing signed refund process")
 
 }
 
-func processSignedRefund(accountName string) {
+func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
 	fmt.Println("Process signed Refund started")
 
-	reserves := getBtcReserves()
-	var currentReservesForThisJudge []BtcReserve
+	reserves := comms.GetBtcReserves()
+	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
 	for _, reserve := range reserves.BtcReserves {
 		if reserve.JudgeAddress == oracleAddr {
 			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
 		}
 	}
 
-	var reserveTobeProcessed *BtcReserve
+	var reserveTobeProcessed *btcOracleTypes.BtcReserve
 	minRoundId := 50000000
 	// Iterate through the array and find the minimum roundId
 	for _, reserve := range currentReservesForThisJudge {
@@ -645,7 +669,7 @@ func processSignedRefund(accountName string) {
 		reserveIdForSweep = currentReserveId - 1
 	}
 
-	refundTxs := getUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
+	refundTxs := comms.GetUnsignedRefundTx(int64(reserveIdForSweep), int64(currentRoundId+1))
 
 	if refundTxs.Code > 0 {
 		fmt.Println("no unsigned refund tx found")
@@ -654,31 +678,39 @@ func processSignedRefund(accountName string) {
 	}
 
 	unsignedRefundTxHex := refundTxs.UnsignedTxRefundMsg.BtcUnsignedRefundTx
-	refundTx, err := createTxFromHex(unsignedRefundTxHex)
+	refundTx, err := utils.CreateTxFromHex(unsignedRefundTxHex)
 	if err != nil {
 		fmt.Println("error decoding sweep tx : inside judge")
 		fmt.Println(err)
 	}
 
-	signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1))
+	signedRefundTx, newReserveAddress, _ := generateSignedRefundTx(accountName, refundTx, uint64(reserveIdForSweep), uint64(currentRoundId+1), dbconn, oracleAddr)
 
 	signedRefundTxHex := hex.EncodeToString(signedRefundTx)
 	fmt.Println("Signed P2WSH Refund transaction with preimage:", signedRefundTxHex)
 
-	broadcastRefundtxNYKS(signedRefundTxHex, accountName, uint64(reserveIdForSweep), uint64(currentRoundId+1))
-	markAddressBroadcastedRefund(newReserveAddress.Address)
+	cosmos := comms.GetCosmosClient()
+	msg := &bridgetypes.MsgBroadcastTxRefund{
+		SignedRefundTx: signedRefundTxHex,
+		JudgeAddress:   oracleAddr,
+		ReserveId:      uint64(reserveIdForSweep),
+		RoundId:        uint64(currentRoundId + 1),
+	}
+	comms.SendTransactionBroadcastRefundtx(accountName, cosmos, msg)
+	db.MarkAddressBroadcastedRefund(dbconn, newReserveAddress.Address)
 
 	// WsHub.broadcast <- signedRefundTx
 
-	// add tapscript inscription here
+	// latestRefundTxHash.Reset()
+	// latestRefundTxHash.WithLabelValues(refundTx.TxHash().String()).Set(float64(currentReserveId))
 
 	fmt.Println("finishing signed refund process")
 }
 
-func broadcastOnBtc() {
+func BroadcastOnBtc(dbconn *sql.DB) {
 	fmt.Println("Started Btc Broadcaster")
 	for {
-		resp := getAttestations("3")
+		resp := comms.GetAttestations("3")
 		if len(resp.Attestations) <= 0 {
 			time.Sleep(1 * time.Minute)
 			fmt.Println("no attestaions (btc broadcaster)")
@@ -690,26 +722,16 @@ func broadcastOnBtc() {
 				continue
 			}
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
-			txs := querySignedTx(int64(height))
+			txs := db.QuerySignedTx(dbconn, int64(height))
 			for _, tx := range txs {
 				transaction := hex.EncodeToString(tx)
-				wireTransaction, err := createTxFromHex(transaction)
+				wireTransaction, err := utils.CreateTxFromHex(transaction)
 				if err != nil {
 					fmt.Println("error decodeing signed transaction btc broadcaster : ", err)
 				}
-				broadcastBtcTransaction(wireTransaction)
-				deleteSignedTx(tx)
+				utils.BroadcastBtcTransaction(wireTransaction)
+				db.DeleteSignedTx(dbconn, tx)
 			}
 		}
 	}
-}
-
-func startJudge(accountName string) {
-	fmt.Println("starting judge")
-	go processProposeAddress(accountName)
-	go broadcastOnBtc()
-	go nyksEventListener("propose_sweep_address", accountName, "sweep_process")
-	go nyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process")
-	go nyksEventListener("unsigned_tx_sweep", accountName, "refund_process")
-	nyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process")
 }

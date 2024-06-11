@@ -429,7 +429,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, oracleAddr string) {
 			// need to decide if this needs to be enabled
 			// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 			fmt.Println("INFO : No funds in address : ", currentSweepAddress.Address, " generating new address : ")
-			fmt.Println("finishing sweep process")
+			fmt.Println("finishing sweep process: no funds")
 			return
 		}
 
@@ -464,7 +464,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, oracleAddr string) {
 		sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos, dbconn)
 		if err != nil {
 			fmt.Println("Error in generating a Sweep transaction: ", err)
-			fmt.Println("finishing sweep process")
+			fmt.Println("finishing sweep process: error in generating a Sweep transaction")
 			return
 		}
 		if sweepTxHex == "" {
@@ -480,7 +480,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, oracleAddr string) {
 		db.MarkAddressArchived(dbconn, currentSweepAddress.Address)
 	}
 
-	fmt.Println("finishing sweep process")
+	fmt.Println("finishing sweep process: final")
 }
 
 func ProcessRefund(accountName string, oracleAddr string) {
@@ -699,7 +699,7 @@ func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, 
 	comms.SendTransactionBroadcastRefundtx(accountName, cosmos, msg)
 	db.MarkAddressBroadcastedRefund(dbconn, newReserveAddress.Address)
 
-	// WsHub.Broadcast <- signedRefundTx
+	// WsHub.broadcast <- signedRefundTx
 
 	// latestRefundTxHash.Reset()
 	// latestRefundTxHash.WithLabelValues(refundTx.TxHash().String()).Set(float64(currentReserveId))

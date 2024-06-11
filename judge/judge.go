@@ -701,8 +701,8 @@ func ProcessSignedRefund(accountName string, oracleAddr string, dbconn *sql.DB, 
 
 	// WsHub.Broadcast <- signedRefundTx
 
-	latestRefundTxHash.Reset()
-	latestRefundTxHash.WithLabelValues(refundTx.TxHash().String()).Set(float64(currentReserveId))
+	// latestRefundTxHash.Reset()
+	// latestRefundTxHash.WithLabelValues(refundTx.TxHash().String()).Set(float64(currentReserveId))
 
 	fmt.Println("finishing signed refund process")
 }

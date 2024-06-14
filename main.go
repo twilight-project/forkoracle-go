@@ -4,35 +4,55 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"github.com/tyler-smith/go-bip32"
-
-	address "github.com/twilight-project/forkoracle-go/address"
+	"github.com/twilight-project/forkoracle-go/address"
 	"github.com/twilight-project/forkoracle-go/bridge"
-	db "github.com/twilight-project/forkoracle-go/db"
+	"github.com/twilight-project/forkoracle-go/db"
 	"github.com/twilight-project/forkoracle-go/eventhandler"
 	"github.com/twilight-project/forkoracle-go/judge"
+	"github.com/twilight-project/forkoracle-go/keyring"
 	"github.com/twilight-project/forkoracle-go/orchestrator"
 	"github.com/twilight-project/forkoracle-go/servers"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	utils "github.com/twilight-project/forkoracle-go/utils"
-	wallet "github.com/twilight-project/forkoracle-go/wallet"
+	"github.com/twilight-project/forkoracle-go/utils"
 )
 
-func initialize() (string, string, *sql.DB, *bip32.Key) {
+func initialize() (string, string, *sql.DB, keyring.Keyring) {
 	utils.InitConfigFile()
-	btcPubkey, masterPrivateKey := wallet.InitWallet()
+	mockIn := strings.NewReader("")
+	keyring_dir := viper.GetString("keyring_dir")
+	keyring_name := viper.GetString("keyring_name")
+	kr, err := keyring.New("nyks", keyring.BackendFile, keyring_dir, mockIn)
+	if err != nil {
+		fmt.Println(err)
+	}
+	keys_list, _ := kr.List()
+	if keys_list == nil {
+		info, mnemonic, err := kr.NewMnemonic(keyring_name, keyring.English, "m/44'/118'/0'/0/0", keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		fmt.Println(info.GetPubKey().String())
+		fmt.Println("your mnemonic has been printed in the mnemonic.txt file in the keyring directory. Please keep copy it and delete the file.")
+		utils.WriteToFile(keyring_dir+"mnemonic.txt", mnemonic)
+	}
 	dbconn := db.InitDB()
-	valAddr, oracleAddr := utils.SetDelegator(btcPubkey)
-	return valAddr, oracleAddr, dbconn, masterPrivateKey
+	key, err := kr.Key(keyring_name)
+	if err != nil {
+		panic(err)
+	}
+	valAddr, oracleAddr := utils.SetDelegator(key.GetPubKey().String())
+	return valAddr, oracleAddr, dbconn, kr
 }
 
 func main() {
-	var activeJudge bool
 
 	// var upgrader = websocket.Upgrader{}
 	var WsHub *btcOracleTypes.Hub
@@ -53,7 +73,7 @@ func main() {
 		[]string{"hash"},
 	)
 
-	valAddr, oracleAddr, dbconn, masterPrivateKey := initialize()
+	valAddr, oracleAddr, dbconn, keyring := initialize()
 	fmt.Println("valAddr : ", valAddr)
 	fmt.Println("oracleAddr : ", oracleAddr)
 
@@ -61,9 +81,8 @@ func main() {
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
-	if accountName == "validator-sfo" || accountName == "validator-ams" || accountName == "validator-stg" {
-		activeJudge = true
-	}
+	activeJudge := viper.GetBool("judge")
+	signer := viper.GetBool("signer")
 
 	time.Sleep(30 * time.Second)
 
@@ -75,64 +94,65 @@ func main() {
 
 	time.Sleep(1 * time.Minute)
 	if activeJudge {
-		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, masterPrivateKey, latestRefundTxHash)
+		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, keyring, latestRefundTxHash)
 	} else {
 		time.Sleep(2 * time.Minute)
 	}
 
 	time.Sleep(1 * time.Minute)
-	go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, masterPrivateKey, valAddr, WsHub)
+	go startBridge(accountName, forkscanner_url, dbconn, latestSweepTxHash, oracleAddr, keyring, valAddr, WsHub)
 	// go servers.PubsubServer(WsHub, upgrader)
-	go startTransactionSigner(accountName, masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub)
+	if signer {
+		go startTransactionSigner(accountName, keyring, dbconn, oracleAddr, valAddr, WsHub)
+	}
 	servers.Prometheus_server(latestSweepTxHash, latestRefundTxHash)
 	fmt.Println("exiting main")
 }
 
-func startTransactionSigner(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
+func startTransactionSigner(accountName string, keyring keyring.Keyring, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {
 	fmt.Println("starting Transaction Signer")
-	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
-	eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signing_refund", keyring, dbconn, oracleAddr, valAddr, WsHub, nil)
+	eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signing_sweep", keyring, dbconn, oracleAddr, valAddr, WsHub, nil)
 	fmt.Println("finishing bridge")
 }
 
-func startJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, masterPrivateKey *bip32.Key, latestRefundTxHash *prometheus.GaugeVec) {
+func startJudge(accountName string, dbconn *sql.DB, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, keyring keyring.Keyring, latestRefundTxHash *prometheus.GaugeVec) {
 	fmt.Println("starting judge")
 	go address.ProcessProposeAddress(accountName, oracleAddr, dbconn)
 	go judge.BroadcastOnBtc(dbconn)
-	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
-	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, latestRefundTxHash)
-	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
-	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", keyring, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", keyring, dbconn, oracleAddr, valAddr, WsHub, latestRefundTxHash)
+	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", keyring, dbconn, oracleAddr, valAddr, WsHub, nil)
+	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", keyring, dbconn, oracleAddr, valAddr, WsHub, nil)
 }
 
 func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string,
-	masterPrivateKey *bip32.Key, valAddr string, WsHub *btcOracleTypes.Hub) {
+	keyring keyring.Keyring, valAddr string, WsHub *btcOracleTypes.Hub) {
 	fmt.Println("starting bridge")
 	address.RegisterAddressOnValidators(dbconn)
-	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", masterPrivateKey, dbconn, oracleAddr, valAddr, WsHub, nil)
+	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "register_res_addr_validators", keyring, dbconn, oracleAddr, valAddr, WsHub, nil)
 	go bridge.WatchAddress(forkscanner_url, dbconn)
 	bridge.KDeepService(accountName, dbconn, latestSweepTxHash, oracleAddr)
 	fmt.Println("finishing bridge")
 }
 
 // func main() {
-
-// 	initialize()
-// 	// accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-// 	sweeptx := getUnsignedSweepTx(1, 1)
-// 	tx := sweeptx.UnsignedTxSweepMsg.BtcUnsignedSweepTx
-// 	sweepTx, _ := createTxFromHex(tx)
-
-// 	signatureSweep := getSignSweep(1, 1)
-// 	x := sweepTx.TxIn[0].Witness[0]
-// 	hx := hex.EncodeToString(x)
-// 	decodedscript := decodeBtcScript(hx)
-// 	min := getMinSignFromScript(decodedscript)
-// 	pubkeys := getPublicKeysFromScript(decodedscript, int(min))
-
-// 	t := filterAndOrderSignSweep(signatureSweep, pubkeys)
-
-// 	fmt.Println(t)
+// 	mockIn := strings.NewReader("password\npassword\n")
+// 	kr, err := keyring.New("nyks", keyring.BackendFile, "", mockIn)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 	}
+// 	keys_list, _ := kr.List()
+// 	if keys_list == nil {
+// 		info, mnemonic, err := kr.NewMnemonic("btc_keyring", keyring.English, "m/44'/118'/0'/0/0", keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 		fmt.Println(info.GetPubKey())
+// 		fmt.Println(mnemonic)
+// 	}
+// 	k, err := kr.Key("btc_keyring")
+// 	fmt.Println(k.GetPubKey())
+// 	kr.SignTx(k.GetName(), nil, nil, nil)
+// 	fmt.Println(k.GetPubKey())
 // }
-
-// nyksd tx bridge sign-refund 1 1 03b03fe3da02ac2d43a1c2ebcfc7b0497e89cc9f62b513c0fc14f10d3d1a2cd5e6 3045022100978ef8d96b62a0738b5c4a109720985609fb5ca39244b09905979d3373cfb78802206e6ddf5653d1a7fe5be605dd12b5fcfc022950c29711f39d05d5fac8bf81de8001 --from validator-fra --chain-id nyks  --keyring-backend test

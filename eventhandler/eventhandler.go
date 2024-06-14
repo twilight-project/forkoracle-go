@@ -11,12 +11,12 @@ import (
 	"github.com/spf13/viper"
 	"github.com/twilight-project/forkoracle-go/address"
 	"github.com/twilight-project/forkoracle-go/judge"
+	"github.com/twilight-project/forkoracle-go/keyring"
 	"github.com/twilight-project/forkoracle-go/transaction_signer"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	"github.com/tyler-smith/go-bip32"
 )
 
-func NyksEventListener(event string, accountName string, functionCall string, masterPrivateKey *bip32.Key, dbconn *sql.DB,
+func NyksEventListener(event string, accountName string, functionCall string, keyring keyring.Keyring, dbconn *sql.DB,
 	oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
 	headers := make(map[string][]string)
 	headers["Content-Type"] = []string{"application/json"}
@@ -108,9 +108,9 @@ func NyksEventListener(event string, accountName string, functionCall string, ma
 		case "register_res_addr_validators":
 			go address.RegisterAddressOnValidators(dbconn)
 		case "signing_sweep":
-			go transaction_signer.ProcessTxSigningSweep(accountName, masterPrivateKey, dbconn, oracleAddr)
+			go transaction_signer.ProcessTxSigningSweep(accountName, keyring, dbconn, oracleAddr)
 		case "signing_refund":
-			go transaction_signer.ProcessTxSigningRefund(accountName, masterPrivateKey, dbconn, oracleAddr)
+			go transaction_signer.ProcessTxSigningRefund(accountName, keyring, dbconn, oracleAddr)
 		case "sweep_process":
 			go judge.ProcessSweep(accountName, dbconn, oracleAddr)
 		default:

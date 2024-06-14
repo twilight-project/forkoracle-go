@@ -2,8 +2,8 @@
     "accountName": "validator-lon",
     "DB_port": "5432",
     "DB_host": "localhost",
-    "DB_user": "forkscanner",
-    "DB_password" : "forkscanner",
+    "DB_user": "u1",
+    "DB_password" : "p1",
     "DB_name" : "judge",
     "forkscanner_host": "0.0.0.0",
     "forkscanner_ws_port": "8340",
@@ -11,10 +11,13 @@
     "nyksd_url": "https://nyks.twilight-explorer.com/api",
     "nyksd_socket_url" : "ws://nyks.twilight-explorer.com/tendermint/websocket",
     "confirmation_limit": "3",
-    "wallet_passphrase": "the correct horse battery staple",
     "unlocking_time": "20",
     "no_of_Validators": "6",
     "csv_delay": "10",
     "sweep_preblock": "5",
-    "height_diff_between_judges" : "10"
+    "height_diff_between_judges" : "10",
+    "judge" : true,
+    "signer" : true,
+    "keyring_dir" : "/path/to/directory/",
+    "keyring_name": "btc_keyring"
 }

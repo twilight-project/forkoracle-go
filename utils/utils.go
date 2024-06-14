@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -10,12 +9,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -25,10 +24,8 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
-	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
-	"github.com/tyler-smith/go-bip32"
 )
 
 func InitConfigFile() {
@@ -148,61 +145,6 @@ func CreateTxFromHex(txHex string) (*wire.MsgTx, error) {
 
 	return tx, nil
 }
-
-func SignTx(dbconn *sql.DB, masterPrivateKey *bip32.Key, tx *wire.MsgTx, script []byte) []string {
-	signatures := []string{}
-
-	for i, input := range tx.TxIn {
-
-		amount := db.QueryAmount(dbconn, input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
-		sighashes := txscript.NewTxSigHashes(tx)
-
-		privkeybytes, err := masterPrivateKey.Serialize()
-		if err != nil {
-			fmt.Println("Error: converting private key to bytes : ", err)
-		}
-
-		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-
-		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, i, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-
-		hexSignature := hex.EncodeToString(signature)
-
-		signatures = append(signatures, hexSignature)
-	}
-
-	return signatures
-}
-
-// func signTx(tx *wire.MsgTx, address string) []byte {
-// 	amount := queryAmount(tx.TxIn[0].PreviousOutPoint.Index, tx.TxIn[0].PreviousOutPoint.Hash.String())
-// 	sighashes := txscript.NewTxSigHashes(tx)
-// 	script := querySweepAddressScriptByParentAddress(address)
-
-// 	privkeybytes, err := masterPrivateKey.Serialize()
-// 	if err != nil {
-// 		fmt.Println("Error: converting private key to bytes : ", err)
-// 	}
-
-// 	privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-
-// 	signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, 0, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 	}
-
-// 	return signature
-// }
-
-// func reverseArray(arr []MsgSignSweep) []MsgSignSweep {
-// 	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
-// 		arr[i], arr[j] = arr[j], arr[i]
-// 	}
-// 	return arr
-// }
 
 func StringInSlice(str string, slice []string) bool {
 	for _, s := range slice {
@@ -500,4 +442,19 @@ func GetPublicKeysFromScript(script string, limit int) []string {
 	pubkeys = append(pubkeys, parts[4:4+limit]...)
 
 	return pubkeys
+}
+
+func WriteToFile(name string, data string) {
+	file, err := os.Create(name)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	_, err = file.WriteString(data)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+
+	defer file.Close()
 }

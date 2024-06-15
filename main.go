@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"net/url"
 	"strings"
@@ -25,7 +26,14 @@ import (
 
 func initialize() (string, string, *sql.DB, keyring.Keyring) {
 	utils.InitConfigFile()
-	mockIn := strings.NewReader("")
+	passphrase := flag.String("passphrase", "", "passphrase for keyring encryption, must be provided")
+	flag.Parse()
+	if passphrase == nil || *passphrase == "" {
+		fmt.Println("passphrase must be provided")
+		panic("passphrase must be provided")
+	}
+
+	mockIn := strings.NewReader(*passphrase)
 	keyring_dir := viper.GetString("keyring_dir")
 	keyring_name := viper.GetString("keyring_name")
 	kr, err := keyring.New("nyks", keyring.BackendFile, keyring_dir, mockIn)
@@ -135,24 +143,3 @@ func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, la
 	bridge.KDeepService(accountName, dbconn, latestSweepTxHash, oracleAddr)
 	fmt.Println("finishing bridge")
 }
-
-// func main() {
-// 	mockIn := strings.NewReader("password\npassword\n")
-// 	kr, err := keyring.New("nyks", keyring.BackendFile, "", mockIn)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-// 	keys_list, _ := kr.List()
-// 	if keys_list == nil {
-// 		info, mnemonic, err := kr.NewMnemonic("btc_keyring", keyring.English, "m/44'/118'/0'/0/0", keyring.DefaultBIP39Passphrase, hd.Secp256k1)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
-// 		fmt.Println(info.GetPubKey())
-// 		fmt.Println(mnemonic)
-// 	}
-// 	k, err := kr.Key("btc_keyring")
-// 	fmt.Println(k.GetPubKey())
-// 	kr.SignTx(k.GetName(), nil, nil, nil)
-// 	fmt.Println(k.GetPubKey())
-// }

@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -25,11 +23,34 @@ import (
 	"github.com/btcsuite/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
-	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
-	"github.com/tyler-smith/go-bip32"
 )
+
+func GetBtcPublicKey() string {
+	client := getBitcoinRpcClient()
+	walletName := fmt.Sprintf("%v", viper.Get("wallet_name"))
+	var address string
+
+	rpc := client.ListReceivedByAddressIncludeEmptyAsync(0, true)
+	addresses, err := rpc.Receive()
+	if err != nil || len(addresses) == 0 {
+		fmt.Println("error getting accounts creating a new address")
+		addr, err := client.GetNewAddress(walletName)
+		if err != nil {
+			fmt.Println("error in getting btc pub key : ", err)
+		}
+		address = addr.String()
+	} else {
+		address = addresses[0].Address
+	}
+
+	info, err := client.GetAddressInfo(address)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return *info.PubKey
+}
 
 func InitConfigFile() {
 	viper.AddConfigPath("./configs")
@@ -94,9 +115,9 @@ func SetDelegator(btcPubkey string) (string, string) {
 
 func getBitcoinRpcClient() *rpcclient.Client {
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "143.244.138.170:8332",
-		User:         "bitcoin",
-		Pass:         "Persario_1",
+		Host:         viper.GetString("btc_node_host"),
+		User:         viper.GetString("btc_node_user"),
+		Pass:         viper.GetString("btc_node_pass"),
 		HTTPPostMode: true,
 		DisableTLS:   true,
 	}
@@ -149,31 +170,30 @@ func CreateTxFromHex(txHex string) (*wire.MsgTx, error) {
 	return tx, nil
 }
 
-func SignTx(dbconn *sql.DB, masterPrivateKey *bip32.Key, tx *wire.MsgTx, script []byte) []string {
+func SignTx(tx *wire.MsgTx, script []byte) []string {
 	signatures := []string{}
-
+	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
+	client := getBitcoinRpcClient()
 	for i, input := range tx.TxIn {
-
-		amount := db.QueryAmount(dbconn, input.PreviousOutPoint.Index, input.PreviousOutPoint.Hash.String())
-		sighashes := txscript.NewTxSigHashes(tx)
-
-		privkeybytes, err := masterPrivateKey.Serialize()
+		tx, err := client.GetRawTransactionVerbose(&input.PreviousOutPoint.Hash)
 		if err != nil {
-			fmt.Println("Error: converting private key to bytes : ", err)
+			log.Fatal(err)
 		}
-
-		privkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), privkeybytes)
-
-		signature, err := txscript.RawTxInWitnessSignature(tx, sighashes, i, int64(amount), script, txscript.SigHashAll|txscript.SigHashAnyOneCanPay, privkey)
-		if err != nil {
-			fmt.Println("Error:", err)
+		witnessInputs[i] = btcjson.RawTxWitnessInput{
+			Txid:         input.PreviousOutPoint.Hash.String(),
+			Vout:         input.PreviousOutPoint.Index,
+			ScriptPubKey: tx.Vout[input.PreviousOutPoint.Index].ScriptPubKey.Hex,
+			Amount:       &tx.Vout[input.PreviousOutPoint.Index].Value,
 		}
-
-		hexSignature := hex.EncodeToString(signature)
-
-		signatures = append(signatures, hexSignature)
+	}
+	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
+	if err != nil {
+		fmt.Println("Error in signing btc tx:", err)
 	}
 
+	for _, input := range signedTx.TxIn {
+		signatures = append(signatures, hex.EncodeToString(input.Witness[0]))
+	}
 	return signatures
 }
 

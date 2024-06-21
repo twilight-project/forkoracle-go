@@ -10,12 +10,10 @@ import (
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
 	utils "github.com/twilight-project/forkoracle-go/utils"
-	wallet "github.com/twilight-project/forkoracle-go/wallet"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
-	"github.com/tyler-smith/go-bip32"
 )
 
-func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string) {
+func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("starting Sweep Tx Signer")
 	SweepTxs := comms.GetAllUnsignedSweepTx()
 
@@ -52,14 +50,14 @@ func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbco
 			continue
 		}
 
-		sweepSignatures := utils.SignTx(dbconn, masterPrivateKey, sweepTx, reserveAddress.Script)
+		sweepSignatures := utils.SignTx(sweepTx, reserveAddress.Script)
 
 		fmt.Println("Sweep Signature : ", sweepSignatures)
 		cosmos := comms.GetCosmosClient()
 		msg := &bridgetypes.MsgSignSweep{
 			ReserveId:        uint64(reserveId),
 			RoundId:          uint64(roundId),
-			SignerPublicKey:  wallet.GetBtcPublicKey(masterPrivateKey),
+			SignerPublicKey:  utils.GetBtcPublicKey(),
 			SweepSignature:   sweepSignatures,
 			BtcOracleAddress: oracleAddr,
 		}
@@ -73,7 +71,7 @@ func ProcessTxSigningSweep(accountName string, masterPrivateKey *bip32.Key, dbco
 	fmt.Println("finishing sweep tx signer")
 }
 
-func ProcessTxSigningRefund(accountName string, masterPrivateKey *bip32.Key, dbconn *sql.DB, oracleAddr string) {
+func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, oracleAddr string) {
 	fmt.Println("starting Refund Tx Signer")
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
@@ -94,7 +92,7 @@ func ProcessTxSigningRefund(accountName string, masterPrivateKey *bip32.Key, dbc
 		if reserveAddress.Signed_refund {
 			continue
 		}
-		refundSignature := utils.SignTx(dbconn, masterPrivateKey, refundTx, reserveAddress.Script)
+		refundSignature := utils.SignTx(refundTx, reserveAddress.Script)
 
 		reserveId, _ := strconv.Atoi(tx.ReserveId)
 		roundId, _ := strconv.Atoi(tx.RoundId)
@@ -104,7 +102,7 @@ func ProcessTxSigningRefund(accountName string, masterPrivateKey *bip32.Key, dbc
 		msg := &bridgetypes.MsgSignRefund{
 			ReserveId:        uint64(reserveId),
 			RoundId:          uint64(roundId),
-			SignerPublicKey:  wallet.GetBtcPublicKey(masterPrivateKey),
+			SignerPublicKey:  utils.GetBtcPublicKey(),
 			RefundSignature:  []string{refundSignature[0]},
 			BtcOracleAddress: oracleAddr,
 		}

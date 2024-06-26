@@ -364,6 +364,33 @@ type ProposeSweepAddressMsgResp struct {
 	ProposeSweepAddressMsgs []ProposeSweepAddressMsg `json:"proposeSweepAddressMsgs"`
 }
 
+type Fragment struct {
+	FragmentId           string   `json:"FragmentId"`
+	FragmentStatus       bool     `json:"FragmentStatus"`
+	JudgeAddress         string   `json:"JudgeAddress"`
+	JudgeStatus          bool     `json:"JudgeStatus"`
+	Signers              []Signer `json:"Signers"`
+	SignerApplicationFee string   `json:"SignerApplicationFee"`
+	Threshold            string   `json:"Threshold"`
+	FeePool              string   `json:"FeePool"`
+	FragmentFeeBips      string   `json:"FragmentFeeBips"`
+	ArbitraryData        string   `json:"arbitraryData"`
+	ReserveIds           []string `json:"ReserveIds"`
+}
+
+type Signer struct {
+	FragmentID           string `json:"FragmentID"`
+	SignerAddress        string `json:"SignerAddress"`
+	SignerStatus         bool   `json:"SignerStatus"`
+	SignerBtcPublicKey   string `json:"SignerBtcPublicKey"`
+	SignerApplicationFee string `json:"SignerApplicationFee"`
+	SignerFeeBips        string `json:"SignerFeeBips"`
+}
+
+type Fragments struct {
+	Fragments []Fragment `json:"Fragments"`
+}
+
 type Client struct {
 	Hub  *Hub
 	Conn *websocket.Conn

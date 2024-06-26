@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,9 +16,9 @@ import (
 	"github.com/twilight-project/nyks/x/forks/types"
 )
 
-func Orchestrator(accountName string, forkscanner_url url.URL, oracleAddr string) {
+func Orchestrator(accountName string, forkscanner_url url.URL, oracleAddr string, wg *sync.WaitGroup) {
 	log.SetFlags(0)
-
+	defer wg.Done()
 	fmt.Println("starting orchestrator")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)

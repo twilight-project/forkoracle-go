@@ -50,27 +50,18 @@ func Preimage() ([]byte, error) {
 	return preimage, nil
 }
 
-func buildScript(preimage []byte, unlockHeight int64, oracleAddr string) ([]byte, error) {
-	var judgeBtcPK *btcec.PublicKey
-	var refundJudgeAddress string
-	judges := comms.GetRegisteredJudges()
-	if len(judges.Judges) == 0 {
-		fmt.Println("no judge found")
-		return nil, nil
-	} else if len(judges.Judges) == 1 {
-		refundJudgeAddress = judges.Judges[0].JudgeAddress
-	} else {
-		for _, judge := range judges.Judges {
-			if judge.JudgeAddress != oracleAddr {
-				refundJudgeAddress = judge.JudgeAddress
-			}
+func buildScript(preimage []byte, unlockHeight int64, judgeAddr string) ([]byte, error) {
+	var fragment btcOracleTypes.Fragment
+	fragments := comms.GetAllFragments()
+	for _, f := range fragments.Fragments {
+		if f.JudgeAddress == judgeAddr {
+			fragment = f
 		}
-
 	}
+	signers := fragment.Signers
 
 	number := fmt.Sprintf("%v", viper.Get("csv_delay"))
 	delayPeriod, _ := strconv.Atoi(number)
-	delegateAddresses := comms.GetDelegateAddresses()
 	payment_hash := hash160(preimage)
 	builder := txscript.NewScriptBuilder()
 
@@ -80,7 +71,7 @@ func buildScript(preimage []byte, unlockHeight int64, oracleAddr string) ([]byte
 	builder.AddOp(txscript.OP_CHECKLOCKTIMEVERIFY)
 	builder.AddOp(txscript.OP_DROP)
 
-	required := int64(len(delegateAddresses.Addresses) * 2 / 3)
+	required := int64(len(signers) * 2 / 3)
 
 	if required == 0 {
 		required = 1
@@ -88,8 +79,8 @@ func buildScript(preimage []byte, unlockHeight int64, oracleAddr string) ([]byte
 
 	builder.AddInt64(required)
 
-	for _, element := range delegateAddresses.Addresses {
-		pubKeyBytes, err := hex.DecodeString(element.BtcPublicKey)
+	for _, signer := range signers {
+		pubKeyBytes, err := hex.DecodeString(signer.SignerBtcPublicKey)
 		if err != nil {
 			panic(err)
 		}
@@ -102,12 +93,8 @@ func buildScript(preimage []byte, unlockHeight int64, oracleAddr string) ([]byte
 
 		builder.AddData(pubKey.SerializeCompressed())
 
-		//TODO: might need to change this for multi judge setup
-		if element.BtcOracleAddress == refundJudgeAddress {
-			judgeBtcPK = pubKey
-		}
 	}
-	builder.AddInt64(int64(len(delegateAddresses.Addresses)))
+	builder.AddInt64(int64(len(signers)))
 	builder.AddOp(txscript.OP_CHECKMULTISIGVERIFY)
 
 	// adding preimage check if multisig passes
@@ -118,17 +105,10 @@ func buildScript(preimage []byte, unlockHeight int64, oracleAddr string) ([]byte
 	builder.AddData(payment_hash)
 	builder.AddOp(txscript.OP_EQUAL)
 
-	builder.AddOp(txscript.OP_IFDUP)
-
-	// adding judge refund check
-	builder.AddOp(txscript.OP_NOTIF)
-	builder.AddData(judgeBtcPK.SerializeCompressed())
-	builder.AddOp(txscript.OP_CHECKSIG)
 	builder.AddOp(txscript.OP_NOTIF)
 	builder.AddInt64(unlockHeight + int64(delayPeriod))
 	builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
 	builder.AddOp(txscript.OP_DROP)
-	builder.AddOp(txscript.OP_ENDIF)
 	builder.AddOp(txscript.OP_ENDIF)
 
 	redeemScript, err := builder.Script()
@@ -143,12 +123,12 @@ func buildWitnessScript(redeemScript []byte) []byte {
 	return WitnessScript[:]
 }
 
-func GenerateAddress(unlock_height int64, oldReserveAddress string, oracleAddr string, dbconn *sql.DB) (string, []byte) {
+func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) (string, []byte) {
 	preimage, err := Preimage()
 	if err != nil {
 		fmt.Println(err)
 	}
-	redeemScript, err := buildScript(preimage, unlock_height, oracleAddr)
+	redeemScript, err := buildScript(preimage, unlock_height, judgeAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -167,13 +147,9 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, oracleAddr s
 	return addressStr, redeemScript
 }
 
-func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, oracleAddr string, dbconn *sql.DB) {
+func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, judgeAddr string, dbconn *sql.DB) {
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
-	unlockingTimeInBlocks, _ := strconv.Atoi(number)
-
-	// temporary till staking is implemented
-	number = fmt.Sprintf("%v", viper.Get("height_diff_between_judges"))
-	heightDiffBetweenJudges, _ := strconv.Atoi(number)
+	unlockingTime, _ := strconv.Atoi(number)
 
 	var lastSweepAddress btcOracleTypes.SweepAddress
 	addresses := db.QuerySweepAddressesOrderByHeight(dbconn, 1)
@@ -184,14 +160,14 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 
 	lastSweepAddress = addresses[0]
 
-	unlockHeight := lastSweepAddress.Unlock_height + int64(unlockingTimeInBlocks) + int64(heightDiffBetweenJudges)
-	newReserveAddress, hexScript := GenerateAndRegisterNewProposedAddress(dbconn, accountName, unlockHeight, oldAddress, oracleAddr)
+	unlockHeight := lastSweepAddress.Unlock_height + int64(unlockingTime)
+	newReserveAddress, hexScript := GenerateAndRegisterNewProposedAddress(dbconn, accountName, unlockHeight, oldAddress, judgeAddr)
 
 	cosmos_client := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgProposeSweepAddress{
 		BtcScript:    hexScript,
 		BtcAddress:   newReserveAddress,
-		JudgeAddress: oracleAddr,
+		JudgeAddress: judgeAddr,
 		ReserveId:    reserveId,
 		RoundId:      roundId,
 	}
@@ -202,12 +178,13 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 	fmt.Println("finishing propose Address after proposing")
 }
 
-func ProcessProposeAddress(accountName string, oracleAddr string, dbconn *sql.DB) {
+func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB) {
 	fmt.Println("Process propose address started")
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
 	for {
+
 		resp := comms.GetAttestations("20")
 		if len(resp.Attestations) <= 0 {
 			time.Sleep(1 * time.Minute)
@@ -215,43 +192,35 @@ func ProcessProposeAddress(accountName string, oracleAddr string, dbconn *sql.DB
 			continue
 		}
 
-		reserveToBeUpdated, reserveIdForProposal, roundId, err := utils.GetCurrentReserveandRound(oracleAddr)
-		if err != nil {
-			fmt.Println("error in getting current reserve and round : ", err)
-			continue
-		}
-
-		if reserveToBeUpdated.ReserveAddress == "" {
-			fmt.Println("no reserve found")
-			continue
-		}
-
-		proposed := db.CheckIfAddressIsProposed(dbconn, int64(roundId+1))
-		if proposed {
-			continue
-		}
+		btcReserves := comms.GetBtcReserves()
 
 		for _, attestation := range resp.Attestations {
 			height, _ := strconv.Atoi(attestation.Proposal.Height)
-
 			if !attestation.Observed {
 				continue
 			}
 
-			judges := comms.GetRegisteredJudges()
-
-			addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), false)
+			addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
 			if len(addresses) <= 0 {
-				if len(judges.Judges) == 1 {
-					addresses = db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
-				}
-				if len(addresses) <= 0 {
-					continue
-				}
+				continue
 			}
 
-			fmt.Println("Sweep Address found, proposing address for reserve : {}, round : {}", reserveIdForProposal, roundId+1)
-			proposeAddress(accountName, uint64(reserveIdForProposal), uint64(roundId+1), reserveToBeUpdated.ReserveAddress, oracleAddr, dbconn)
+			var reserve btcOracleTypes.BtcReserve
+			for _, r := range btcReserves.BtcReserves {
+				if r.ReserveAddress == addresses[0].Address {
+					reserve = r
+				}
+			}
+			roundId, _ := strconv.Atoi(reserve.RoundId)
+			reserveId, _ := strconv.Atoi(reserve.ReserveId)
+
+			proposed := db.CheckIfAddressIsProposed(dbconn, int64(roundId+1), uint64(reserveId))
+			if proposed {
+				break
+			}
+			fmt.Println("Sweep Address found, proposing address for reserve : {}, round : {}", reserveId, roundId+1)
+			proposeAddress(accountName, uint64(reserveId), uint64(roundId+1), reserve.ReserveAddress, judgeAddr, dbconn)
+			break
 		}
 
 	}
@@ -264,9 +233,9 @@ func GenerateAndRegisterNewProposedAddress(dbconn *sql.DB, accountName string, h
 	return newSweepAddress, hexScript
 }
 
-func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, oracleAddr string) string {
-	newSweepAddress, reserveScript := GenerateAddress(height, "", oracleAddr, dbconn)
-	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript, oracleAddr)
+func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, judgeAddr string) string {
+	newSweepAddress, reserveScript := GenerateAddress(height, "", judgeAddr, dbconn)
+	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript, judgeAddr)
 	registerAddressOnForkscanner(newSweepAddress)
 
 	return newSweepAddress
@@ -401,6 +370,34 @@ func RegisterAddressOnValidators(dbconn *sql.DB) {
 		for _, address := range respProposed.ProposeSweepAddressMsgs {
 			if !utils.StringInSlice(address.BtcAddress, savedAddress) {
 				registerAddressOnForkscanner(address.BtcAddress)
+				decodedScript := utils.DecodeBtcScript(address.BtcScript)
+				height := utils.GetHeightFromScript(decodedScript)
+				reserveScript, _ := hex.DecodeString(address.BtcScript)
+				db.InsertSweepAddress(dbconn, address.BtcAddress, reserveScript, nil, height+1, "", false)
+			}
+		}
+	}
+}
+
+func RegisterAddressOnSigners(dbconn *sql.DB) {
+	// {add check to see if the address already exists}
+	fmt.Println("registering address on validators")
+	savedAddress := db.QueryAllAddressOnly(dbconn)
+	respReserve := comms.GetReserveAddresses()
+	if len(respReserve.Addresses) > 0 {
+		for _, address := range respReserve.Addresses {
+			if !utils.StringInSlice(address.ReserveAddress, savedAddress) {
+				decodedScript := utils.DecodeBtcScript(address.ReserveScript)
+				height := utils.GetHeightFromScript(decodedScript)
+				reserveScript, _ := hex.DecodeString(address.ReserveScript)
+				db.InsertSweepAddress(dbconn, address.ReserveAddress, reserveScript, nil, height+1, "", false)
+			}
+		}
+	}
+	respProposed := comms.GetProposedAddresses()
+	if len(respProposed.ProposeSweepAddressMsgs) > 0 {
+		for _, address := range respProposed.ProposeSweepAddressMsgs {
+			if !utils.StringInSlice(address.BtcAddress, savedAddress) {
 				decodedScript := utils.DecodeBtcScript(address.BtcScript)
 				height := utils.GetHeightFromScript(decodedScript)
 				reserveScript, _ := hex.DecodeString(address.BtcScript)

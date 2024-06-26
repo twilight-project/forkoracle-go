@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,7 +11,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -24,33 +22,32 @@ import (
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func GetBtcPublicKey() string {
-	client := getBitcoinRpcClient()
-	walletName := fmt.Sprintf("%v", viper.Get("wallet_name"))
-	var address string
+// func GetBtcPublicKey() string {
+// 	client := getBitcoinRpcClient()
+// 	walletName := fmt.Sprintf("%v", viper.Get("wallet_name"))
+// 	var address string
 
-	rpc := client.ListReceivedByAddressIncludeEmptyAsync(0, true)
-	addresses, err := rpc.Receive()
-	if err != nil || len(addresses) == 0 {
-		fmt.Println("error getting accounts creating a new address")
-		addr, err := client.GetNewAddress(walletName)
-		if err != nil {
-			fmt.Println("error in getting btc pub key : ", err)
-		}
-		address = addr.String()
-	} else {
-		address = addresses[0].Address
-	}
+// 	rpc := client.ListReceivedByAddressIncludeEmptyAsync(0, true)
+// 	addresses, err := rpc.Receive()
+// 	if err != nil || len(addresses) == 0 {
+// 		fmt.Println("error getting accounts creating a new address")
+// 		addr, err := client.GetNewAddress(walletName)
+// 		if err != nil {
+// 			fmt.Println("error in getting btc pub key : ", err)
+// 		}
+// 		address = addr.String()
+// 	} else {
+// 		address = addresses[0].Address
+// 	}
 
-	info, err := client.GetAddressInfo(address)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return *info.PubKey
-}
+// 	info, err := client.GetAddressInfo(address)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	return *info.PubKey
+// }
 
 func InitConfigFile() {
 	viper.AddConfigPath("./configs")
@@ -62,55 +59,26 @@ func InitConfigFile() {
 	}
 }
 
-func SetDelegator(btcPubkey string) (string, string) {
+func SetDelegator(valAddr string, oracleAddr string, btcPublicKey string) {
 	accountName := fmt.Sprintf("%v", viper.Get("accountName"))
-	command := fmt.Sprintf("nyksd keys show %s --bech val -a --keyring-backend test", accountName)
-	args := strings.Fields(command)
-	cmd := exec.Command(args[0], args[1:]...)
-
-	valAddr_, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return "", ""
-	}
-
-	valAddr := string(valAddr_)
-	valAddr = strings.ReplaceAll(valAddr, "\n", "")
-	fmt.Println("Val Address : ", valAddr)
-
-	command = fmt.Sprintf("nyksd keys show %s -a --keyring-backend test", accountName)
-	args = strings.Fields(command)
-	cmd = exec.Command(args[0], args[1:]...)
-
-	oracleAddr_, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return "", ""
-	}
-
-	oracleAddr := string(oracleAddr_)
-	oracleAddr = strings.ReplaceAll(oracleAddr, "\n", "")
-	fmt.Println("Oracle Address : ", oracleAddr)
-
-	command = fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPubkey, oracleAddr, accountName)
+	command := fmt.Sprintf("nyksd tx nyks set-delegate-addresses %s %s %s %s --from %s --chain-id nyks --keyring-backend test -y", valAddr, oracleAddr, btcPublicKey, oracleAddr, accountName)
 	fmt.Println("delegate command : ", command)
 
-	args = strings.Fields(command)
-	cmd = exec.Command(args[0], args[1:]...)
+	args := strings.Fields(command)
+	cmd := exec.Command(args[0], args[1:]...)
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
 		panic(err)
 	}
 
 	fmt.Println("Delegate Address Set")
-	return valAddr, oracleAddr
 }
 
 func getBitcoinRpcClient() *rpcclient.Client {
@@ -289,19 +257,19 @@ func CreateTxIn(utxo btcOracleTypes.Utxo) (*wire.TxIn, error) {
 // 	comms.SendTransactionSignRefund(accountName, cosmos, msg)
 // }
 
-func RegisterJudge(accountName string, oracleAddr string, valAddr string) {
-	cosmos := comms.GetCosmosClient()
-	msg := &bridgetypes.MsgRegisterJudge{
-		Creator:          oracleAddr,
-		JudgeAddress:     oracleAddr,
-		ValidatorAddress: valAddr,
-	}
+// func RegisterJudge(accountName string, oracleAddr string, valAddr string) {
+// 	cosmos := comms.GetCosmosClient()
+// 	msg := &bridgetypes.MsgRegisterJudge{
+// 		Creator:          oracleAddr,
+// 		JudgeAddress:     oracleAddr,
+// 		ValidatorAddress: valAddr,
+// 	}
 
-	comms.SendTransactionRegisterJudge(accountName, cosmos, msg)
-	fmt.Println("registered Judge")
-}
+// 	comms.SendTransactionRegisterJudge(accountName, cosmos, msg)
+// 	fmt.Println("registered Judge")
+// }
 
-func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string) []btcOracleTypes.MsgSignSweep {
+func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignSweep {
 	fmt.Println(sweepSignatures.SignSweepMsg)
 	fmt.Println(pubkeys)
 	filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
@@ -311,12 +279,26 @@ func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pu
 		}
 	}
 
-	delegateAddresses := comms.GetDelegateAddresses()
+	fragments := comms.GetAllFragments()
+	var fragment btcOracleTypes.Fragment
+	found := false
+	for _, f := range fragments.Fragments {
+		if f.JudgeAddress == judgeAddr {
+			fragment = f
+			found = true
+			break
+		}
+	}
+	if !found {
+		fmt.Println("No fragment found with the specified judge address")
+		return nil
+	}
+
 	orderedSignSweep := make([]btcOracleTypes.MsgSignSweep, 0)
 
-	for _, oracleAddr := range delegateAddresses.Addresses {
+	for _, signer := range fragment.Signers {
 		for _, sweepSig := range filtereSignSweep {
-			if oracleAddr.BtcOracleAddress == sweepSig.BtcOracleAddress {
+			if signer.SignerAddress == sweepSig.BtcOracleAddress {
 				orderedSignSweep = append(orderedSignSweep, sweepSig)
 			}
 		}
@@ -331,19 +313,6 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 	pubkeys []string, oracleAddr string) ([]btcOracleTypes.MsgSignRefund, btcOracleTypes.MsgSignRefund) {
 
 	delegateAddresses := comms.GetDelegateAddresses()
-	//needs to change for multi judge > 2 with staking in place
-	registeredJudges := comms.GetRegisteredJudges()
-	var otherJudgeAddress btcOracleTypes.RegisteredJudge
-
-	if len(registeredJudges.Judges) > 1 {
-		for _, judge := range registeredJudges.Judges {
-			if judge.JudgeAddress != oracleAddr {
-				otherJudgeAddress = judge
-			}
-		}
-	} else {
-		otherJudgeAddress = registeredJudges.Judges[0]
-	}
 
 	filteresSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
 	for _, refundSig := range refundSignatures.SignRefundMsg {
@@ -360,9 +329,6 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 			if oracleAddr.BtcOracleAddress == refundSig.BtcOracleAddress {
 				orderedSignRefund = append(orderedSignRefund, refundSig)
 			}
-			if otherJudgeAddress.JudgeAddress == refundSig.BtcOracleAddress {
-				judgeSign = refundSig
-			}
 		}
 	}
 	fmt.Println("Signatures refund : ", len(orderedSignRefund))
@@ -370,44 +336,44 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 	return orderedSignRefund, judgeSign
 }
 
-func GetCurrentReserveandRound(oracleAddr string) (btcOracleTypes.BtcReserve, uint64, uint64, error) {
+// func GetCurrentReserveandRound(oracleAddr string) (btcOracleTypes.BtcReserve, uint64, uint64, error) {
 
-	empty := btcOracleTypes.BtcReserve{"", "", "", "", "", "", "", "", "", ""}
-	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
-	reserves := comms.GetBtcReserves()
-	for _, reserve := range reserves.BtcReserves {
-		if reserve.JudgeAddress == oracleAddr {
-			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
-		}
-	}
+// 	empty := btcOracleTypes.BtcReserve{"", "", "", "", "", "", "", "", "", ""}
+// 	var currentReservesForThisJudge []btcOracleTypes.BtcReserve
+// 	reserves := comms.GetBtcReserves()
+// 	for _, reserve := range reserves.BtcReserves {
+// 		if reserve.JudgeAddress == oracleAddr {
+// 			currentReservesForThisJudge = append(currentReservesForThisJudge, reserve)
+// 		}
+// 	}
 
-	if len(currentReservesForThisJudge) == 0 {
-		time.Sleep(2 * time.Minute)
-		fmt.Println("no judge")
-		return empty, 0, 0, errors.New("No Judge Found")
-	}
+// 	if len(currentReservesForThisJudge) == 0 {
+// 		time.Sleep(2 * time.Minute)
+// 		fmt.Println("no judge")
+// 		return empty, 0, 0, errors.New("No Judge Found")
+// 	}
 
-	currentJudgeReserve := currentReservesForThisJudge[0]
+// 	currentJudgeReserve := currentReservesForThisJudge[0]
 
-	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
-	if reserveIdForProposal == 1 {
-		reserveIdForProposal = len(reserves.BtcReserves)
-	} else {
-		reserveIdForProposal = reserveIdForProposal - 1
-	}
+// 	reserveIdForProposal, _ := strconv.Atoi(currentJudgeReserve.ReserveId)
+// 	if reserveIdForProposal == 1 {
+// 		reserveIdForProposal = len(reserves.BtcReserves)
+// 	} else {
+// 		reserveIdForProposal = reserveIdForProposal - 1
+// 	}
 
-	var reserveToBeUpdated btcOracleTypes.BtcReserve
-	for _, reserve := range reserves.BtcReserves {
-		tempId, _ := strconv.Atoi(reserve.ReserveId)
-		if tempId == reserveIdForProposal {
-			reserveToBeUpdated = reserve
-			break
-		}
-	}
+// 	var reserveToBeUpdated btcOracleTypes.BtcReserve
+// 	for _, reserve := range reserves.BtcReserves {
+// 		tempId, _ := strconv.Atoi(reserve.ReserveId)
+// 		if tempId == reserveIdForProposal {
+// 			reserveToBeUpdated = reserve
+// 			break
+// 		}
+// 	}
 
-	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
-	return currentJudgeReserve, uint64(reserveIdForProposal), uint64(RoundId), nil
-}
+// 	RoundId, _ := strconv.Atoi(reserveToBeUpdated.RoundId)
+// 	return currentJudgeReserve, uint64(reserveIdForProposal), uint64(RoundId), nil
+// }
 
 func btcToSats(btc float64) int64 {
 	return int64(btc * 1e8)

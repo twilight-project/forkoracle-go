@@ -7,14 +7,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
+	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 	utils "github.com/twilight-project/forkoracle-go/utils"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
-func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, oracleAddr string) {
+func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Sweep Tx Signer")
+	btcPubKey := viper.GetString("btc_public_key")
 	SweepTxs := comms.GetAllUnsignedSweepTx()
 
 	for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
@@ -50,6 +53,32 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, oracleAddr string
 			continue
 		}
 
+		fragments := comms.GetAllFragments()
+		var fragment btcOracleTypes.Fragment
+		found := false
+		for _, f := range fragments.Fragments {
+			if f.JudgeAddress == tx.JudgeAddress {
+				fragment = f
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Println("No fragment found with the specified judge address")
+			return
+		}
+
+		found = false
+		for _, signer := range fragment.Signers {
+			if signer.SignerAddress == signerAddr {
+				found = true
+			}
+		}
+
+		if !found {
+			fmt.Println("Signer is not registered with the provided judge")
+		}
+
 		sweepSignatures := utils.SignTx(sweepTx, reserveAddress.Script)
 
 		fmt.Println("Sweep Signature : ", sweepSignatures)
@@ -57,9 +86,9 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, oracleAddr string
 		msg := &bridgetypes.MsgSignSweep{
 			ReserveId:        uint64(reserveId),
 			RoundId:          uint64(roundId),
-			SignerPublicKey:  utils.GetBtcPublicKey(),
+			SignerPublicKey:  btcPubKey,
 			SweepSignature:   sweepSignatures,
-			BtcOracleAddress: oracleAddr,
+			BtcOracleAddress: signerAddr,
 		}
 
 		comms.SendTransactionSignSweep(accountName, cosmos, msg)
@@ -71,8 +100,9 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, oracleAddr string
 	fmt.Println("finishing sweep tx signer")
 }
 
-func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, oracleAddr string) {
+func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Refund Tx Signer")
+	btcPubKey := viper.GetString("btc_public_key")
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
 	for _, tx := range refundTxs.UnsignedTxRefundMsgs {
@@ -102,9 +132,9 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, oracleAddr strin
 		msg := &bridgetypes.MsgSignRefund{
 			ReserveId:        uint64(reserveId),
 			RoundId:          uint64(roundId),
-			SignerPublicKey:  utils.GetBtcPublicKey(),
+			SignerPublicKey:  btcPubKey,
 			RefundSignature:  []string{refundSignature[0]},
-			BtcOracleAddress: oracleAddr,
+			BtcOracleAddress: signerAddr,
 		}
 
 		comms.SendTransactionSignRefund(accountName, cosmos, msg)

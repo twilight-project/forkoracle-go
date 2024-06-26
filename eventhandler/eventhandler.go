@@ -101,11 +101,13 @@ func NyksEventListener(event string, accountName string, functionCall string, db
 		case "signed_sweep_process":
 			go judge.ProcessSignedSweep(accountName, oracleAddr, dbconn)
 		case "refund_process":
-			go judge.ProcessRefund(accountName, oracleAddr)
+			go judge.ProcessRefund(accountName, oracleAddr, dbconn)
 		case "signed_refund_process":
 			go judge.ProcessSignedRefund(accountName, oracleAddr, dbconn, WsHub, latestRefundTxHash)
 		case "register_res_addr_validators":
 			go address.RegisterAddressOnValidators(dbconn)
+		case "register_res_addr_signers":
+			go address.RegisterAddressOnSigners(dbconn)
 		case "signing_sweep":
 			go transaction_signer.ProcessTxSigningSweep(accountName, dbconn, oracleAddr)
 		case "signing_refund":

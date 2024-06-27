@@ -380,8 +380,9 @@ func InitReserve(accountName string, judgeAddr string, valAddr string, dbconn *s
 			break
 		}
 	}
+	fragmentId, _ := strconv.Atoi(fragment.FragmentId)
 
-	_ = address.GenerateAndRegisterNewBtcReserveAddress(dbconn, accountName, int64(height+unlockingTimeInBlocks), judgeAddr)
+	_ = address.GenerateAndRegisterNewBtcReserveAddress(dbconn, accountName, int64(height+unlockingTimeInBlocks), judgeAddr, fragmentId)
 	fmt.Println("judge initialized")
 }
 

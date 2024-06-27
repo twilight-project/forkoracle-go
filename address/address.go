@@ -233,24 +233,24 @@ func GenerateAndRegisterNewProposedAddress(dbconn *sql.DB, accountName string, h
 	return newSweepAddress, hexScript
 }
 
-func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, judgeAddr string) string {
+func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, judgeAddr string, fragmentId int) string {
 	newSweepAddress, reserveScript := GenerateAddress(height, "", judgeAddr, dbconn)
-	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript, judgeAddr)
+	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript, judgeAddr, fragmentId)
 	registerAddressOnForkscanner(newSweepAddress)
 
 	return newSweepAddress
 }
 
-func registerReserveAddressOnNyks(accountName string, address string, script []byte, oracleAddr string) {
+func registerReserveAddressOnNyks(accountName string, address string, script []byte, judgeAddr string, fragmentId int) {
 
 	cosmos := comms.GetCosmosClient()
-
 	reserveScript := hex.EncodeToString(script)
 
 	msg := &bridgetypes.MsgRegisterReserveAddress{
+		FragmentId:     uint64(fragmentId),
 		ReserveScript:  reserveScript,
 		ReserveAddress: address,
-		JudgeAddress:   oracleAddr,
+		JudgeAddress:   judgeAddr,
 	}
 
 	// store response in txResp

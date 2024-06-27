@@ -84,11 +84,11 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 		fmt.Println("Sweep Signature : ", sweepSignatures)
 		cosmos := comms.GetCosmosClient()
 		msg := &bridgetypes.MsgSignSweep{
-			ReserveId:        uint64(reserveId),
-			RoundId:          uint64(roundId),
-			SignerPublicKey:  btcPubKey,
-			SweepSignature:   sweepSignatures,
-			BtcOracleAddress: signerAddr,
+			ReserveId:       uint64(reserveId),
+			RoundId:         uint64(roundId),
+			SignerPublicKey: btcPubKey,
+			SweepSignature:  sweepSignatures,
+			SignerAddress:   signerAddr,
 		}
 
 		comms.SendTransactionSignSweep(accountName, cosmos, msg)
@@ -130,11 +130,11 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 		fmt.Println("Refund Signature : ", refundSignature)
 		cosmos := comms.GetCosmosClient()
 		msg := &bridgetypes.MsgSignRefund{
-			ReserveId:        uint64(reserveId),
-			RoundId:          uint64(roundId),
-			SignerPublicKey:  btcPubKey,
-			RefundSignature:  []string{refundSignature[0]},
-			BtcOracleAddress: signerAddr,
+			ReserveId:       uint64(reserveId),
+			RoundId:         uint64(roundId),
+			SignerPublicKey: btcPubKey,
+			RefundSignature: []string{refundSignature[0]},
+			SignerAddress:   signerAddr,
 		}
 
 		comms.SendTransactionSignRefund(accountName, cosmos, msg)

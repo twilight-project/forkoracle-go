@@ -98,16 +98,16 @@ func getBitcoinRpcClient() *rpcclient.Client {
 	return client
 }
 
-func BroadcastBtcTransaction(tx *wire.MsgTx) {
-	client := getBitcoinRpcClient()
-	txHash, err := client.SendRawTransaction(tx, true)
-	if err != nil {
-		fmt.Println("Failed to broadcast transaction : ", err)
-	}
+// func BroadcastBtcTransaction(tx *wire.MsgTx) {
+// 	client := getBitcoinRpcClient()
+// 	txHash, err := client.SendRawTransaction(tx, true)
+// 	if err != nil {
+// 		fmt.Println("Failed to broadcast transaction : ", err)
+// 	}
 
-	defer client.Shutdown()
-	fmt.Println("broadcasted btc transaction, txhash : ", txHash)
-}
+// 	defer client.Shutdown()
+// 	fmt.Println("broadcasted btc transaction, txhash : ", txHash)
+// }
 
 // func getReserveForAddress(address string) BtcReserve {
 // 	btcReserves := getBtcReserves()
@@ -379,24 +379,24 @@ func btcToSats(btc float64) int64 {
 	return int64(btc * 1e8)
 }
 
-func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
-	client := getBitcoinRpcClient()
-	result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
-	if err != nil {
-		fmt.Println("Failed to get fee from btc node : ", err)
-		log.Fatal(err)
-	}
-	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
-	feeRate := btcToSats(*result.FeeRate)
-	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
-	baseSize := tx.SerializeSizeStripped()
-	totalSize := tx.SerializeSize()
-	weight := (baseSize * 3) + totalSize
-	vsize := (weight + 3) / 4
-	fmt.Println("tx size in bytes : ", vsize)
-	fee := float64(vsize) * float64(feeRate/1024)
-	return int64(fee), nil
-}
+// func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
+// 	client := getBitcoinRpcClient()
+// 	result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
+// 	if err != nil {
+// 		fmt.Println("Failed to get fee from btc node : ", err)
+// 		log.Fatal(err)
+// 	}
+// 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
+// 	feeRate := btcToSats(*result.FeeRate)
+// 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
+// 	baseSize := tx.SerializeSizeStripped()
+// 	totalSize := tx.SerializeSize()
+// 	weight := (baseSize * 3) + totalSize
+// 	vsize := (weight + 3) / 4
+// 	fmt.Println("tx size in bytes : ", vsize)
+// 	fee := float64(vsize) * float64(feeRate/1024)
+// 	return int64(fee), nil
+// }
 
 func GetBtcFeeRate() btcOracleTypes.FeeRate {
 	resp, err := http.Get("https://api.blockchain.info/mempool/fees")

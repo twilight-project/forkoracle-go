@@ -362,7 +362,7 @@ func GetAttestations(limit string) btcOracleTypes.NyksAttestaionBlock {
 
 func GetAllFragments() btcOracleTypes.Fragments {
 	nyksd_url := fmt.Sprintf("%v", viper.Get("nyksd_url"))
-	resp, err := http.Get(nyksd_url + "twilight-project/nyks/volt/get_all_fragments")
+	resp, err := http.Get(nyksd_url + "/twilight-project/nyks/volt/get_all_fragments")
 	if err != nil {
 		log.Fatalln(err)
 	}

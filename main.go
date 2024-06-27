@@ -28,6 +28,7 @@ var wg sync.WaitGroup
 func initialize() (string, string, *sql.DB) {
 	utils.InitConfigFile()
 	// btcPubkey := utils.GetBtcPublicKey()
+	comms.GetAllFragments()
 	dbconn := db.InitDB()
 	valAddr := viper.GetString("own_validator_address")
 	oracleAddr := viper.GetString("own_address")
@@ -171,7 +172,7 @@ func startJudge(accountName string, dbconn *sql.DB, judgeAddr string, valAddr st
 		panic("Judge has not registered a fragment with the nyks chain. Please ensure that the fragment is registered before running a Judge  Exiting...")
 	}
 
-	if fragment.ReserveIds == nil {
+	if len(fragment.ReserveIds) <= 0 {
 		judge.InitReserve(accountName, judgeAddr, valAddr, dbconn)
 	}
 

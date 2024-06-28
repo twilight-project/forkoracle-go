@@ -142,17 +142,49 @@ func SignTx(tx *wire.MsgTx, script []byte) []string {
 	signatures := []string{}
 	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
 	client := getBitcoinRpcClient()
-	fmt.Println("inside sign tx 1")
+	fmt.Println("got client btc")
 	for i, input := range tx.TxIn {
-		tx, err := client.GetRawTransactionVerbose(&input.PreviousOutPoint.Hash)
+		fmt.Println("inside loop")
+		t, err := client.GetRawTransactionVerbose(&input.PreviousOutPoint.Hash)
 		if err != nil {
 			log.Println("error in getting raw transaction from btc wallet : ", err)
 		}
+		fmt.Println("got prev tx btc")
 		witnessInputs[i] = btcjson.RawTxWitnessInput{
 			Txid:         input.PreviousOutPoint.Hash.String(),
 			Vout:         input.PreviousOutPoint.Index,
-			ScriptPubKey: tx.Vout[input.PreviousOutPoint.Index].ScriptPubKey.Hex,
-			Amount:       &tx.Vout[input.PreviousOutPoint.Index].Value,
+			ScriptPubKey: t.Vout[input.PreviousOutPoint.Index].ScriptPubKey.Hex,
+			Amount:       &t.Vout[input.PreviousOutPoint.Index].Value,
+		}
+	}
+	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
+	if err != nil {
+		fmt.Println("Error in signing btc tx:", err)
+	}
+
+	for _, input := range signedTx.TxIn {
+		signatures = append(signatures, hex.EncodeToString(input.Witness[0]))
+	}
+	return signatures
+}
+
+func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
+	signatures := []string{}
+	scriptHex := hex.EncodeToString(script)
+	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
+	client := getBitcoinRpcClient()
+	sum := 0
+	sumfloat := float64(sum)
+	total := &sumfloat
+	for _, output := range tx.TxOut {
+		sum += int(output.Value)
+	}
+	for i, input := range tx.TxIn {
+		witnessInputs[i] = btcjson.RawTxWitnessInput{
+			Txid:         input.PreviousOutPoint.Hash.String(),
+			Vout:         input.PreviousOutPoint.Index,
+			ScriptPubKey: scriptHex,
+			Amount:       total,
 		}
 	}
 	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)

@@ -197,6 +197,14 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 		fmt.Println("Error in signing btc tx:", err)
 	}
 
+	var UnsignedTx bytes.Buffer
+	err = signedTx.Serialize(&UnsignedTx)
+	if err != nil {
+		fmt.Println("error in serializing sweep tx : ", err)
+	}
+	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
+	fmt.Println(hexTx)
+
 	for _, input := range signedTx.TxIn {
 		signatures = append(signatures, hex.EncodeToString(input.Witness[0]))
 	}

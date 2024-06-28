@@ -139,7 +139,6 @@ func CreateTxFromHex(txHex string) (*wire.MsgTx, error) {
 }
 
 func SignTx(tx *wire.MsgTx, script []byte) []string {
-	fmt.Println("inside sign tx")
 	signatures := []string{}
 	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
 	client := getBitcoinRpcClient()
@@ -147,9 +146,8 @@ func SignTx(tx *wire.MsgTx, script []byte) []string {
 	for i, input := range tx.TxIn {
 		tx, err := client.GetRawTransactionVerbose(&input.PreviousOutPoint.Hash)
 		if err != nil {
-			log.Fatal(err)
+			log.Println("error in getting raw transaction from btc wallet : ", err)
 		}
-		fmt.Println("inside sign tx 2 loop")
 		witnessInputs[i] = btcjson.RawTxWitnessInput{
 			Txid:         input.PreviousOutPoint.Hash.String(),
 			Vout:         input.PreviousOutPoint.Index,
@@ -157,7 +155,6 @@ func SignTx(tx *wire.MsgTx, script []byte) []string {
 			Amount:       &tx.Vout[input.PreviousOutPoint.Index].Value,
 		}
 	}
-	fmt.Println("inside sign tx 3")
 	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
 	if err != nil {
 		fmt.Println("Error in signing btc tx:", err)

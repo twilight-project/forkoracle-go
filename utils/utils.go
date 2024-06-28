@@ -147,7 +147,7 @@ func SignTx(tx *wire.MsgTx, script []byte) []string {
 		fmt.Println("inside loop")
 		t, err := client.GetRawTransactionVerbose(&input.PreviousOutPoint.Hash)
 		if err != nil {
-			log.Println("error in getting raw transaction from btc wallet : ", err)
+			fmt.Println("error in getting raw transaction from btc wallet : ", err)
 		}
 		fmt.Println("got prev tx btc")
 		witnessInputs[i] = btcjson.RawTxWitnessInput{
@@ -182,6 +182,7 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 		sum += int(output.Value)
 	}
 	for i, input := range tx.TxIn {
+		fmt.Println("inside loop")
 		witnessInputs[i] = btcjson.RawTxWitnessInput{
 			Txid:         input.PreviousOutPoint.Hash.String(),
 			Vout:         input.PreviousOutPoint.Index,
@@ -189,7 +190,9 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 			Amount:       total,
 		}
 	}
+	fmt.Println("actual sign starting")
 	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
+	fmt.Println("actual sign done")
 	if err != nil {
 		fmt.Println("Error in signing btc tx:", err)
 	}

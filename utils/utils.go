@@ -157,7 +157,9 @@ func SignTx(tx *wire.MsgTx, script []byte) []string {
 			Amount:       &t.Vout[input.PreviousOutPoint.Index].Value,
 		}
 	}
+	fmt.Println("actual sign starting")
 	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
+	fmt.Println("actual sign done")
 	if err != nil {
 		fmt.Println("Error in signing btc tx:", err)
 	}

@@ -120,7 +120,7 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 		if reserveAddress.Signed_refund {
 			continue
 		}
-		refundSignature := utils.SignTx(refundTx, reserveAddress.Script)
+		refundSignature := utils.RefundsignTx(refundTx, reserveAddress.Script)
 
 		reserveId, _ := strconv.Atoi(tx.ReserveId)
 		roundId, _ := strconv.Atoi(tx.RoundId)

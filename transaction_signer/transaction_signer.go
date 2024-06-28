@@ -124,12 +124,13 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 		if reserveAddress.Signed_refund {
 			continue
 		}
+		fmt.Println("signing refund tx 3")
 		refundSignature := utils.SignTx(refundTx, reserveAddress.Script)
 
 		reserveId, _ := strconv.Atoi(tx.ReserveId)
 		roundId, _ := strconv.Atoi(tx.RoundId)
 
-		fmt.Println("signing refund tx 3")
+		fmt.Println("signing refund tx 4")
 
 		fmt.Println("Refund Signature : ", refundSignature)
 		cosmos := comms.GetCosmosClient()
@@ -141,7 +142,7 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 			SignerAddress:   signerAddr,
 		}
 
-		fmt.Println("signing refund tx 4")
+		fmt.Println("signing refund tx 5")
 
 		comms.SendTransactionSignRefund(accountName, cosmos, msg)
 

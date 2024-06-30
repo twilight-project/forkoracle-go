@@ -186,7 +186,9 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 	// Compute the SHA-256 hash
 	hash := sha256.Sum256(script)
 
-	fmt.Println("amount : ", total)
+	fmt.Println("amount : ", &total)
+	fmt.Println("scriptpubkey  : ", "0020"+hex.EncodeToString(hash[:]))
+	scriptpubkey := "0020" + hex.EncodeToString(hash[:])
 
 	for i, input := range tx.TxIn {
 		fmt.Println("inside loop")
@@ -194,7 +196,7 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 			Txid:          input.PreviousOutPoint.Hash.String(),
 			Vout:          input.PreviousOutPoint.Index,
 			Amount:        total,
-			ScriptPubKey:  hex.EncodeToString(hash[:]),
+			ScriptPubKey:  scriptpubkey,
 			WitnessScript: &scriptHex,
 		}
 	}

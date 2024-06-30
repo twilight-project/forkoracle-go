@@ -174,6 +174,7 @@ func SignTx(tx *wire.MsgTx, script []byte) []string {
 func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 	signatures := []string{}
 	scriptHex := hex.EncodeToString(script)
+	tx.LockTime = uint32(849765)
 	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
 	client := getBitcoinRpcClient()
 	sum := 0
@@ -187,6 +188,7 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 	hash := sha256.Sum256(script)
 
 	fmt.Println("amount : ", *total)
+	fmt.Println("locktime : ", tx.LockTime)
 	fmt.Println("scriptpubkey  : ", "0020"+hex.EncodeToString(hash[:]))
 	fmt.Println("witnessscript (locking)  : ", hex.EncodeToString(script))
 	scriptpubkey := "0020" + hex.EncodeToString(hash[:])

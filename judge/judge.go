@@ -172,7 +172,9 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	// 	refundTx.TxOut[i].Value = output.Value - int64(feeAdjustment)
 	// }
 
-	locktime := uint32(5)
+	decoded_script := utils.DecodeBtcScript(script)
+	lt := utils.GetHeightFromScript(decoded_script)
+	locktime := uint32(lt + int64(3))
 	refundTx.LockTime = locktime
 
 	scriptbytes, _ := hex.DecodeString(script)

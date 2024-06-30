@@ -188,13 +188,13 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 
 	fmt.Println("amount : ", *total)
 	fmt.Println("scriptpubkey  : ", "0020"+hex.EncodeToString(hash[:]))
-	fmt.Println("witnessscript (locking)  : ", "0020"+hex.EncodeToString(hash[:]))
+	fmt.Println("witnessscript (locking)  : ", hex.EncodeToString(script))
 	scriptpubkey := "0020" + hex.EncodeToString(hash[:])
 
 	for i, input := range tx.TxIn {
 		fmt.Println("inside loop")
 		fmt.Println("Txid : ", input.PreviousOutPoint.Hash.String())
-		fmt.Println("Vout : ", input.PreviousOutPoint.Indexgit)
+		fmt.Println("Vout : ", input.PreviousOutPoint.Index)
 		witnessInputs[i] = btcjson.RawTxWitnessInput{
 			Txid:          input.PreviousOutPoint.Hash.String(),
 			Vout:          input.PreviousOutPoint.Index,

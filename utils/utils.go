@@ -177,11 +177,11 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
 	client := getBitcoinRpcClient()
 	sum := 0
-	sumfloat := float64(sum)
-	total := &sumfloat
 	for _, output := range tx.TxOut {
 		sum += int(output.Value)
 	}
+	sumfloat := float64(sum)
+	total := &sumfloat
 
 	// Compute the SHA-256 hash
 	hash := sha256.Sum256(script)
@@ -197,7 +197,8 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 		}
 	}
 	fmt.Println("actual sign starting")
-	signedTx, _, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
+	signedTx, status, err := client.SignRawTransactionWithWallet3(tx, witnessInputs, rpcclient.SigHashAllAnyoneCanPay)
+	fmt.Println("signed : ", status)
 	fmt.Println("actual sign done")
 	if err != nil {
 		fmt.Println("Error in signing btc tx:", err)

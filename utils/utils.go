@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -181,12 +182,17 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 	for _, output := range tx.TxOut {
 		sum += int(output.Value)
 	}
+
+	// Compute the SHA-256 hash
+	hash := sha256.Sum256(script)
+
 	for i, input := range tx.TxIn {
 		fmt.Println("inside loop")
 		witnessInputs[i] = btcjson.RawTxWitnessInput{
 			Txid:          input.PreviousOutPoint.Hash.String(),
 			Vout:          input.PreviousOutPoint.Index,
 			Amount:        total,
+			ScriptPubKey:  hex.EncodeToString(hash[:]),
 			WitnessScript: &scriptHex,
 		}
 	}

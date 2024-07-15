@@ -648,7 +648,7 @@ func CheckIfAddressIsProposed(dbconn *sql.DB, roundID int64, reserveId uint64) b
 }
 
 func InsertUnSignedSweeptx(dbconn *sql.DB, tx string, reserveId int64, roundId int64) {
-	_, err := dbconn.Exec("INSERT into unsigned_tx VALUES ($1, $2, $3)",
+	_, err := dbconn.Exec("INSERT into unsigned_sweep_tx VALUES ($1, $2, $3)",
 		tx,
 		reserveId,
 		roundId,

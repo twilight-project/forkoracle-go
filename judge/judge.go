@@ -259,7 +259,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	for {
 		time.Sleep(30 * time.Second)
 		receiveRefundSignatures := comms.GetSignRefund(reserveId, roundId)
-		filteredRefundSignatures, JudgeSign := utils.OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address, pubkeys, judgeAddr)
+		filteredRefundSignatures := utils.OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address, pubkeys, judgeAddr)
 
 		if len(filteredRefundSignatures) <= 0 {
 			continue
@@ -296,7 +296,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		}
 
 		var signedRefundTx bytes.Buffer
-		err = refundTx.Serialize(&signedRefundTx)
+		err := refundTx.Serialize(&signedRefundTx)
 		if err != nil {
 			fmt.Println("Signed Refund : ", err)
 		}

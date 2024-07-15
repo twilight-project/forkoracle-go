@@ -16,12 +16,12 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/cosmos/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
@@ -385,7 +385,7 @@ func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pu
 }
 
 func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address string,
-	pubkeys []string, oracleAddr string) ([]btcOracleTypes.MsgSignRefund, btcOracleTypes.MsgSignRefund) {
+	pubkeys []string, oracleAddr string) []btcOracleTypes.MsgSignRefund {
 
 	delegateAddresses := comms.GetDelegateAddresses()
 
@@ -397,7 +397,6 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 	}
 
 	orderedSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
-	var judgeSign btcOracleTypes.MsgSignRefund
 
 	for _, oracleAddr := range delegateAddresses.Addresses {
 		for _, refundSig := range refundSignatures.SignRefundMsg {
@@ -408,7 +407,7 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 	}
 	fmt.Println("Signatures refund : ", len(orderedSignRefund))
 
-	return orderedSignRefund, judgeSign
+	return orderedSignRefund
 }
 
 // func GetCurrentReserveandRound(oracleAddr string) (btcOracleTypes.BtcReserve, uint64, uint64, error) {

@@ -142,6 +142,12 @@ type SweepAddress struct {
 	Owned           bool
 }
 
+type UnsignedTx struct {
+	Tx        string
+	ReserveId int64
+	RoundId   int64
+}
+
 type Utxo struct {
 	Txid   string
 	Vout   uint32

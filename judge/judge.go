@@ -23,7 +23,7 @@ import (
 
 func generateSweepTx(sweepAddress string, newSweepAddress string,
 	accountName string, withdrawRequests []btcOracleTypes.WithdrawRequest,
-	unlockHeight int64, utxos []btcOracleTypes.Utxo, dbconn *sql.DB) (string, string, uint64, error) {
+	unlockHeight int64, utxos []btcOracleTypes.Utxo, dbconn *sql.DB) (string, string, string, uint64, error) {
 
 	fmt.Println(withdrawRequests)
 	fmt.Println("sweep address : ", newSweepAddress)
@@ -37,87 +37,64 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		db.MarkAddressSignedRefund(dbconn, sweepAddress)
 		db.MarkAddressSignedSweep(dbconn, sweepAddress)
 		db.MarkAddressArchived(dbconn, sweepAddress)
-		return "", "", 0, nil
+		return "", "", "", 0, nil
 	}
 
+	var inputs []comms.TxInput
+	var outputs []comms.TxOutput
 	totalAmountTxIn := uint64(0)
 	totalAmountTxOut := uint64(0)
 
-	sweepTx := wire.NewMsgTx(wire.TxVersion)
-	for _, utxo := range utxos {
-		txIn, err := utils.CreateTxIn(utxo)
-		if err != nil {
-			fmt.Println("error while add tx in : ", err)
-			return "", "", 0, err
-		}
-		totalAmountTxIn = totalAmountTxIn + utxo.Amount
-		txIn.Sequence = uint32(unlockHeight)
-		sweepTx.AddTxIn(txIn)
+	for _, u := range utxos {
+		inputs = append(inputs, comms.TxInput{Txid: u.Txid, Vout: int64(u.Vout), Sequence: unlockHeight})
+		totalAmountTxIn += u.Amount
 	}
-
-	txOut, err := utils.CreateTxOut(newSweepAddress, int64(0))
-	if err != nil {
-		log.Println("error with txout", err)
-		return "", "", 0, err
-	}
-	sweepTx.AddTxOut(txOut)
 
 	for _, withdrawal := range withdrawRequests {
-		amount, err := strconv.Atoi(withdrawal.WithdrawAmount)
+		a, err := strconv.Atoi(withdrawal.WithdrawAmount)
 		if err != nil {
 			fmt.Println("error while txout amount conversion : ", err)
-			return "", "", 0, err
+			return "", "", "", 0, err
 		}
-		txOut, err := utils.CreateTxOut(withdrawal.WithdrawAddress, int64(amount))
-		if err != nil {
-			fmt.Println("error while txout : ", err)
-			return "", "", 0, err
-		}
-		totalAmountTxOut = totalAmountTxOut + uint64(amount)
-		sweepTx.AddTxOut(txOut)
+		amount := utils.SatsToBtc(int64(a))
+		outputs = append(outputs, comms.TxOutput{withdrawal.WithdrawAddress: float64(amount)})
+		totalAmountTxOut = totalAmountTxOut + uint64(a)
 	}
 
-	// need to be worked on
-	if int64(totalAmountTxIn-totalAmountTxOut) > 0 {
-		sweepTx.TxOut[0].Value = int64(totalAmountTxIn - totalAmountTxOut)
-	}
+	c := totalAmountTxIn - totalAmountTxOut
+	change := utils.SatsToBtc(int64(c))
+	outputs = append([]comms.TxOutput{comms.TxOutput{newSweepAddress: float64(change)}}, outputs...)
+	locktime := uint32(unlockHeight + int64(sweepPreblock))
 
-	// requiredFee , err := utils.GetFeeFromBtcNode(sweepTx)
-	// if err != nil {
-	// 	fmt.Println("error in getting fee from btc node : ", err)
-	// 	return "", "", 0, err
-	// }
-
-	// newReserveOutput := sweepTx.TxOut[0]
-	// if newReserveOutput.Value < int64(requiredFee) {
-	// 	fmt.Println("Change output is smaller than required fee")
-	// 	return "", "", 0, nil
-	// }
-
-	// // Deduct the fee from the change output
-	// newReserveOutput.Value = newReserveOutput.Value - int64(requiredFee)
-	// sweepTx.TxOut[0] = newReserveOutput
-
-	script := db.QuerySweepAddressScript(dbconn, sweepAddress)
-	witness := wire.TxWitness{}
-	witness = append(witness, script)
-	sweepTx.TxIn[0].Witness = witness
-	sweepTx.LockTime = uint32(unlockHeight + int64(sweepPreblock))
-
-	var UnsignedTx bytes.Buffer
-	err = sweepTx.Serialize(&UnsignedTx)
+	hexTx, err := comms.CreateRawTx(inputs, outputs, locktime)
 	if err != nil {
-		fmt.Println("error in serializing sweep tx : ", err)
-		return "", "", 0, err
+		fmt.Println("error in creating raw tx : ", err)
+		return "", "", "", 0, err
 	}
-	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
-	fmt.Println("transaction UnSigned Sweep: ", hexTx)
-	txid := sweepTx.TxHash().String()
 
-	return hexTx, txid, totalAmountTxIn, nil
+	p, err := comms.CreatePsbt(inputs, outputs, locktime)
+	if err != nil {
+		fmt.Println("error in creating psbt : ", err)
+		return "", "", "", 0, err
+	}
+
+	psbt, err := utils.Base64ToHex(p)
+	if err != nil {
+		fmt.Println("error in converting psbt to hex : ", err)
+		return "", "", "", 0, err
+	}
+
+	sweepTx, err := utils.CreateTxFromHex(hexTx)
+	if err != nil {
+		fmt.Println("error decoding tx : ", err)
+		return "", "", "", 0, err
+	}
+
+	fmt.Println("transaction UnSigned Sweep: ", hexTx)
+	return hexTx, psbt, sweepTx.TxHash().String(), totalAmountTxIn, nil
 }
 
-func generateRefundTx(txHex string, script string, reserveId uint64, roundId uint64) (string, error) {
+func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, string, error) {
 	sweepTx, err := utils.CreateTxFromHex(txHex)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
@@ -126,71 +103,54 @@ func generateRefundTx(txHex string, script string, reserveId uint64, roundId uin
 	inputTx := sweepTx.TxHash().String()
 	vout := 0 // since we are always setting the sweep tx at vout = 0
 
-	utxo := btcOracleTypes.Utxo{
-		Txid:   inputTx,
-		Vout:   uint32(vout),
-		Amount: 0,
-	}
-	refundTx := wire.NewMsgTx(wire.TxVersion)
-	txIn, err := utils.CreateTxIn(utxo)
-	if err != nil {
-		fmt.Println("error while add tx in : ", err)
-		return "", err
-	}
-	txIn.Sequence = wire.MaxTxInSequenceNum - 10
-	refundTx.AddTxIn(txIn)
+	var inputs []comms.TxInput
+	var outputs []comms.TxOutput
+
+	inputs = append(inputs, comms.TxInput{Txid: inputTx, Vout: int64(vout), Sequence: int64(wire.MaxTxInSequenceNum - 10)})
 
 	refundSnapshots := comms.GetRefundSnapshot(reserveId, roundId)
 	for _, refund := range refundSnapshots.RefundAccounts {
-		amount, err := strconv.Atoi(refund.Amount)
+		a, err := strconv.Atoi(refund.Amount)
 		if err != nil {
 			fmt.Println("error in amount of refund snapshot : ", err)
-			return "", err
+			return "", "", err
 		}
-		txout, err := utils.CreateTxOut(refund.BtcDepositAddress, int64(amount))
-		if err != nil {
-			fmt.Println("error while add tx out : ", err)
-			return "", err
-		}
-		refundTx.AddTxOut(txout)
+
+		amount := utils.SatsToBtc(int64(a))
+		outputs = append(outputs, comms.TxOutput{refund.BtcDepositAddress: float64(amount)})
 	}
 
-	// feeRate := getBtcFeeRate()
-	// baseSize := sweepTx.SerializeSizeStripped()
-	// totalSize := sweepTx.SerializeSize()
-	// weight := (baseSize * 3) + totalSize
-	// vsize := (weight + 3) / 4
+	proposedAddress := comms.GetProposedSweepAddress(reserveId, roundId)
+	if proposedAddress.ProposeSweepAddressMsg.BtcAddress == "" {
+		fmt.Println("no proposed sweep address found")
+		return "", "", errors.New("no proposed sweep address found")
+	}
 
-	// // // Calculate the required fee
-	// requiredFee := vsize * feeRate.Priority
+	script := utils.DecodeBtcScript(proposedAddress.ProposeSweepAddressMsg.BtcScript)
+	height := utils.GetUnlockHeightFromScript(script)
 
-	// validators := getDelegateAddresses()
+	locktime := height + viper.GetInt64("sweep_preblock")
 
-	// feeAdjustment := requiredFee / len(validators.Addresses)
-
-	// for i, output := range refundTx.TxOut {
-	// 	refundTx.TxOut[i].Value = output.Value - int64(feeAdjustment)
-	// }
-
-	decoded_script := utils.DecodeBtcScript(script)
-	lt := utils.GetHeightFromScript(decoded_script)
-	locktime := uint32(lt + int64(3))
-	refundTx.LockTime = locktime
-
-	scriptbytes, _ := hex.DecodeString(script)
-	witness := wire.TxWitness{}
-	witness = append(witness, scriptbytes)
-	refundTx.TxIn[0].Witness = witness
-
-	var UnsignedTx bytes.Buffer
-	err = refundTx.Serialize(&UnsignedTx)
+	refundTx, err := comms.CreateRawTx(inputs, outputs, uint32(locktime))
 	if err != nil {
-		fmt.Println("error in serializing refund tx : ", err)
+		fmt.Println("error in creating refund tx : ", err)
+		return "", "", err
 	}
-	hexTx := hex.EncodeToString(UnsignedTx.Bytes())
-	fmt.Println("transaction UnSigned Refund: ", hexTx)
 
-	return hexTx, nil
+	p, err := comms.CreatePsbt(inputs, outputs, uint32(locktime))
+	if err != nil {
+		fmt.Println("error in creating psbt : ", err)
+		return "", "", err
+	}
+
+	psbt, err := utils.Base64ToHex(p)
+	if err != nil {
+		fmt.Println("error in converting psbt to hex : ", err)
+		return "", "", err
+	}
+	fmt.Println("transaction UnSigned Refund: ", refundTx)
+
+	return refundTx, psbt, nil
 }
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress btcOracleTypes.SweepAddress, judgeAddr string) []byte {
@@ -223,15 +183,34 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		script := currentReserveAddress.Script
 		preimage := currentReserveAddress.Preimage
 
+		// remove after watchtower is done
+		psbt := comms.GetUnsignedSweepTx(reserveId, roundId).UnsignedTxSweepMsg.BtcUnsignedSweepTx
+		signedPsbt, err := comms.SignPsbt(psbt)
+		if err != nil {
+			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
+			return nil
+		}
+
+		if len(signedPsbt) <= 0 {
+			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
+			return nil
+		}
+		watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
+
+		//////////////
+
+		dummy := []byte{}
 		for i := range sweepTx.TxIn {
 			dataSig := make([][]byte, 0)
 			for _, sig := range filteredSweepSignatures {
 				sig, _ := hex.DecodeString(sig.SweepSignature[i])
 				dataSig = append(dataSig, sig)
 			}
+
 			witness := wire.TxWitness{}
+			witness = append(witness, watchtowerSig)
+			witness = append(witness, dummy)
 			witness = append(witness, preimage)
-			dummy := []byte{}
 			witness = append(witness, dummy)
 			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
@@ -245,7 +224,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			sweepTx.TxIn[i].Witness = witness
 		}
 		var signedSweepTx bytes.Buffer
-		err := sweepTx.Serialize(&signedSweepTx)
+		err = sweepTx.Serialize(&signedSweepTx)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -300,13 +279,14 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 
 		script := newReserveAddress.Script
 		preimageFalse, _ := address.Preimage()
+		dummy := []byte{}
 
 		for i := 0; i < len(refundTx.TxIn); i++ {
 
 			witness := wire.TxWitness{}
-			witness = append(witness, []byte(JudgeSign.RefundSignature[0]))
+			witness = append(witness, dummy)
+			witness = append(witness, dummy)
 			witness = append(witness, preimageFalse)
-			dummy := []byte{}
 			witness = append(witness, dummy)
 			for j := 0; j < int(minSignsRequired); j++ {
 				witness = append(witness, dataSig[j])
@@ -316,7 +296,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		}
 
 		var signedRefundTx bytes.Buffer
-		err := refundTx.Serialize(&signedRefundTx)
+		err = refundTx.Serialize(&signedRefundTx)
 		if err != nil {
 			fmt.Println("Signed Refund : ", err)
 		}
@@ -448,7 +428,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 		}
 
 		withdrawRequests := comms.GetWithdrawSnapshot(uint64(reserveId), uint64(roundId+1)).WithdrawRequests
-		sweepTxHex, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos, dbconn)
+		sweepTxHex, psbt, sweepTxId, _, err := generateSweepTx(currentSweepAddress.Address, *newSweepAddress, accountName, withdrawRequests, int64(height), utxos, dbconn)
 		if err != nil {
 			fmt.Println("Error in generating a Sweep transaction: ", err)
 			fmt.Println("finishing sweep process: error in generating a Sweep transaction")
@@ -461,9 +441,9 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 			return
 		}
 		cosmos := comms.GetCosmosClient()
-		msg := bridgetypes.NewMsgUnsignedTxSweep(sweepTxId, sweepTxHex, uint64(reserveId), uint64(roundId+1), judgeAddr)
+		msg := bridgetypes.NewMsgUnsignedTxSweep(sweepTxId, psbt, uint64(reserveId), uint64(roundId+1), judgeAddr)
 		comms.SendTransactionUnsignedSweepTx(accountName, cosmos, msg)
-
+		db.InsertUnSignedSweeptx(dbconn, sweepTxHex, int64(reserveId), int64(roundId+1))
 		db.MarkAddressArchived(dbconn, currentSweepAddress.Address)
 		break
 	}
@@ -496,12 +476,17 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	for _, r := range ownedReserves {
 		resId, _ := strconv.Atoi(r.ReserveId)
 		roundId, _ := strconv.Atoi(r.RoundId)
-		sweepTxs := comms.GetUnsignedSweepTx(uint64(resId), uint64(roundId+1))
-		if sweepTxs.Code > 0 {
-			fmt.Println("refund : no unsigned sweep tx found : ", resId, "   ", uint64(roundId+1))
-			fmt.Println("finishing refund process")
+		s, err := db.QueryUnSignedSweeptx(dbconn, int64(resId), int64(roundId))
+		if err != nil {
+			fmt.Println("error in getting unsigned sweep tx : ", err)
+			fmt.Println("finishing signed sweep process")
+			return
+		}
+		if len(s) <= 0 {
+			fmt.Println("no unsigned sweep tx found")
 			continue
 		}
+
 		reserve = r
 		found = true
 		break
@@ -514,8 +499,16 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
-	sweepTxs := comms.GetUnsignedSweepTx(uint64(reserveId), uint64(roundId+1))
-	sweeptx := sweepTxs.UnsignedTxSweepMsg
+	sweepTxs, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(roundId))
+	if err != nil {
+		fmt.Println("error in getting unsigned sweep tx : ", err)
+		fmt.Println("finishing signed sweep process")
+		return
+	}
+	if len(sweepTxs) <= 0 {
+		fmt.Println("no unsigned sweep tx found")
+		return
+	}
 
 	sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId+1))
 	if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
@@ -524,16 +517,17 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 		return
 	}
 
-	refundTxHex, err := generateRefundTx(sweeptx.BtcUnsignedSweepTx, sweepAddresses.ProposeSweepAddressMsg.BtcScript, uint64(reserveId), uint64(roundId+1))
+	refundTxHex, psbt, err := generateRefundTx(sweepTxs[0].Tx, uint64(reserveId), uint64(roundId+1))
 	if err != nil {
 		fmt.Println("issue creating refund tx")
 		fmt.Println("finishing refund process")
 		return
 	}
-	cosmos := comms.GetCosmosClient()
-	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveId), uint64(roundId+1), refundTxHex, judgeAddr)
-	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
 
+	cosmos := comms.GetCosmosClient()
+	msg := bridgetypes.NewMsgUnsignedTxRefund(uint64(reserveId), uint64(roundId+1), psbt, judgeAddr)
+	comms.SendTransactionUnsignedRefundTx(accountName, cosmos, msg)
+	db.InsertUnSignedRefundtx(dbconn, refundTxHex, int64(reserveId), int64(roundId+1))
 	fmt.Println("finishing refund process")
 }
 
@@ -581,21 +575,25 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
-	sweepTxs := comms.GetUnsignedSweepTx(uint64(reserveId), uint64(roundId+1))
-	if sweepTxs.Code > 0 {
-		fmt.Println("Signed Sweep: No Unsigned Sweep tx found : ", reserveId, "   ", roundId+1)
+	s, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(reserveId))
+	if err != nil {
+		fmt.Println("error in getting unsigned sweep tx : ", err)
 		fmt.Println("finishing signed sweep process")
 		return
 	}
 
-	unsignedSweepTxHex := sweepTxs.UnsignedTxSweepMsg.BtcUnsignedSweepTx
-	sweepTx, err := utils.CreateTxFromHex(unsignedSweepTxHex)
+	if len(s) <= 0 {
+		fmt.Println("no unsigned sweep tx found")
+		return
+	}
+
+	sweepTx, err := utils.CreateTxFromHex(s[0].Tx)
 	if err != nil {
 		fmt.Println("error decoding sweep tx : inside judge")
 		fmt.Println(err)
 	}
 
-	reserveAddresses := db.QueryUnsignedSweepAddressByScript(dbconn, sweepTx.TxIn[0].Witness[0])
+	reserveAddresses := db.QueryUnsignedSweepAddressByScript(dbconn, "")
 
 	if len(reserveAddresses) == 0 {
 		fmt.Println("No address found")
@@ -624,7 +622,6 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	}
 
 	comms.SendTransactionBroadcastSweeptx(accountName, cosmos, msg)
-	db.InsertSignedtx(dbconn, signedSweepTx, currentReserveAddress.Unlock_height)
 	db.MarkAddressBroadcastedSweep(dbconn, currentReserveAddress.Address)
 	address.UnRegisterAddressOnForkscanner(currentReserveAddress.Address)
 
@@ -657,10 +654,15 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	for _, r := range ownedReserves {
 		resId, _ := strconv.Atoi(r.ReserveId)
 		roundId, _ := strconv.Atoi(r.RoundId)
-		sweepTxs := comms.GetUnsignedRefundTx(int64(resId), int64(roundId+1))
-		if sweepTxs.Code > 0 {
-			fmt.Println("refund : no unsigned refund tx found : ", resId, "   ", uint64(roundId+1))
+		refundTxs, err := db.QueryUnSignedRefundtx(dbconn, int64(resId), int64(roundId+1))
+		if err != nil {
+			fmt.Println("error in getting unsigned refund tx : ", err)
 			fmt.Println("finishing signed refund process")
+			continue
+		}
+
+		if len(refundTxs) <= 0 {
+			fmt.Println("no unsigned refund tx found")
 			continue
 		}
 		reserve = r
@@ -676,15 +678,13 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
-	refundTxs := comms.GetUnsignedRefundTx(int64(reserveId), int64(roundId+1))
-
-	if refundTxs.Code > 0 {
+	refundTxs, err := db.QueryUnSignedRefundtx(dbconn, int64(reserveId), int64(roundId+1))
+	if len(refundTxs) <= 0 {
 		fmt.Println("no unsigned refund tx found")
-		fmt.Println("finishing signed refund process")
 		return
 	}
 
-	unsignedRefundTxHex := refundTxs.UnsignedTxRefundMsg.BtcUnsignedRefundTx
+	unsignedRefundTxHex := refundTxs[0].Tx
 	refundTx, err := utils.CreateTxFromHex(unsignedRefundTxHex)
 	if err != nil {
 		fmt.Println("error decoding sweep tx : inside judge")

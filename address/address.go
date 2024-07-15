@@ -14,10 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/cosmos/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
@@ -50,7 +46,7 @@ func Preimage() ([]byte, error) {
 	return preimage, nil
 }
 
-func buildScript(preimage []byte, unlockHeight int64, judgeAddr string) ([]byte, error) {
+func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (string, error) {
 	var fragment btcOracleTypes.Fragment
 	fragments := comms.GetAllFragments()
 	for _, f := range fragments.Fragments {
@@ -60,91 +56,63 @@ func buildScript(preimage []byte, unlockHeight int64, judgeAddr string) ([]byte,
 	}
 	signers := fragment.Signers
 
-	number := fmt.Sprintf("%v", viper.Get("csv_delay"))
-	delayPeriod, _ := strconv.Atoi(number)
-	payment_hash := hash160(preimage)
-	builder := txscript.NewScriptBuilder()
-
-	// adding multisig check
-
-	builder.AddInt64(unlockHeight - 1)
-	builder.AddOp(txscript.OP_CHECKLOCKTIMEVERIFY)
-	builder.AddOp(txscript.OP_DROP)
-
-	required := int64(len(signers) * 2 / 3)
-
+	required := len(signers)
 	if required == 0 {
 		required = 1
 	}
-
-	builder.AddInt64(required)
-
+	multiscript_params := fmt.Sprintf("%d", required)
 	for _, signer := range signers {
-		pubKeyBytes, err := hex.DecodeString(signer.SignerBtcPublicKey)
-		if err != nil {
-			panic(err)
-		}
-
-		// Deserialize the public key bytes into a *btcec.PublicKey
-		pubKey, err := btcec.ParsePubKey(pubKeyBytes, btcec.S256())
-		if err != nil {
-			panic(err)
-		}
-
-		builder.AddData(pubKey.SerializeCompressed())
-
+		multiscript_params += fmt.Sprintf(",%s", signer.SignerBtcPublicKey)
 	}
-	builder.AddInt64(int64(len(signers)))
-	builder.AddOp(txscript.OP_CHECKMULTISIGVERIFY)
 
-	// adding preimage check if multisig passes
-	builder.AddOp(txscript.OP_SIZE)
-	builder.AddInt64(32)
-	builder.AddOp(txscript.OP_EQUALVERIFY)
-	builder.AddOp(txscript.OP_HASH160)
-	builder.AddData(payment_hash)
-	builder.AddOp(txscript.OP_EQUAL)
+	number := fmt.Sprintf("%v", viper.Get("csv_delay"))
+	delayPeriod, _ := strconv.Atoi(number)
+	payment_hash := hex.EncodeToString(hash160(preimage))
 
-	builder.AddOp(txscript.OP_NOTIF)
-	builder.AddInt64(unlockHeight + int64(delayPeriod))
-	builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
-	builder.AddOp(txscript.OP_DROP)
-	builder.AddOp(txscript.OP_ENDIF)
+	watchtowerRefundKey := ""
+	watchtowerSweepKey := ""
 
-	redeemScript, err := builder.Script()
-	if err != nil {
-		fmt.Println(err)
-	}
-	return redeemScript, nil
+	descriptorScript := fmt.Sprintf("and_v(and_v(v:multi(%d%s),v:hash160(%s)),or_d(pk(%s),andor(pk(%s),after(%d),older(%d))))", required, multiscript_params, payment_hash, watchtowerRefundKey, watchtowerSweepKey, unlockHeight, delayPeriod)
+
+	fmt.Println(descriptorScript)
+	return descriptorScript, nil
 }
 
-func buildWitnessScript(redeemScript []byte) []byte {
-	WitnessScript := sha256.Sum256(redeemScript)
-	return WitnessScript[:]
-}
-
-func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) (string, []byte) {
+func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) string {
 	preimage, err := Preimage()
 	if err != nil {
 		fmt.Println(err)
 	}
-	redeemScript, err := buildScript(preimage, unlock_height, judgeAddr)
+	descriptor, err := buildDescriptor(preimage, unlock_height, judgeAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
-	WitnessScript := buildWitnessScript(redeemScript)
-	address, err := btcutil.NewAddressWitnessScriptHash(WitnessScript, &chaincfg.MainNetParams)
+
+	resp, err := comms.GetDescriptorInfo(descriptor)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return "", nil
+		fmt.Println("error in getting descriptorinfo : ", err)
+		return ""
 	}
 
-	addressStr := address.String()
-	fmt.Println("new address generated : ", addressStr)
+	err = comms.ImportDescriptor(resp.Descriptor)
+	if err != nil {
+		fmt.Println("error in importing descriptor : ", err)
+	}
 
-	db.InsertSweepAddress(dbconn, addressStr, redeemScript, preimage, int64(unlock_height), oldReserveAddress, true)
+	address, err := comms.GetNewAddress()
+	if err != nil {
+		fmt.Println("error in getting address : ", err)
+	}
 
-	return addressStr, redeemScript
+	addressInfo, err := utils.GetAddressInfo(address)
+	if err != nil {
+		fmt.Println("error getting address info : ", err)
+		return ""
+	}
+
+	db.InsertSweepAddress(dbconn, address, *addressInfo.Hex, preimage, int64(unlock_height), oldReserveAddress, true)
+
+	return address
 }
 
 func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, judgeAddr string, dbconn *sql.DB) {
@@ -161,11 +129,17 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 	lastSweepAddress = addresses[0]
 
 	unlockHeight := lastSweepAddress.Unlock_height + int64(unlockingTime)
-	newReserveAddress, hexScript := GenerateAndRegisterNewProposedAddress(dbconn, accountName, unlockHeight, oldAddress, judgeAddr)
+	newReserveAddress := GenerateAndRegisterNewProposedAddress(dbconn, accountName, unlockHeight, oldAddress, judgeAddr)
+
+	addressInfo, err := utils.GetAddressInfo(newReserveAddress)
+	if err != nil {
+		fmt.Println("error getting address info : ", err)
+		return
+	}
 
 	cosmos_client := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgProposeSweepAddress{
-		BtcScript:    hexScript,
+		BtcScript:    *addressInfo.Hex,
 		BtcAddress:   newReserveAddress,
 		JudgeAddress: judgeAddr,
 		ReserveId:    reserveId,
@@ -226,16 +200,15 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 	}
 }
 
-func GenerateAndRegisterNewProposedAddress(dbconn *sql.DB, accountName string, height int64, oldReserveAddress string, oracleAddr string) (string, string) {
-	newSweepAddress, script := GenerateAddress(height, oldReserveAddress, oracleAddr, dbconn)
+func GenerateAndRegisterNewProposedAddress(dbconn *sql.DB, accountName string, height int64, oldReserveAddress string, oracleAddr string) string {
+	newSweepAddress := GenerateAddress(height, oldReserveAddress, oracleAddr, dbconn)
 	registerAddressOnForkscanner(newSweepAddress)
-	hexScript := hex.EncodeToString(script)
-	return newSweepAddress, hexScript
+	return newSweepAddress
 }
 
 func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, judgeAddr string, fragmentId int) string {
-	newSweepAddress, reserveScript := GenerateAddress(height, "", judgeAddr, dbconn)
-	registerReserveAddressOnNyks(accountName, newSweepAddress, reserveScript, judgeAddr, fragmentId)
+	newSweepAddress := GenerateAddress(height, "", judgeAddr, dbconn)
+	registerReserveAddressOnNyks(accountName, newSweepAddress, []byte{}, judgeAddr, fragmentId)
 	registerAddressOnForkscanner(newSweepAddress)
 
 	return newSweepAddress
@@ -359,9 +332,8 @@ func RegisterAddressOnValidators(dbconn *sql.DB) {
 			if !utils.StringInSlice(address.ReserveAddress, savedAddress) {
 				registerAddressOnForkscanner(address.ReserveAddress)
 				decodedScript := utils.DecodeBtcScript(address.ReserveScript)
-				height := utils.GetHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				db.InsertSweepAddress(dbconn, address.ReserveAddress, reserveScript, nil, height+1, "", false)
+				height := utils.GetUnlockHeightFromScript(decodedScript)
+				db.InsertSweepAddress(dbconn, address.ReserveAddress, address.ReserveScript, nil, height+1, "", false)
 			}
 		}
 	}
@@ -371,9 +343,8 @@ func RegisterAddressOnValidators(dbconn *sql.DB) {
 			if !utils.StringInSlice(address.BtcAddress, savedAddress) {
 				registerAddressOnForkscanner(address.BtcAddress)
 				decodedScript := utils.DecodeBtcScript(address.BtcScript)
-				height := utils.GetHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.BtcScript)
-				db.InsertSweepAddress(dbconn, address.BtcAddress, reserveScript, nil, height+1, "", false)
+				height := utils.GetUnlockHeightFromScript(decodedScript)
+				db.InsertSweepAddress(dbconn, address.BtcAddress, address.BtcScript, nil, height+1, "", false)
 			}
 		}
 	}
@@ -381,16 +352,15 @@ func RegisterAddressOnValidators(dbconn *sql.DB) {
 
 func RegisterAddressOnSigners(dbconn *sql.DB) {
 	// {add check to see if the address already exists}
-	fmt.Println("registering address on validators")
+	fmt.Println("registering address on signers")
 	savedAddress := db.QueryAllAddressOnly(dbconn)
 	respReserve := comms.GetReserveAddresses()
 	if len(respReserve.Addresses) > 0 {
 		for _, address := range respReserve.Addresses {
 			if !utils.StringInSlice(address.ReserveAddress, savedAddress) {
 				decodedScript := utils.DecodeBtcScript(address.ReserveScript)
-				height := utils.GetHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.ReserveScript)
-				db.InsertSweepAddress(dbconn, address.ReserveAddress, reserveScript, nil, height+1, "", false)
+				height := utils.GetUnlockHeightFromScript(decodedScript)
+				db.InsertSweepAddress(dbconn, address.ReserveAddress, address.ReserveScript, nil, height+1, "", false)
 			}
 		}
 	}
@@ -399,9 +369,8 @@ func RegisterAddressOnSigners(dbconn *sql.DB) {
 		for _, address := range respProposed.ProposeSweepAddressMsgs {
 			if !utils.StringInSlice(address.BtcAddress, savedAddress) {
 				decodedScript := utils.DecodeBtcScript(address.BtcScript)
-				height := utils.GetHeightFromScript(decodedScript)
-				reserveScript, _ := hex.DecodeString(address.BtcScript)
-				db.InsertSweepAddress(dbconn, address.BtcAddress, reserveScript, nil, height+1, "", false)
+				height := utils.GetUnlockHeightFromScript(decodedScript)
+				db.InsertSweepAddress(dbconn, address.BtcAddress, address.BtcScript, nil, height+1, "", false)
 			}
 		}
 	}

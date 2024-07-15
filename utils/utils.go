@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -10,16 +11,17 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
@@ -83,8 +85,9 @@ func SetDelegator(valAddr string, oracleAddr string, btcPublicKey string) {
 }
 
 func getBitcoinRpcClient() *rpcclient.Client {
+	walletName := viper.GetString("wallet_name")
 	connCfg := &rpcclient.ConnConfig{
-		Host:         viper.GetString("btc_node_host"),
+		Host:         viper.GetString("btc_node_host") + "/wallet/" + walletName,
 		User:         viper.GetString("btc_node_user"),
 		Pass:         viper.GetString("btc_node_pass"),
 		HTTPPostMode: true,
@@ -97,6 +100,16 @@ func getBitcoinRpcClient() *rpcclient.Client {
 	}
 
 	return client
+}
+
+func GetAddressInfo(addr string) (*btcjson.GetAddressInfoResult, error) {
+	client := getBitcoinRpcClient()
+	addressInfo, err := client.GetAddressInfo(addr)
+	if err != nil {
+		fmt.Println("Error getting address info : ", err)
+		return nil, err
+	}
+	return addressInfo, nil
 }
 
 // func BroadcastBtcTransaction(tx *wire.MsgTx) {
@@ -437,8 +450,28 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 // 	return currentJudgeReserve, uint64(reserveIdForProposal), uint64(RoundId), nil
 // }
 
-func btcToSats(btc float64) int64 {
+func BtcToSats(btc float64) int64 {
 	return int64(btc * 1e8)
+}
+
+func SatsToBtc(sats int64) float64 {
+	return float64(sats) / 100000000.0
+}
+
+func Base64ToHex(base64String string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(base64String)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(data), nil
+}
+
+func HexToBase64(hexString string) (string, error) {
+	data, err := hex.DecodeString(hexString)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 // func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
@@ -493,24 +526,54 @@ func DecodeBtcScript(script string) string {
 	return decodedScript
 }
 
-func GetHeightFromScript(script string) int64 {
-	// Split the decoded script into parts
-	height := int64(0)
-	parts := strings.Split(script, " ")
-	if len(parts) == 0 {
-		return height
-	}
-	// Reverse the byte order
-	for i, j := 0, len(parts[0])-2; i < j; i, j = i+2, j-2 {
-		parts[0] = parts[0][:i] + parts[0][j:j+2] + parts[0][i+2:j] + parts[0][i:i+2] + parts[0][j+2:]
-	}
-	// Convert the first part from hex to decimal
-	height, err := strconv.ParseInt(parts[0], 16, 64)
-	if err != nil {
-		fmt.Println("Error converting block height from hex to decimal:", err)
-	}
+// func GetUnlockHeightFromScript(script string) int64 {
+// 	// Split the decoded script into parts
+// 	height := int64(0)
+// 	parts := strings.Split(script, " ")
+// 	if len(parts) == 0 {
+// 		return height
+// 	}
+// 	// Reverse the byte order
+// 	for i, j := 0, len(parts[0])-2; i < j; i, j = i+2, j-2 {
+// 		parts[0] = parts[0][:i] + parts[0][j:j+2] + parts[0][i+2:j] + parts[0][i:i+2] + parts[0][j+2:]
+// 	}
+// 	// Convert the first part from hex to decimal
+// 	height, err := strconv.ParseInt(parts[0], 16, 64)
+// 	if err != nil {
+// 		fmt.Println("Error converting block height from hex to decimal:", err)
+// 	}
 
+// 	return height
+// }
+
+func GetUnlockHeightFromScript(script string) int64 {
+	// Split the decoded script into parts
+	parts := strings.Split(script, " ")
+	height := int64(0)
+	for i, part := range parts {
+		if part == "OP_CHECKLOCKTIMEVERIFY" && i > 0 {
+			// Convert the part before OP_CHECKLOCKTIMEVERIFY from string to int64
+			height, err := strconv.ParseInt(parts[i-1], 10, 64)
+			if err != nil {
+				fmt.Println("Error converting block height from string to int64:", err)
+			}
+			return height
+		}
+	}
 	return height
+}
+
+func getUnlockHeightFromMiniscript(s string) ([]string, error) {
+	re := regexp.MustCompile(`after\((\d+)\)`)
+	matches := re.FindAllStringSubmatch(s, -1)
+
+	var values []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			values = append(values, match[1])
+		}
+	}
+	return values, nil
 }
 
 func GetMinSignFromScript(script string) int64 {

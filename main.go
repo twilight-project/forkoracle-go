@@ -45,7 +45,7 @@ func initialize() (string, string, *sql.DB) {
 		panic("")
 	}
 
-	btcPublicKey := viper.GetString("btc_public_key")
+	btcPublicKey := viper.GetString("btc_xpublic_key")
 	if validator == true || running_mode == "judge" {
 		utils.SetDelegator(valAddr, oracleAddr, btcPublicKey)
 	}
@@ -54,7 +54,6 @@ func initialize() (string, string, *sql.DB) {
 }
 
 func main() {
-
 	valAddr, oracleAddr, dbconn := initialize()
 	validator := viper.GetBool("validator")
 	running_mode := viper.GetString("running_mode")

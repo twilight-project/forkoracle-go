@@ -28,10 +28,10 @@
     "judge_address" : "",
     
     
-    "btc_node_host" : "143.244.138.170:8332",
+    "btc_node_host" : "http://143.244.138.170:8332",
     "btc_node_user" : "bitcoin",
     "btc_node_pass" : "Persario_1",
-    "wallet_name": "rbfwallet",
-    "btc_public_key": "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
+    "wallet_name": "m8",
+    "btc_xpublic_key": "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
 
 }

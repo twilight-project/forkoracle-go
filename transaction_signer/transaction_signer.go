@@ -3,21 +3,18 @@ package transaction_signer
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
-	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
-	utils "github.com/twilight-project/forkoracle-go/utils"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
 func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Sweep Tx Signer")
-	btcPubKey := viper.GetString("btc_public_key")
+	btcPubKey := "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
 	SweepTxs := comms.GetAllUnsignedSweepTx()
 
 	for _, tx := range SweepTxs.UnsignedTxSweepMsgs {
@@ -35,13 +32,20 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 
 		fmt.Printf("corresponding refund tx found  reserve Id: %d roundid : %d\n", reserveId, roundId)
 
-		sweepTx, err := utils.CreateTxFromHex(tx.BtcUnsignedSweepTx)
+		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedSweepTx)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
-			log.Fatal(err)
+			continue
 		}
 
-		addresses := db.QueryUnsignedSweepAddressByScript(dbconn, sweepTx.TxIn[0].Witness[0])
+		if len(decodedPsbt.Inputs) <= 0 {
+			fmt.Println("signing: no inputs")
+			continue
+		}
+
+		script := decodedPsbt.Inputs[0].WitnessScript.Hex
+
+		addresses := db.QueryUnsignedSweepAddressByScript(dbconn, script)
 		if len(addresses) <= 0 {
 			fmt.Println("signing: no address")
 			continue
@@ -79,39 +83,49 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 			fmt.Println("Signer is not registered with the provided judge")
 		}
 
-		sweepSignatures := utils.SignTx(sweepTx, reserveAddress.Script)
+		signatures, err := comms.SignPsbt(tx.BtcUnsignedSweepTx)
+		if err != nil {
+			fmt.Println("error signing psbt : inside processSweepTx : ", err)
+			continue
+		}
 
-		fmt.Println("Sweep Signature : ", sweepSignatures)
+		fmt.Println("Sweep Signature : ", signatures)
 		cosmos := comms.GetCosmosClient()
 		msg := &bridgetypes.MsgSignSweep{
 			ReserveId:       uint64(reserveId),
 			RoundId:         uint64(roundId),
 			SignerPublicKey: btcPubKey,
-			SweepSignature:  sweepSignatures,
+			SweepSignature:  signatures,
 			SignerAddress:   signerAddr,
 		}
 
 		comms.SendTransactionSignSweep(accountName, cosmos, msg)
 
 		db.MarkAddressSignedSweep(dbconn, reserveAddress.Address)
-		db.InsertTransaction(dbconn, sweepTx.TxHash().String(), reserveAddress.Address, uint64(reserveId), uint64(roundId))
+		db.InsertTransaction(dbconn, decodedPsbt.Tx.TxID, reserveAddress.Address, uint64(reserveId), uint64(roundId))
 	}
-
 	fmt.Println("finishing sweep tx signer")
 }
 
 func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Refund Tx Signer")
-	btcPubKey := viper.GetString("btc_public_key")
+	btcPubKey := "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
 	for _, tx := range refundTxs.UnsignedTxRefundMsgs {
-		refundTx, err := utils.CreateTxFromHex(tx.BtcUnsignedRefundTx)
+		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedRefundTx)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
-			log.Fatal(err)
+			continue
 		}
-		addresses := db.QueryUnsignedRefundAddressByScript(dbconn, refundTx.TxIn[0].Witness[0])
+
+		if len(decodedPsbt.Inputs) <= 0 {
+			fmt.Println("signing: no inputs")
+			continue
+		}
+
+		script := decodedPsbt.Inputs[0].WitnessScript.Hex
+		addresses := db.QueryUnsignedRefundAddressByScript(dbconn, script)
 		if len(addresses) <= 0 {
 			continue
 		}
@@ -120,18 +134,22 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 		if reserveAddress.Signed_refund {
 			continue
 		}
-		refundSignature := utils.RefundsignTx(refundTx, reserveAddress.Script)
+		signatures, err := comms.SignPsbt(tx.BtcUnsignedRefundTx)
+		if err != nil {
+			fmt.Println("error signing psbt : inside processSweepTx : ", err)
+			continue
+		}
 
 		reserveId, _ := strconv.Atoi(tx.ReserveId)
 		roundId, _ := strconv.Atoi(tx.RoundId)
 
-		fmt.Println("Refund Signature : ", refundSignature)
+		fmt.Println("Refund Signature : ", signatures)
 		cosmos := comms.GetCosmosClient()
 		msg := &bridgetypes.MsgSignRefund{
 			ReserveId:       uint64(reserveId),
 			RoundId:         uint64(roundId),
 			SignerPublicKey: btcPubKey,
-			RefundSignature: []string{refundSignature[0]},
+			RefundSignature: []string{signatures[0]},
 			SignerAddress:   signerAddr,
 		}
 

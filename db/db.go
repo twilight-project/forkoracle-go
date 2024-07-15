@@ -120,7 +120,7 @@ func QueryAmount(dbconn *sql.DB, receiving_vout uint32, receiving_txid string) u
 	return intValue
 }
 
-func InsertSweepAddress(dbconn *sql.DB, address string, script []byte, preimage []byte, unlock_height int64, parent_address string, owned bool) {
+func InsertSweepAddress(dbconn *sql.DB, address string, script string, preimage []byte, unlock_height int64, parent_address string, owned bool) {
 	_, err := dbconn.Exec("INSERT into address VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
 		address,
 		script,
@@ -372,7 +372,7 @@ func QuerySweepAddress(dbconn *sql.DB, addr string) []btcOracleTypes.SweepAddres
 // 	return addresses
 // }
 
-func QueryUnsignedSweepAddressByScript(dbconn *sql.DB, script []byte) []btcOracleTypes.SweepAddress {
+func QueryUnsignedSweepAddressByScript(dbconn *sql.DB, script string) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select * from address where script = $1", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
@@ -405,7 +405,7 @@ func QueryUnsignedSweepAddressByScript(dbconn *sql.DB, script []byte) []btcOracl
 	return addresses
 }
 
-func QueryUnsignedRefundAddressByScript(dbconn *sql.DB, script []byte) []btcOracleTypes.SweepAddress {
+func QueryUnsignedRefundAddressByScript(dbconn *sql.DB, script string) []btcOracleTypes.SweepAddress {
 	DB_reader, err := dbconn.Query("select * from address where script = $1 and signed_refund = false and archived = false", script)
 	if err != nil {
 		fmt.Println("An error occured while query sweep address: ", err)
@@ -647,44 +647,78 @@ func CheckIfAddressIsProposed(dbconn *sql.DB, roundID int64, reserveId uint64) b
 	return DB_reader.Next() // Return true if there is at least one result row
 }
 
-func InsertSignedtx(dbconn *sql.DB, tx []byte, unlock_height int64) {
-	_, err := dbconn.Exec("INSERT into signed_tx VALUES ($1, $2)",
+func InsertUnSignedSweeptx(dbconn *sql.DB, tx string, reserveId int64, roundId int64) {
+	_, err := dbconn.Exec("INSERT into unsigned_tx VALUES ($1, $2, $3)",
 		tx,
-		unlock_height,
+		reserveId,
+		roundId,
 	)
 	if err != nil {
-		fmt.Println("An error occured while executing insert signed sweep tx: ", err)
+		fmt.Println("An error occured while executing insert unsigned sweep tx: ", err)
 	}
 }
 
-// func QuerySignedTx(dbconn *sql.DB, unlock_height int64) [][]byte {
-// 	DB_reader, err := dbconn.Query("select tx from signed_tx where unlock_height <= $1", unlock_height)
-// 	if err != nil {
-// 		fmt.Println("An error occured while query script signed tx: ", err)
-// 	}
+func QueryUnSignedSweeptx(dbconn *sql.DB, reserveId int64, roundId int64) ([]btcOracleTypes.UnsignedTx, error) {
+	DB_reader, err := dbconn.Query("select * from unsigned_sweep_tx where reserve_id = $1 and round_id = $2 Limit 1;", reserveId, roundId)
+	if err != nil {
+		fmt.Println("An error occured while query unsigned Tx: ", err)
+		return []btcOracleTypes.UnsignedTx{}, err
+	}
 
-// 	defer DB_reader.Close()
-// 	txs := [][]byte{}
+	defer DB_reader.Close()
+	var unSignedTxs []btcOracleTypes.UnsignedTx
 
-// 	for DB_reader.Next() {
-// 		tx := []byte{}
-// 		err := DB_reader.Scan(
-// 			&tx,
-// 		)
-// 		if err != nil {
-// 			fmt.Println(err)
-// 		}
+	for DB_reader.Next() {
+		var unSignedTx btcOracleTypes.UnsignedTx
+		err := DB_reader.Scan(
+			&unSignedTx.Tx,
+			&unSignedTx.ReserveId,
+			&unSignedTx.RoundId,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-// 		txs = append(txs, tx)
-// 	}
-// 	return txs
-// }
+		unSignedTxs = append(unSignedTxs, unSignedTx)
+	}
 
-// func DeleteSignedTx(dbconn *sql.DB, tx []byte) {
-// 	_, err := dbconn.Exec("DELETE FROM signed_tx WHERE tx = $1", tx)
-// 	if err != nil {
-// 		fmt.Println("An error occurred while executing delete signed tx: ", err)
-// 	} else {
-// 		fmt.Println("Transaction successfully deleted")
-// 	}
-// }
+	return unSignedTxs, nil
+}
+
+func InsertUnSignedRefundtx(dbconn *sql.DB, tx string, reserveId int64, roundId int64) {
+	_, err := dbconn.Exec("INSERT into unsigned_refund_tx VALUES ($1, $2, $3)",
+		tx,
+		reserveId,
+		roundId,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing insert unsigned sweep tx: ", err)
+	}
+}
+
+func QueryUnSignedRefundtx(dbconn *sql.DB, reserveId int64, roundId int64) ([]btcOracleTypes.UnsignedTx, error) {
+	DB_reader, err := dbconn.Query("select * from unsigned_refund_tx where reserve_id = $1 and round_id = $2 Limit 1;", reserveId, roundId)
+	if err != nil {
+		fmt.Println("An error occured while query unsigned Tx: ", err)
+		return []btcOracleTypes.UnsignedTx{}, err
+	}
+
+	defer DB_reader.Close()
+	var unSignedTxs []btcOracleTypes.UnsignedTx
+
+	for DB_reader.Next() {
+		var unSignedTx btcOracleTypes.UnsignedTx
+		err := DB_reader.Scan(
+			&unSignedTx.Tx,
+			&unSignedTx.ReserveId,
+			&unSignedTx.RoundId,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		unSignedTxs = append(unSignedTxs, unSignedTx)
+	}
+
+	return unSignedTxs, nil
+}

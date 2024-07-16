@@ -181,11 +181,10 @@ type CreateTx struct {
 	Outputs []TxOutput `json:"outputs"`
 }
 
-func SendRPC(method string, data []interface{}) ([]byte, error) {
+func SendRPC(method string, data []interface{}, wallet string) ([]byte, error) {
 	host := viper.GetString("btc_node_host")
 	user := viper.GetString("btc_node_user")
 	pass := viper.GetString("btc_node_pass")
-	wallet := viper.GetString("wallet_name")
 
 	request := JSONRPCRequest{
 		ID:      1,
@@ -236,11 +235,11 @@ func SendRPC(method string, data []interface{}) ([]byte, error) {
 	return body, nil
 }
 
-func GetDescriptorInfo(dataStr string) (DescriptorInfo, error) {
+func GetDescriptorInfo(dataStr string, wallet string) (DescriptorInfo, error) {
 
 	var response JSONRPCResponseDesc
 	data := []interface{}{dataStr}
-	result, err := SendRPC("getdescriptorinfo", data)
+	result, err := SendRPC("getdescriptorinfo", data, wallet)
 	if err != nil {
 		fmt.Println("error getting descriptor info : ", err)
 		return response.Result, err
@@ -255,7 +254,7 @@ func GetDescriptorInfo(dataStr string) (DescriptorInfo, error) {
 	return response.Result, nil
 }
 
-func ImportDescriptor(desc string) error {
+func ImportDescriptor(desc string, wallet string) error {
 
 	descData := []ImportDescriptorType{
 		{
@@ -267,15 +266,15 @@ func ImportDescriptor(desc string) error {
 	}
 	data := []interface{}{descData}
 
-	_, err := SendRPC("importdescriptors", data)
+	_, err := SendRPC("importdescriptors", data, wallet)
 	if err != nil {
 		fmt.Println("error importing descriptor	: ", err)
 	}
 	return nil
 }
 
-func GetNewAddress() (string, error) {
-	result, _ := SendRPC("getnewaddress", nil)
+func GetNewAddress(wallet string) (string, error) {
+	result, _ := SendRPC("getnewaddress", nil, wallet)
 	fmt.Println("result: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
@@ -286,9 +285,9 @@ func GetNewAddress() (string, error) {
 	return response.Result, nil
 }
 
-func DecodePsbt(psbt string) (PSBT, error) {
+func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	data := []interface{}{psbt}
-	result, _ := SendRPC("decodepsbt", data)
+	result, _ := SendRPC("decodepsbt", data, wallet)
 	fmt.Println("result: ", string(result))
 	var response JSONRPCResponsePsbt
 	err := json.Unmarshal(result, &response)
@@ -299,11 +298,11 @@ func DecodePsbt(psbt string) (PSBT, error) {
 	return response.Result, nil
 }
 
-func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32) (string, error) {
+func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string) (string, error) {
 	feeRate := make(map[string]float64)
 	feeRate["feeRate"] = 0
 	data := []interface{}{inputs, outputs, locktime, feeRate}
-	result, _ := SendRPC("walletcreatefundedpsbt", data)
+	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet)
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {
@@ -313,9 +312,9 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32) (string, 
 	return response.Result.Psbt, nil
 }
 
-func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32) (string, error) {
+func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string) (string, error) {
 	data := []interface{}{inputs, outputs, locktime}
-	result, _ := SendRPC("createrawtransaction", data)
+	result, _ := SendRPC("createrawtransaction", data, wallet)
 	fmt.Println("result: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
@@ -326,12 +325,12 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32) (string,
 	return response.Result, nil
 }
 
-func SignPsbt(psbtStr string) ([]string, error) {
+func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 	data := []interface{}{psbtStr, true, "ALL|ANYONECANPAY"}
 
 	fmt.Println("data: ", data)
 
-	result, _ := SendRPC("walletprocesspsbt", data)
+	result, _ := SendRPC("walletprocesspsbt", data, wallet)
 	fmt.Println("result: ", string(result))
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
@@ -341,7 +340,7 @@ func SignPsbt(psbtStr string) ([]string, error) {
 	}
 	data = []interface{}{response.Result.Psbt}
 	p := response.Result.Psbt
-	psbt, err := DecodePsbt(p)
+	psbt, err := DecodePsbt(p, wallet)
 
 	if len(psbt.Inputs) <= 0 {
 		return nil, errors.New("no inputs in psbt")

@@ -25,6 +25,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	accountName string, withdrawRequests []btcOracleTypes.WithdrawRequest,
 	unlockHeight int64, utxos []btcOracleTypes.Utxo, dbconn *sql.DB) (string, string, string, uint64, error) {
 
+	wallet := viper.GetString("wallet_name")
 	fmt.Println(withdrawRequests)
 	fmt.Println("sweep address : ", newSweepAddress)
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
@@ -66,13 +67,13 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	outputs = append([]comms.TxOutput{comms.TxOutput{newSweepAddress: float64(change)}}, outputs...)
 	locktime := uint32(unlockHeight + int64(sweepPreblock))
 
-	hexTx, err := comms.CreateRawTx(inputs, outputs, locktime)
+	hexTx, err := comms.CreateRawTx(inputs, outputs, locktime, wallet)
 	if err != nil {
 		fmt.Println("error in creating raw tx : ", err)
 		return "", "", "", 0, err
 	}
 
-	p, err := comms.CreatePsbt(inputs, outputs, locktime)
+	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
 		return "", "", "", 0, err
@@ -95,6 +96,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 }
 
 func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, string, error) {
+	wallet := viper.GetString("wallet_name")
 	sweepTx, err := utils.CreateTxFromHex(txHex)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
@@ -131,13 +133,13 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 
 	locktime := height + viper.GetInt64("sweep_preblock")
 
-	refundTx, err := comms.CreateRawTx(inputs, outputs, uint32(locktime))
+	refundTx, err := comms.CreateRawTx(inputs, outputs, uint32(locktime), wallet)
 	if err != nil {
 		fmt.Println("error in creating refund tx : ", err)
 		return "", "", err
 	}
 
-	p, err := comms.CreatePsbt(inputs, outputs, uint32(locktime))
+	p, err := comms.CreatePsbt(inputs, outputs, uint32(locktime), wallet)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
 		return "", "", err
@@ -154,6 +156,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 }
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress btcOracleTypes.SweepAddress, judgeAddr string) []byte {
+	wallet := viper.GetString("judge_btc_wallet_name")
 	currentReserveScript := currentReserveAddress.Script
 	encoded := hex.EncodeToString(currentReserveScript)
 	decodedScript := utils.DecodeBtcScript(encoded)
@@ -185,7 +188,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 
 		// remove after watchtower is done
 		psbt := comms.GetUnsignedSweepTx(reserveId, roundId).UnsignedTxSweepMsg.BtcUnsignedSweepTx
-		signedPsbt, err := comms.SignPsbt(psbt)
+		signedPsbt, err := comms.SignPsbt(psbt, wallet)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
 			return nil

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
@@ -14,6 +15,7 @@ import (
 
 func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Sweep Tx Signer")
+	wallet := viper.GetString("wallet_name")
 	btcPubKey := "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
 	SweepTxs := comms.GetAllUnsignedSweepTx()
 
@@ -32,7 +34,7 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 
 		fmt.Printf("corresponding refund tx found  reserve Id: %d roundid : %d\n", reserveId, roundId)
 
-		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedSweepTx)
+		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedSweepTx, wallet)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
 			continue
@@ -83,7 +85,7 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 			fmt.Println("Signer is not registered with the provided judge")
 		}
 
-		signatures, err := comms.SignPsbt(tx.BtcUnsignedSweepTx)
+		signatures, err := comms.SignPsbt(tx.BtcUnsignedSweepTx, wallet)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweepTx : ", err)
 			continue
@@ -109,11 +111,12 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 
 func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr string) {
 	fmt.Println("starting Refund Tx Signer")
+	wallet := viper.GetString("wallet_name")
 	btcPubKey := "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
 	refundTxs := comms.GetAllUnsignedRefundTx()
 
 	for _, tx := range refundTxs.UnsignedTxRefundMsgs {
-		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedRefundTx)
+		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedRefundTx, wallet)
 		if err != nil {
 			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
 			continue
@@ -134,7 +137,7 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 		if reserveAddress.Signed_refund {
 			continue
 		}
-		signatures, err := comms.SignPsbt(tx.BtcUnsignedRefundTx)
+		signatures, err := comms.SignPsbt(tx.BtcUnsignedRefundTx, wallet)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweepTx : ", err)
 			continue

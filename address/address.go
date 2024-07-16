@@ -79,6 +79,7 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 }
 
 func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) string {
+	wallet := viper.GetString("wallet_name")
 	preimage, err := Preimage()
 	if err != nil {
 		fmt.Println(err)
@@ -88,18 +89,18 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 		fmt.Println(err)
 	}
 
-	resp, err := comms.GetDescriptorInfo(descriptor)
+	resp, err := comms.GetDescriptorInfo(descriptor, wallet)
 	if err != nil {
 		fmt.Println("error in getting descriptorinfo : ", err)
 		return ""
 	}
 
-	err = comms.ImportDescriptor(resp.Descriptor)
+	err = comms.ImportDescriptor(resp.Descriptor, wallet)
 	if err != nil {
 		fmt.Println("error in importing descriptor : ", err)
 	}
 
-	address, err := comms.GetNewAddress()
+	address, err := comms.GetNewAddress(wallet)
 	if err != nil {
 		fmt.Println("error in getting address : ", err)
 	}

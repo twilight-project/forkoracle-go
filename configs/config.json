@@ -31,7 +31,8 @@
     "btc_node_host" : "http://143.244.138.170:8332",
     "btc_node_user" : "bitcoin",
     "btc_node_pass" : "Persario_1",
-    "wallet_name": "m8",
-    "btc_xpublic_key": "02c83e9ddcdf002e2d74727cd0939685e3b79cc1397741d63805eb4647af5ee744"
+    "wallet_name": "offline",
+    "judge_btc_wallet_name" : "rbf",
+    "btc_xpublic_key": "wpkh([f2ee8d39/84h/0h/0h]xpub6BhivFwKw8faYQaQcmwhjchA1uHQk7vaXJtehCqdhP2x4ETZ6AgCUAPfVeFahDWRQVQ7JKoxoV8G16ji7xei48PcZkVf8hcjNkwKByBLH5J/0/*)#mr9x7xp6"
 
 }

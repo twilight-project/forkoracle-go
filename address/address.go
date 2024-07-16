@@ -107,19 +107,20 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 		fmt.Println("error in getting address : ", err)
 	}
 
-	addressInfo, err := utils.GetAddressInfo(address)
+	addressInfo, err := comms.GetAddressInfo(address, wallet)
 	if err != nil {
-		fmt.Println("error getting address info : ", err)
+		fmt.Println("Error getting address info : ", err)
 		return ""
 	}
 
-	db.InsertSweepAddress(dbconn, address, *addressInfo.Hex, preimage, int64(unlock_height), oldReserveAddress, true)
+	db.InsertSweepAddress(dbconn, address, addressInfo.Hex, preimage, int64(unlock_height), oldReserveAddress, true)
 
 	return address
 }
 
 func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, judgeAddr string, dbconn *sql.DB) {
 	number := fmt.Sprintf("%v", viper.Get("unlocking_time"))
+	wallet := viper.GetString("wallet_name")
 	unlockingTime, _ := strconv.Atoi(number)
 
 	var lastSweepAddress btcOracleTypes.SweepAddress
@@ -134,7 +135,7 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 	unlockHeight := lastSweepAddress.Unlock_height + int64(unlockingTime)
 	newReserveAddress := GenerateAndRegisterNewProposedAddress(dbconn, accountName, unlockHeight, oldAddress, judgeAddr)
 
-	addressInfo, err := utils.GetAddressInfo(newReserveAddress)
+	addressInfo, err := comms.GetAddressInfo(newReserveAddress, wallet)
 	if err != nil {
 		fmt.Println("error getting address info : ", err)
 		return
@@ -142,7 +143,7 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 
 	cosmos_client := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgProposeSweepAddress{
-		BtcScript:    *addressInfo.Hex,
+		BtcScript:    addressInfo.Hex,
 		BtcAddress:   newReserveAddress,
 		JudgeAddress: judgeAddr,
 		ReserveId:    reserveId,

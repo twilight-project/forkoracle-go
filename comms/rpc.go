@@ -26,6 +26,24 @@ type JSONRPCResponse struct {
 	ID     int         `json:"id"`
 }
 
+type JSONRPCResponseAddressInfo struct {
+	Address        string   `json:"address"`
+	ScriptPubKey   string   `json:"scriptPubKey"`
+	Ismine         bool     `json:"ismine"`
+	Solvable       bool     `json:"solvable"`
+	Desc           string   `json:"desc"`
+	ParentDesc     string   `json:"parent_desc"`
+	IsWatchOnly    bool     `json:"iswatchonly"`
+	Isscript       bool     `json:"isscript"`
+	IsWitness      bool     `json:"iswitness"`
+	WitnessVersion int      `json:"witness_version"`
+	WitnessProgram string   `json:"witness_program"`
+	Script         string   `json:"script"`
+	Hex            string   `json:"hex"`
+	IsChange       bool     `json:"ischange"`
+	Labels         []string `json:"labels"`
+}
+
 // response with desc info
 type JSONRPCResponseDesc struct {
 	Result DescriptorInfo `json:"result"`
@@ -230,8 +248,6 @@ func SendRPC(method string, data []interface{}, wallet string) ([]byte, error) {
 		fmt.Println("Error reading response: ", err)
 		return nil, err
 	}
-
-	fmt.Println(string(body))
 	return body, nil
 }
 
@@ -355,4 +371,22 @@ func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 	}
 
 	return signatures, nil
+}
+
+func GetAddressInfo(address string, wallet string) (JSONRPCResponseAddressInfo, error) {
+	data := []interface{}{address}
+	var response JSONRPCResponseAddressInfo
+	result, err := SendRPC("getaddressinfo", data, wallet)
+	if err != nil {
+		fmt.Println("error getting descriptor info : ", err)
+		return response, err
+	}
+
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return response, err
+	}
+
+	return response, nil
 }

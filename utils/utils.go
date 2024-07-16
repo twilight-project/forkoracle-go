@@ -27,31 +27,6 @@ import (
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 )
 
-// func GetBtcPublicKey() string {
-// 	client := getBitcoinRpcClient()
-// 	walletName := fmt.Sprintf("%v", viper.Get("wallet_name"))
-// 	var address string
-
-// 	rpc := client.ListReceivedByAddressIncludeEmptyAsync(0, true)
-// 	addresses, err := rpc.Receive()
-// 	if err != nil || len(addresses) == 0 {
-// 		fmt.Println("error getting accounts creating a new address")
-// 		addr, err := client.GetNewAddress(walletName)
-// 		if err != nil {
-// 			fmt.Println("error in getting btc pub key : ", err)
-// 		}
-// 		address = addr.String()
-// 	} else {
-// 		address = addresses[0].Address
-// 	}
-
-// 	info, err := client.GetAddressInfo(address)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	return *info.PubKey
-// }
-
 func InitConfigFile() {
 	viper.AddConfigPath("./configs")
 	viper.SetConfigName("config") // Register config file name (no extension)
@@ -102,15 +77,15 @@ func getBitcoinRpcClient() *rpcclient.Client {
 	return client
 }
 
-func GetAddressInfo(addr string) (*btcjson.GetAddressInfoResult, error) {
-	client := getBitcoinRpcClient()
-	addressInfo, err := client.GetAddressInfo(addr)
-	if err != nil {
-		fmt.Println("Error getting address info : ", err)
-		return nil, err
-	}
-	return addressInfo, nil
-}
+// func GetAddressInfo(addr string) (*btcjson.GetAddressInfoResult, error) {
+// 	client := getBitcoinRpcClient()
+// 	addressInfo, err := client.GetAddressInfo(addr)
+// 	if err != nil {
+// 		fmt.Println("Error getting address info : ", err)
+// 		return nil, err
+// 	}
+// 	return addressInfo, nil
+// }
 
 // func BroadcastBtcTransaction(tx *wire.MsgTx) {
 // 	client := getBitcoinRpcClient()

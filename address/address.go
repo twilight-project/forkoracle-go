@@ -72,7 +72,7 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 	watchtowerRefundKey := "[5a5f39c1/44'/0'/0']xpub6Ckui1oewD1ho9PEQqPc92ToZgNDuRHpeDHfjiJpwbq8zXyAaG1dbNd8btygQNEJov7bsoZPLLK6zosvEevC2A8JzceW1wkebaW6JeV5HVZ/0/*"
 	judgePubKry := viper.GetString("btc_xpublic_key")
 
-	descriptorScript := fmt.Sprintf("wsh(and_v(and_v(v:multi(%d%s),v:hash160(%s)),or_d(pk(%s),andor(pk(%s),after(%d),older(%d)))))", required, multiscript_params, payment_hash, watchtowerRefundKey, judgePubKry, unlockHeight, delayPeriod)
+	descriptorScript := fmt.Sprintf("wsh(and_v(and_v(v:multi(%s),v:hash160(%s)),or_d(pk(%s),andor(pk(%s),after(%d),older(%d)))))", multiscript_params, payment_hash, watchtowerRefundKey, judgePubKry, unlockHeight, delayPeriod)
 
 	fmt.Println(descriptorScript)
 	return descriptorScript, nil
@@ -94,6 +94,8 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 		fmt.Println("error in getting descriptorinfo : ", err)
 		return ""
 	}
+
+	fmt.Println("Descriptor : ", resp.Descriptor)
 
 	err = comms.ImportDescriptor(resp.Descriptor, wallet)
 	if err != nil {

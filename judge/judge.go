@@ -79,6 +79,8 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, err
 	}
 
+	fmt.Println("transaction base64 psbt: ", p)
+
 	psbt, err := utils.Base64ToHex(p)
 	if err != nil {
 		fmt.Println("error in converting psbt to hex : ", err)
@@ -91,6 +93,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, err
 	}
 
+	fmt.Println("transaction hex psbt: ", psbt)
 	fmt.Println("transaction UnSigned Sweep: ", hexTx)
 	return hexTx, psbt, sweepTx.TxHash().String(), totalAmountTxIn, nil
 }

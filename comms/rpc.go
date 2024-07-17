@@ -27,6 +27,12 @@ type JSONRPCResponse struct {
 }
 
 type JSONRPCResponseAddressInfo struct {
+	Result AddressInfo `json:"result"`
+	Error  interface{} `json:"error"`
+	ID     int64       `json:"id"`
+}
+
+type AddressInfo struct {
 	Address        string   `json:"address"`
 	ScriptPubKey   string   `json:"scriptPubKey"`
 	Ismine         bool     `json:"ismine"`
@@ -373,20 +379,19 @@ func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 	return signatures, nil
 }
 
-func GetAddressInfo(address string, wallet string) (JSONRPCResponseAddressInfo, error) {
+func GetAddressInfo(address string, wallet string) (AddressInfo, error) {
 	data := []interface{}{address}
 	var response JSONRPCResponseAddressInfo
 	result, err := SendRPC("getaddressinfo", data, wallet)
 	if err != nil {
 		fmt.Println("error getting descriptor info : ", err)
-		return response, err
+		return AddressInfo{}, err
 	}
 
 	err = json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
-		return response, err
+		return AddressInfo{}, err
 	}
-
-	return response, nil
+	return response.Result, nil
 }

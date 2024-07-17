@@ -78,7 +78,7 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 	return descriptorScript, nil
 }
 
-func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) string {
+func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) (string, string) {
 	wallet := viper.GetString("wallet_name")
 	preimage, err := Preimage()
 	if err != nil {
@@ -92,7 +92,7 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 	resp, err := comms.GetDescriptorInfo(descriptor, wallet)
 	if err != nil {
 		fmt.Println("error in getting descriptorinfo : ", err)
-		return ""
+		return "", ""
 	}
 
 	fmt.Println("Descriptor : ", resp.Descriptor)
@@ -110,12 +110,12 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 	addressInfo, err := comms.GetAddressInfo(address, wallet)
 	if err != nil {
 		fmt.Println("Error getting address info : ", err)
-		return ""
+		return "", ""
 	}
 
 	db.InsertSweepAddress(dbconn, address, addressInfo.Hex, preimage, int64(unlock_height), oldReserveAddress, true)
 
-	return address
+	return address, addressInfo.Hex
 }
 
 func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAddress string, judgeAddr string, dbconn *sql.DB) {
@@ -196,7 +196,7 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 			if proposed {
 				break
 			}
-			fmt.Println("Sweep Address found, proposing address for reserve : {}, round : {}", reserveId, roundId+1)
+			fmt.Println("Sweep Address found, proposing address for reserve and round : ", reserveId, roundId+1)
 			proposeAddress(accountName, uint64(reserveId), uint64(roundId+1), reserve.ReserveAddress, judgeAddr, dbconn)
 			break
 		}
@@ -205,27 +205,26 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 }
 
 func GenerateAndRegisterNewProposedAddress(dbconn *sql.DB, accountName string, height int64, oldReserveAddress string, oracleAddr string) string {
-	newSweepAddress := GenerateAddress(height, oldReserveAddress, oracleAddr, dbconn)
+	newSweepAddress, _ := GenerateAddress(height, oldReserveAddress, oracleAddr, dbconn)
 	registerAddressOnForkscanner(newSweepAddress)
 	return newSweepAddress
 }
 
 func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string, height int64, judgeAddr string, fragmentId int) string {
-	newSweepAddress := GenerateAddress(height, "", judgeAddr, dbconn)
-	registerReserveAddressOnNyks(accountName, newSweepAddress, []byte{}, judgeAddr, fragmentId)
+	newSweepAddress, script := GenerateAddress(height, "", judgeAddr, dbconn)
+	registerReserveAddressOnNyks(accountName, newSweepAddress, script, judgeAddr, fragmentId)
 	registerAddressOnForkscanner(newSweepAddress)
 
 	return newSweepAddress
 }
 
-func registerReserveAddressOnNyks(accountName string, address string, script []byte, judgeAddr string, fragmentId int) {
+func registerReserveAddressOnNyks(accountName string, address string, script string, judgeAddr string, fragmentId int) {
 
 	cosmos := comms.GetCosmosClient()
-	reserveScript := hex.EncodeToString(script)
 
 	msg := &bridgetypes.MsgRegisterReserveAddress{
 		FragmentId:     uint64(fragmentId),
-		ReserveScript:  reserveScript,
+		ReserveScript:  script,
 		ReserveAddress: address,
 		JudgeAddress:   judgeAddr,
 	}

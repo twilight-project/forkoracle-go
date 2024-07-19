@@ -56,7 +56,7 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 	}
 	signers := fragment.Signers
 
-	required := len(signers)
+	required := len(signers) * 2 / 3
 	if required == 0 {
 		required = 1
 	}

@@ -550,24 +550,17 @@ func getUnlockHeightFromMiniscript(s string) ([]string, error) {
 	return values, nil
 }
 
-func GetMinSignFromScript(script string) int64 {
+func GetMinSignFromScript(script string) int {
 	// Split the decoded script into parts
-	minSignRequired := int64(0)
-	parts := strings.Split(script, " ")
-	if len(parts) < 4 {
-		return minSignRequired
-	}
-	// Reverse the byte order
-	for i, j := 0, len(parts[3])-2; i < j; i, j = i+2, j-2 {
-		parts[3] = parts[3][:i] + parts[3][j:j+2] + parts[3][i+2:j] + parts[3][i:i+2] + parts[3][j+2:]
-	}
-	// Convert the first part from hex to decimal
-	minSignRequired, err := strconv.ParseInt(parts[3], 16, 64)
+	var m int
+	_, err := fmt.Sscanf(script, "%d", &m)
 	if err != nil {
-		fmt.Println("Error converting block height from hex to decimal:", err)
+		fmt.Println("Error parsing m value:", err)
+		return 0
 	}
 
-	return minSignRequired
+	fmt.Println(m)
+	return m
 }
 
 func GetPublicKeysFromScript(script string, limit int) []string {

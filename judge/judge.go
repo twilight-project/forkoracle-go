@@ -482,7 +482,7 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	for _, r := range ownedReserves {
 		resId, _ := strconv.Atoi(r.ReserveId)
 		roundId, _ := strconv.Atoi(r.RoundId)
-		s, err := db.QueryUnSignedSweeptx(dbconn, int64(resId), int64(roundId))
+		s, err := db.QueryUnSignedSweeptx(dbconn, int64(resId), int64(roundId+1))
 		if err != nil {
 			fmt.Println("error in getting unsigned sweep tx : ", err)
 			fmt.Println("finishing signed sweep process")
@@ -505,7 +505,7 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
-	sweepTxs, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(roundId))
+	sweepTxs, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(roundId+1))
 	if err != nil {
 		fmt.Println("error in getting unsigned sweep tx : ", err)
 		fmt.Println("finishing signed sweep process")

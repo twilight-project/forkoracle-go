@@ -143,6 +143,11 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 	}
 	fmt.Println("transaction UnSigned Refund: ", refundTx)
 
+	fmt.Println(inputs)
+	fmt.Println(outputs)
+	fmt.Println(locktime)
+	fmt.Println(wallet)
+
 	p, err := comms.CreatePsbt(inputs, outputs, uint32(locktime), wallet)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)

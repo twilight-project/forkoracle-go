@@ -56,8 +56,7 @@ func initialize() (string, string, *sql.DB) {
 func main() {
 	valAddr, oracleAddr, dbconn := initialize()
 	validator := viper.GetBool("validator")
-	running_mode := viper.GetString("running_mode")
-
+	running_mode := viper.GetString("running_mode"))
 	// var upgrader = websocket.Upgrader{}
 	var WsHub *btcOracleTypes.Hub
 
@@ -84,6 +83,9 @@ func main() {
 	fmt.Println("account name : ", accountName)
 	var forkscanner_host = fmt.Sprintf("%v:%v", viper.Get("forkscanner_host"), viper.Get("forkscanner_ws_port"))
 	forkscanner_url := url.URL{Scheme: "ws", Host: forkscanner_host, Path: "/"}
+
+
+	judge.ProcessRefund(accountName, oracleAddr, dbconn)
 
 	time.Sleep(30 * time.Second)
 

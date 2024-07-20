@@ -325,6 +325,7 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 	feeRate["feeRate"] = 0
 	data := []interface{}{inputs, outputs, locktime, feeRate}
 	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet)
+	fmt.Println("result: ", string(result))
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {

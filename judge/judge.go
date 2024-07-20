@@ -141,6 +141,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 		fmt.Println("error in creating refund tx : ", err)
 		return "", "", err
 	}
+	fmt.Println("transaction UnSigned Refund: ", refundTx)
 
 	p, err := comms.CreatePsbt(inputs, outputs, uint32(locktime), wallet)
 	if err != nil {
@@ -148,12 +149,13 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 		return "", "", err
 	}
 
+	fmt.Println("transaction base64 psbt: ", p)
+
 	psbt, err := utils.Base64ToHex(p)
 	if err != nil {
 		fmt.Println("error in converting psbt to hex : ", err)
 		return "", "", err
 	}
-	fmt.Println("transaction UnSigned Refund: ", refundTx)
 
 	return refundTx, psbt, nil
 }
@@ -504,6 +506,10 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 
 	reserveId, _ := strconv.Atoi(reserve.ReserveId)
 	roundId, _ := strconv.Atoi(reserve.RoundId)
+
+	fmt.Println("Process unsigned Refund=================")
+	fmt.Println("Reserve ID : ", reserveId)
+	fmt.Println("Round ID : ", roundId)
 
 	sweepTxs, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(roundId+1))
 	if err != nil {

@@ -522,18 +522,22 @@ func DecodeBtcScript(script string) string {
 
 func GetUnlockHeightFromScript(script string) int64 {
 	// Split the decoded script into parts
-	parts := strings.Split(script, " ")
 	height := int64(0)
-	for i, part := range parts {
-		if part == "OP_CHECKLOCKTIMEVERIFY" && i > 0 {
-			// Convert the part before OP_CHECKLOCKTIMEVERIFY from string to int64
-			height, err := strconv.ParseInt(parts[i-1], 10, 64)
-			if err != nil {
-				fmt.Println("Error converting block height from string to int64:", err)
-			}
-			return height
-		}
+	part := 25
+	parts := strings.Split(script, " ")
+	if len(parts) == 0 {
+		return height
 	}
+	// Reverse the byte order
+	for i, j := 0, len(parts[part])-2; i < j; i, j = i+2, j-2 {
+		parts[part] = parts[part][:i] + parts[part][j:j+2] + parts[part][i+2:j] + parts[part][i:i+2] + parts[part][j+2:]
+	}
+	// Convert the first part from hex to decimal
+	height, err := strconv.ParseInt(parts[part], 16, 64)
+	if err != nil {
+		fmt.Println("Error converting block height from hex to decimal:", err)
+	}
+
 	return height
 }
 
@@ -567,15 +571,15 @@ func GetPublicKeysFromScript(script string, limit int) []string {
 	// Split the decoded script into parts
 	pubkeys := []string{}
 	parts := strings.Split(script, " ")
-	if len(parts) <= 4+limit {
+	if len(parts) <= 1+limit {
 		return pubkeys
 	}
-	// Reverse the byte order
-	for i, j := 0, len(parts[3])-2; i < j; i, j = i+2, j-2 {
-		parts[3] = parts[3][:i] + parts[3][j:j+2] + parts[3][i+2:j] + parts[3][i:i+2] + parts[3][j+2:]
-	}
+	// // Reverse the byte order
+	// for i, j := 0, len(parts[1])-2; i < j; i, j = i+2, j-2 {
+	// 	parts[1] = parts[1][:i] + parts[1][j:j+2] + parts[1][i+2:j] + parts[1][i:i+2] + parts[1][j+2:]
+	// }
 	// Convert the first part from hex to decimal
-	pubkeys = append(pubkeys, parts[4:4+limit]...)
+	pubkeys = append(pubkeys, parts[1:1+limit]...)
 
 	return pubkeys
 }

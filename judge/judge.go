@@ -151,6 +151,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 	fmt.Println(wallet)
 
 	scriptPubKey := sweepTx.TxOut[0].PkScript
+	fmt.Println("scriptPubKey : ", scriptPubKey)
 	amount := sweepTx.TxOut[0].Value
 
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptPubKey, &chaincfg.MainNetParams)
@@ -162,10 +163,14 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 		fmt.Println("error in extracting address from script")
 	}
 
+	fmt.Println("address : ", addresses[0].String())
 	addrInfo, err := comms.GetAddressInfo(addresses[0].String(), wallet)
 	if err != nil {
 		fmt.Println("error in getting address info : ", err)
 	}
+
+	fmt.Println("desc : ", addrInfo.Desc)
+
 	p, err := comms.CreatePsbtV1(inputs[0], outputs, uint32(locktime), scriptPubKey, amount)
 	var b bytes.Buffer
 	err = p.Serialize(&b)

@@ -433,6 +433,9 @@ func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptP
 		}
 	}
 
+	fmt.Println("TxOut: ", TxOut)
+	fmt.Println("TxIn: ", TxIn)
+
 	packet, err := psbt.New([]*wire.OutPoint{&TxIn}, TxOut, 2, 0, []uint32{unlockHeight})
 	if err != nil {
 		return nil, err

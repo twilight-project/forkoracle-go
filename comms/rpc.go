@@ -420,7 +420,9 @@ func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptP
 	}
 	TxOut := []*wire.TxOut{}
 	for _, output := range outputs {
+		fmt.Println("output : ", output)
 		for addr, amount := range output {
+			fmt.Println("addr : ", addr)
 			address, err := btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
 			if err != nil {
 				return nil, err

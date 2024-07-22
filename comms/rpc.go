@@ -431,6 +431,7 @@ func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptP
 			fmt.Println("address : ", address)
 			script, err := txscript.PayToAddrScript(address)
 			if err != nil {
+				fmt.Println(err)
 				return nil, err
 			}
 			fmt.Println("===================")

@@ -144,7 +144,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 	}
 	fmt.Println("transaction UnSigned Refund: ", refundTx)
 
-	fmt.Println(inputs)
+	fmt.Println(inputs[0])
 	fmt.Println(outputs)
 	fmt.Println(locktime)
 	fmt.Println(wallet)
@@ -152,6 +152,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 	scriptPubKey := sweepTx.TxOut[0].PkScript
 	fmt.Println("scriptPubKey : ", scriptPubKey)
 	amount := sweepTx.TxOut[0].Value
+	fmt.Println("amount : ", amount)
 
 	_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptPubKey, &chaincfg.MainNetParams)
 	if err != nil {

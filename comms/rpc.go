@@ -423,14 +423,17 @@ func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptP
 		fmt.Println("output : ", output)
 		for addr, amount := range output {
 			fmt.Println("addr : ", addr)
+			fmt.Println("amount : ", amount)
 			address, err := btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
 			if err != nil {
 				return nil, err
 			}
+			fmt.Println("===================")
 			script, err := txscript.PayToAddrScript(address)
 			if err != nil {
 				return nil, err
 			}
+			fmt.Println("===================")
 			fmt.Println("amount : ", amount)
 			fmt.Println("script : ", script)
 			TxOut = append(TxOut, wire.NewTxOut(int64(amount), script))

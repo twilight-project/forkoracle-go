@@ -172,13 +172,6 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 	fmt.Println("desc : ", addrInfo.Desc)
 
 	p, err := comms.CreatePsbtV1(inputs[0], outputs, uint32(locktime), scriptPubKey, amount)
-	var b bytes.Buffer
-	err = p.Serialize(&b)
-	if err != nil {
-		fmt.Println("error in serializing psbt : ", err)
-		return "", "", err
-	}
-
 	fmt.Println(p)
 	psbt, _ := p.B64Encode()
 	if err != nil {

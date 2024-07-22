@@ -123,8 +123,7 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 			return "", "", err
 		}
 
-		amount := utils.SatsToBtc(int64(a))
-		outputs = append(outputs, comms.TxOutput{refund.BtcDepositAddress: float64(amount)})
+		outputs = append(outputs, comms.TxOutput{refund.BtcDepositAddress: float64(a)})
 	}
 
 	proposedAddress := comms.GetProposedSweepAddress(reserveId, roundId)

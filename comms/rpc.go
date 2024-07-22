@@ -429,6 +429,8 @@ func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptP
 			if err != nil {
 				return nil, err
 			}
+			fmt.Println("amount : ", amount)
+			fmt.Println("script : ", script)
 			TxOut = append(TxOut, wire.NewTxOut(int64(amount), script))
 		}
 	}

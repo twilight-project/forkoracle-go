@@ -6,8 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcutil/psbt"
+	"github.com/cosmos/btcutil"
 	"github.com/spf13/viper"
 )
 
@@ -378,6 +385,65 @@ func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 	}
 
 	return signatures, nil
+}
+
+func UtxoUpdatePsbt(psbtStr string, desc string, wallet string) (string, error) {
+	data := []interface{}{
+		psbtStr,
+		[]map[string]interface{}{
+			{
+				"desc": desc,
+			},
+		},
+	}
+	result, _ := SendRPC("utxoupdatepsbt", data, wallet)
+	fmt.Println("result: ", string(result))
+	var response string
+	err := json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return "", err
+	}
+
+	return response, nil
+}
+
+func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptPubKey []byte, amount int64) (*psbt.Packet, error) {
+	// Create a new PSBT
+	hash, err := chainhash.NewHashFromStr(utxo.Txid)
+	if err != nil {
+		log.Fatalf("Invalid hash: %v", err)
+	}
+	TxIn := wire.OutPoint{
+		Hash:  *hash,
+		Index: uint32(utxo.Vout),
+	}
+	TxOut := []*wire.TxOut{}
+	for _, output := range outputs {
+		for addr, amount := range output {
+			address, err := btcutil.DecodeAddress(addr, &chaincfg.MainNetParams)
+			if err != nil {
+				return nil, err
+			}
+			script, err := txscript.PayToAddrScript(address)
+			if err != nil {
+				return nil, err
+			}
+			TxOut = append(TxOut, wire.NewTxOut(int64(amount), script))
+		}
+	}
+
+	packet, err := psbt.New([]*wire.OutPoint{&TxIn}, TxOut, 2, 0, []uint32{unlockHeight})
+	if err != nil {
+		return nil, err
+	}
+
+	packet.Inputs[0].WitnessUtxo = &wire.TxOut{
+		PkScript: scriptPubKey,
+		Value:    amount,
+	}
+
+	return packet, nil
 }
 
 func GetAddressInfo(address string, wallet string) (AddressInfo, error) {

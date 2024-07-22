@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
@@ -148,19 +150,35 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 	fmt.Println(locktime)
 	fmt.Println(wallet)
 
-	p, err := comms.CreatePsbt(inputs, outputs, uint32(locktime), wallet)
+	scriptPubKey := sweepTx.TxOut[0].PkScript
+	amount := sweepTx.TxOut[0].Value
+
+	_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptPubKey, &chaincfg.MainNetParams)
 	if err != nil {
-		fmt.Println("error in creating psbt : ", err)
+		log.Fatal(err)
+	}
+
+	if len(addresses) <= 0 {
+		fmt.Println("error in extracting address from script")
+	}
+
+	addrInfo, err := comms.GetAddressInfo(addresses[0].String(), wallet)
+	if err != nil {
+		fmt.Println("error in getting address info : ", err)
+	}
+	p, err := comms.CreatePsbtV1(inputs[0], outputs, uint32(locktime), scriptPubKey, amount)
+	psbt, _ := p.B64Encode()
+	if err != nil {
+		fmt.Println("error in converting psbt to base64 : ", err)
 		return "", "", err
 	}
 
-	fmt.Println("transaction base64 psbt: ", p)
-
-	psbt, err := utils.Base64ToHex(p)
+	psbt, err = comms.UtxoUpdatePsbt(psbt, addrInfo.Desc, wallet)
 	if err != nil {
-		fmt.Println("error in converting psbt to hex : ", err)
-		return "", "", err
+		fmt.Println("error in updating psbt : ", err)
 	}
+
+	fmt.Println("transaction base64 refund psbt: ", psbt)
 
 	return refundTx, psbt, nil
 }

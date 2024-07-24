@@ -191,9 +191,10 @@ func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, s
 
 func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId uint64, roundId uint64, currentReserveAddress btcOracleTypes.SweepAddress, judgeAddr string) []byte {
 	wallet := viper.GetString("judge_btc_wallet_name")
-	currentReserveScript := currentReserveAddress.Script
-	encoded := hex.EncodeToString(currentReserveScript)
-	decodedScript := utils.DecodeBtcScript(encoded)
+	currentReserveScript := string(currentReserveAddress.Script)
+	//encoded := hex.EncodeToString(currentReserveScript)
+	fmt.Println("currentReserveScript in GenerateSignedSweepTx \n : ", currentReserveScript)
+	decodedScript := utils.DecodeBtcScript(currentReserveScript)
 	minSignsRequired := utils.GetMinSignFromScript(decodedScript)
 	if minSignsRequired < 1 {
 		fmt.Println("INFO : MinSign required for sweep is 0, which means there is a fault with sweep address script")
@@ -286,9 +287,10 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	}
 	newReserveAddress := addresses[0]
 
-	newReserveScript := newReserveAddress.Script
-	encoded := hex.EncodeToString(newReserveScript)
-	decodedScript := utils.DecodeBtcScript(encoded)
+	newReserveScript := string(newReserveAddress.Script)
+	//encoded := hex.EncodeToString(newReserveScript)
+	fmt.Println("newReserveScript in GenerateSignedRefundTx \n : ", newReserveScript)
+	decodedScript := utils.DecodeBtcScript(newReserveScript)
 	minSignsRequired := utils.GetMinSignFromScript(decodedScript)
 	if minSignsRequired < 1 {
 		fmt.Println("INFO : MinSign required for refund is 0, which means there is a fault with sweep address script")

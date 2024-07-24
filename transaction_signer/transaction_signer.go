@@ -10,6 +10,7 @@ import (
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
+	"github.com/twilight-project/forkoracle-go/utils"
 	bridgetypes "github.com/twilight-project/nyks/x/bridge/types"
 )
 
@@ -33,10 +34,12 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 		}
 
 		fmt.Printf("corresponding refund tx found  reserve Id: %d roundid : %d\n", reserveId, roundId)
-
-		decodedPsbt, err := comms.DecodePsbt(tx.BtcUnsignedSweepTx, wallet)
+		// the Sweep tx sent to the chain is in Hex format
+		// encode it into base64 before passing to the decodePsbt function
+		sweepTx64, _ := utils.HexToBase64(tx.BtcUnsignedSweepTx)
+		decodedPsbt, err := comms.DecodePsbt(sweepTx64, wallet)
 		if err != nil {
-			fmt.Println("error decoding sweep tx : inside processSweepTx : ", err)
+			fmt.Println("error decoding sweep tx : inside processSweepTx ->DecodePSBT : ", err)
 			continue
 		}
 
@@ -85,9 +88,9 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 			fmt.Println("Signer is not registered with the provided judge")
 		}
 
-		signatures, err := comms.SignPsbt(tx.BtcUnsignedSweepTx, wallet)
+		signatures, err := comms.SignPsbt(sweepTx64, wallet)
 		if err != nil {
-			fmt.Println("error signing psbt : inside processSweepTx : ", err)
+			fmt.Println("error signing psbt : inside processSweepTx ->SignPSBT: ", err)
 			continue
 		}
 

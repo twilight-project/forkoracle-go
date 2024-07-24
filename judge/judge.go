@@ -221,7 +221,10 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		preimage := currentReserveAddress.Preimage
 
 		// remove after watchtower is done
-		psbt := comms.GetUnsignedSweepTx(reserveId, roundId).UnsignedTxSweepMsg.BtcUnsignedSweepTx
+		txHex := comms.GetUnsignedSweepTx(reserveId, roundId).UnsignedTxSweepMsg.BtcUnsignedSweepTx
+		// the Sweep tx sent to the chain is in Hex format
+		// encode it into base64 before passing to the decodePsbt function
+		psbt, _ := utils.HexToBase64(txHex)
 		signedPsbt, err := comms.SignPsbt(psbt, wallet)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)

@@ -397,14 +397,14 @@ func UtxoUpdatePsbt(psbtStr string, desc string, wallet string) (string, error) 
 	}
 	result, _ := SendRPC("utxoupdatepsbt", data, wallet)
 	fmt.Println("result: ", string(result))
-	var response string
+	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
 	}
 
-	return response, nil
+	return response.Result, nil
 }
 
 func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptPubKey []byte, amount int64) (*psbt.Packet, error) {

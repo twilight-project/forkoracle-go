@@ -112,7 +112,8 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 		fmt.Println("Error getting address info : ", err)
 		return "", ""
 	}
-
+	// Decode Hex string to bytes
+	
 	db.InsertSweepAddress(dbconn, address, addressInfo.Hex, preimage, int64(unlock_height), oldReserveAddress, true)
 
 	return address, addressInfo.Hex

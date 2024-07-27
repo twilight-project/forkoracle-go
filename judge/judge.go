@@ -301,6 +301,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 	for {
 		time.Sleep(30 * time.Second)
 		receiveRefundSignatures := comms.GetSignRefund(reserveId, roundId)
+		fmt.Println("received refund signatures : \n", receiveRefundSignatures)
 		filteredRefundSignatures := utils.OrderSignRefund(receiveRefundSignatures, newReserveAddress.Address, pubkeys, judgeAddr)
 
 		if len(filteredRefundSignatures) <= 0 {
@@ -412,7 +413,7 @@ func InitReserve(accountName string, judgeAddr string, valAddr string, dbconn *s
 
 func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 	fmt.Println("Process Sweep unsigned started")
-	time.Sleep(2 * time.Minute)
+	time.Sleep(5 * time.Minute)
 	number := fmt.Sprintf("%v", viper.Get("sweep_preblock"))
 	sweepInitateBlockHeight, _ := strconv.Atoi(number)
 
@@ -495,7 +496,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 
 func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	fmt.Println("Process unsigned Refund started")
-
+    time.Sleep(2 * time.Minute)
 	fragments := comms.GetAllFragments()
 	var fragment btcOracleTypes.Fragment
 	for _, f := range fragments.Fragments {
@@ -521,7 +522,7 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 		s, err := db.QueryUnSignedSweeptx(dbconn, int64(resId), int64(roundId+1))
 		if err != nil {
 			fmt.Println("error in getting unsigned sweep tx : ", err)
-			fmt.Println("finishing signed sweep process")
+			fmt.Println("finishing process refund")
 			return
 		}
 		if len(s) <= 0 {
@@ -546,9 +547,10 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	fmt.Println("Round ID : ", roundId)
 
 	sweepTxs, err := db.QueryUnSignedSweeptx(dbconn, int64(reserveId), int64(roundId+1))
+	fmt.Println("sweep tx from DB in refund process: ", sweepTxs)
 	if err != nil {
 		fmt.Println("error in getting unsigned sweep tx : ", err)
-		fmt.Println("finishing signed sweep process")
+		fmt.Println("finishing process refund")
 		return
 	}
 	if len(sweepTxs) <= 0 {
@@ -557,6 +559,7 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	}
 
 	sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId+1))
+	fmt.Println("sweep address from chain: ", sweepAddresses.ProposeSweepAddressMsg.BtcAddress)
 	if sweepAddresses.ProposeSweepAddressMsg.BtcAddress == "" {
 		fmt.Println("issue with sweep address while creating refund tx")
 		fmt.Println("finishing refund process")
@@ -635,7 +638,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 
 	sweepTx, err := utils.CreateTxFromHex(s[0].Tx)
 	if err != nil {
-		fmt.Println("error decoding sweep tx : inside judge")
+		fmt.Println("error decoding sweep txHex in ProcessSignedSweep: inside judge")
 		fmt.Println(err)
 	}
 
@@ -725,15 +728,23 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	roundId, _ := strconv.Atoi(reserve.RoundId)
 
 	refundTxs, err := db.QueryUnSignedRefundtx(dbconn, int64(reserveId), int64(roundId+1))
+	if err != nil {
+		fmt.Println("error in getting unsigned refund tx : ", err)
+		fmt.Println("finishing signed refund process with error")
+		
+		return
+	}
 	if len(refundTxs) <= 0 {
-		fmt.Println("no unsigned refund tx found")
+		fmt.Println("no unsigned refund tx found in the database")
+		fmt.Println("finishing signed refund process with error")
 		return
 	}
 
 	unsignedRefundTxHex := refundTxs[0].Tx
+	fmt.Println("unsigned refund tx hex in Process refundTx: \n", unsignedRefundTxHex)
 	refundTx, err := utils.CreateTxFromHex(unsignedRefundTxHex)
 	if err != nil {
-		fmt.Println("error decoding sweep tx : inside judge")
+		fmt.Println("error decoding refund txhex in processSignedRefund: inside judge")
 		fmt.Println(err)
 	}
 

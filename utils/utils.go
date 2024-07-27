@@ -319,16 +319,8 @@ func CreateTxIn(utxo btcOracleTypes.Utxo) (*wire.TxIn, error) {
 // 	fmt.Println("registered Judge")
 // }
 
-func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignSweep {
-	fmt.Println(sweepSignatures.SignSweepMsg)
-	fmt.Println(pubkeys)
-	filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
-	for _, sweepSig := range sweepSignatures.SignSweepMsg {
-		if StringInSlice(sweepSig.SignerPublicKey, pubkeys) {
-			filtereSignSweep = append(filtereSignSweep, sweepSig)
-		}
-	}
-
+// check the fragment of the current judge
+func GetCurrentFragment(judgeAddr string) (btcOracleTypes.Fragment, error) {
 	fragments := comms.GetAllFragments()
 	var fragment btcOracleTypes.Fragment
 	found := false
@@ -340,15 +332,43 @@ func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pu
 		}
 	}
 	if !found {
-		fmt.Println("No fragment found with the specified judge address")
-		return nil
+		//log.Println("No fragment found with the specified judge address")
+		return fragment, fmt.Errorf("No fragment found with the specified judge address")
 	}
+	return fragment, nil 
+}
 
+// Check if the current Judge belongs to any registered fragment
+// acquire the fragment and its Signers list
+// check if the current signer is in the Signers list
+// add the signatures in the order the signers appear in the Fragment
+// The ordering should be looked at again once we have multiple fragments to reaafirm the ordering algorithm 
+// Note that currently the checks work on the assumption that each Judge has only one fragment and each Signer has only one address associated with BTC wallet address
+// The function should be updated to handle matching public keys used in the BTC sweep script
+func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignSweep {
+	fmt.Println(sweepSignatures.SignSweepMsg)
+	fmt.Println(pubkeys)
+	// FIltering is not required in the new design 
+	// filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
+	// for _, sweepSig := range sweepSignatures.SignSweepMsg {
+	// 	if StringInSlice(sweepSig.SignerPublicKey, pubkeys) {
+	// 		filtereSignSweep = append(filtereSignSweep, sweepSig)
+	// 	}
+	// }
+
+	// check if the current Judge belongs to any registered fragment
+	fragment, err := GetCurrentFragment(judgeAddr)
+	if err != nil {
+		fmt.Println("Error getting current fragment : ", err)
+		return nil
+	}		
+	// acquire the fragment and its Signers list
+	// check if the current signer is in the Signers list	
 	orderedSignSweep := make([]btcOracleTypes.MsgSignSweep, 0)
 
 	for _, signer := range fragment.Signers {
-		for _, sweepSig := range filtereSignSweep {
-			if signer.SignerAddress == sweepSig.BtcOracleAddress {
+		for _, sweepSig := range sweepSignatures.SignSweepMsg {
+			if signer.SignerAddress == sweepSig.SignerAddress {
 				orderedSignSweep = append(orderedSignSweep, sweepSig)
 			}
 		}
@@ -360,22 +380,26 @@ func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pu
 }
 
 func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address string,
-	pubkeys []string, oracleAddr string) []btcOracleTypes.MsgSignRefund {
+	pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignRefund {
+	fmt.Println("Inside OrderSignRefund*******")
+	fmt.Println("script address : ", address)
+	fmt.Println("public keys : ", pubkeys)	
+	fmt.Println("judge address : ", judgeAddr)
 
-	delegateAddresses := comms.GetDelegateAddresses()
+	// check if the current Judge belongs to any registered fragment
+	fragment, err := GetCurrentFragment(judgeAddr)		
 
-	filteresSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
-	for _, refundSig := range refundSignatures.SignRefundMsg {
-		if StringInSlice(refundSig.SignerPublicKey, pubkeys) {
-			filteresSignRefund = append(filteresSignRefund, refundSig)
-		}
+	if err != nil {
+		fmt.Println("Error getting current fragment : ", err)
+		return nil
 	}
-
+	
+	// acquire the fragment and its Signers list
 	orderedSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
 
-	for _, oracleAddr := range delegateAddresses.Addresses {
+	for _, signer := range fragment.Signers {
 		for _, refundSig := range refundSignatures.SignRefundMsg {
-			if oracleAddr.BtcOracleAddress == refundSig.BtcOracleAddress {
+			if signer.SignerAddress == refundSig.SignerAddress {
 				orderedSignRefund = append(orderedSignRefund, refundSig)
 			}
 		}

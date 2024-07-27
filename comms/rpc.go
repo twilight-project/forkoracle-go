@@ -344,7 +344,7 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string) (string, error) {
 	data := []interface{}{inputs, outputs, locktime}
 	result, _ := SendRPC("createrawtransaction", data, wallet)
-	fmt.Println("result: ", string(result))
+	fmt.Println("result in CreateRawTx: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
 	if err != nil {

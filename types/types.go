@@ -157,7 +157,7 @@ type Utxo struct {
 type MsgSignSweep struct {
 	SignerPublicKey  string
 	SweepSignature   []string
-	BtcOracleAddress string
+	SignerAddress string
 }
 
 type MsgSignSweepResp struct {
@@ -187,7 +187,7 @@ type RegisteredJudgeResp struct {
 type MsgSignRefund struct {
 	SignerPublicKey  string
 	RefundSignature  []string
-	BtcOracleAddress string
+	SignerAddress string
 }
 
 type MsgSignRefundResp struct {

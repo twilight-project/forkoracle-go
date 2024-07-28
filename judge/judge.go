@@ -641,13 +641,28 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 		fmt.Println("error decoding sweep txHex in ProcessSignedSweep: inside judge")
 		fmt.Println(err)
 	}
-
-	reserveAddresses := db.QueryUnsignedSweepAddressByScript(dbconn, "")
-
-	if len(reserveAddresses) == 0 {
+	// get the current reserve address / input address for the sweep tx
+	//reserveAddresses := db.QueryUnsignedSweepAddressByScript(dbconn, string(sweepTx.TxIn[0].Witness[0]))
+	sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId+1))
+	proposeSweepAddressBTC:=  sweepAddresses.ProposeSweepAddressMsg.BtcAddress
+	// get DB info about the address
+	sweepAddressDB := db.QuerySweepAddress(dbconn, proposeSweepAddressBTC)
+	if len(sweepAddressDB) <= 0 {
 		fmt.Println("No address found")
 		return
 	}
+	// get the parent address of the sweep address
+	reserverAddressStr := sweepAddressDB[0].Parent_address
+	// get the reserve address info from the DB
+	reserveAddresses := db.QuerySweepAddress(dbconn, reserverAddressStr)
+	if len(reserveAddresses) <= 0 {
+		fmt.Println("No address found")
+		return
+	}
+	// if len(reserveAddresses) == 0 {
+	// 	fmt.Println("No address found")
+	// 	return
+	// }
 	currentReserveAddress := reserveAddresses[0]
 
 	if currentReserveAddress.BroadcastSweep {

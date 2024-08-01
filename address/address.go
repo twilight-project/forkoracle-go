@@ -113,7 +113,7 @@ func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr st
 		return "", ""
 	}
 	// Decode Hex string to bytes
-	
+
 	db.InsertSweepAddress(dbconn, address, addressInfo.Hex, preimage, int64(unlock_height), oldReserveAddress, true)
 
 	return address, addressInfo.Hex
@@ -179,7 +179,7 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 				continue
 			}
 
-			addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
+			addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true, true)
 			if len(addresses) <= 0 {
 				continue
 			}

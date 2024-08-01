@@ -48,7 +48,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	totalAmountTxIn := uint64(0)
 	totalAmountTxOut := uint64(0)
 
-	for _, u := range utxos {													//ideally the height should be masked with 0x0000ffff
+	for _, u := range utxos { //ideally the height should be masked with 0x0000ffff
 		inputs = append(inputs, comms.TxInput{Txid: u.Txid, Vout: int64(u.Vout), Sequence: int64(wire.MaxTxInSequenceNum - 10)})
 		totalAmountTxIn += u.Amount
 	}
@@ -231,7 +231,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			fmt.Println("error decoding psbt : inside processSweep Watchtower : ", err)
 			return nil
 		}
-		currentReserveScript = psbtStruct.Inputs[0].WitnessScript.Asm 
+		currentReserveScript = psbtStruct.Inputs[0].WitnessScript.Asm
 		signedPsbt, err := comms.SignPsbt(psbt, wallet)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
@@ -438,7 +438,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 			continue
 		}
 
-		addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
+		addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true, false)
 		if len(addresses) <= 0 {
 			continue
 		}
@@ -502,7 +502,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 
 func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 	fmt.Println("Process unsigned Refund started")
-    time.Sleep(2 * time.Minute)
+	time.Sleep(2 * time.Minute)
 	fragments := comms.GetAllFragments()
 	var fragment btcOracleTypes.Fragment
 	for _, f := range fragments.Fragments {
@@ -650,7 +650,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	// get the current reserve address / input address for the sweep tx
 	//reserveAddresses := db.QueryUnsignedSweepAddressByScript(dbconn, string(sweepTx.TxIn[0].Witness[0]))
 	sweepAddresses := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId+1))
-	proposeSweepAddressBTC:=  sweepAddresses.ProposeSweepAddressMsg.BtcAddress
+	proposeSweepAddressBTC := sweepAddresses.ProposeSweepAddressMsg.BtcAddress
 	// get DB info about the address
 	sweepAddressDB := db.QuerySweepAddress(dbconn, proposeSweepAddressBTC)
 	if len(sweepAddressDB) <= 0 {
@@ -752,7 +752,7 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	if err != nil {
 		fmt.Println("error in getting unsigned refund tx : ", err)
 		fmt.Println("finishing signed refund process with error")
-		
+
 		return
 	}
 	if len(refundTxs) <= 0 {

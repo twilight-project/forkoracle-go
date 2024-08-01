@@ -101,21 +101,21 @@ func KDeepService(accountName string, dbconn *sql.DB, latestSweepTxHash *prometh
 
 func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string) {
 	fmt.Println("running k deep check for height : ", height)
-	addresses := db.QueryNotification(dbconn)
+	notifications := db.QueryNotification(dbconn)
 	watchedTx := db.QueryWatchedTransactions(dbconn)
 	number := fmt.Sprintf("%v", viper.Get("confirmation_limit"))
 	confirmations, _ := strconv.ParseUint(number, 10, 64)
-	for _, a := range addresses {
-		if height-a.Height >= confirmations {
+	for _, n := range notifications {
+		if height-n.Height >= confirmations {
 			fmt.Println("reached height confirmations: ", height)
-			confirmBtcTransactionOnNyks(accountName, a, dbconn, oracleAddr)
+			confirmBtcTransactionOnNyks(accountName, n, dbconn, oracleAddr)
 		}
 
 		for _, tx := range watchedTx {
-			if height-a.Height <= confirmations {
+			if height-n.Height <= confirmations {
 				continue
 			}
-			if a.Receiving_txid == tx.Txid {
+			if n.Sending == tx.Address {
 
 				addresses := db.QuerySweepAddress(dbconn, tx.Address)
 				if len(addresses) <= 0 {
@@ -151,7 +151,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 				fmt.Println("Sending Sweep proposal message")
 				comms.SendTransactionSweepProposal(accountName, cosmos, msg)
 				db.MarkTransactionProcessed(dbconn, tx.Txid)
-				db.MarkProcessedNotifications(dbconn, a)
+				db.MarkProcessedNotifications(dbconn, n)
 				latestSweepTxHash.Reset()
 				latestSweepTxHash.WithLabelValues(tx.Txid).Set(float64(tx.Reserve))
 

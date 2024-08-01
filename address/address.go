@@ -184,9 +184,11 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 				continue
 			}
 
+			fmt.Println("addresses in proposed address: ", addresses[0].Address)
+
 			var reserve btcOracleTypes.BtcReserve
 			for _, r := range btcReserves.BtcReserves {
-				if r.ReserveAddress == addresses[0].Address {
+				if r.ReserveAddress == addresses[0].Parent_address {
 					reserve = r
 				}
 			}

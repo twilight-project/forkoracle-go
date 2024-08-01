@@ -193,8 +193,6 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 			roundId, _ := strconv.Atoi(reserve.RoundId)
 			reserveId, _ := strconv.Atoi(reserve.ReserveId)
 
-			fmt.Println("Checking Sweep Address reserve and round : ", reserveId, roundId+1)
-
 			proposed := db.CheckIfAddressIsProposed(dbconn, int64(roundId+1), uint64(reserveId))
 			if proposed {
 				break

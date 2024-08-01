@@ -48,8 +48,8 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	totalAmountTxIn := uint64(0)
 	totalAmountTxOut := uint64(0)
 
-	for _, u := range utxos {
-		inputs = append(inputs, comms.TxInput{Txid: u.Txid, Vout: int64(u.Vout), Sequence: unlockHeight})
+	for _, u := range utxos {													//ideally the height should be masked with 0x0000ffff
+		inputs = append(inputs, comms.TxInput{Txid: u.Txid, Vout: int64(u.Vout), Sequence: int64(wire.MaxTxInSequenceNum - 10)})
 		totalAmountTxIn += u.Amount
 	}
 
@@ -64,7 +64,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		totalAmountTxOut = totalAmountTxOut + uint64(a)
 	}
 
-	c := totalAmountTxIn - totalAmountTxOut
+	c := totalAmountTxIn - totalAmountTxOut - 1000
 	change := utils.SatsToBtc(int64(c))
 	outputs = append([]comms.TxOutput{comms.TxOutput{newSweepAddress: float64(change)}}, outputs...)
 	locktime := uint32(unlockHeight + int64(sweepPreblock))
@@ -218,7 +218,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			continue
 		}
 
-		script := currentReserveAddress.Script
+		script, _ := hex.DecodeString(currentReserveScript)
 		preimage := currentReserveAddress.Preimage
 
 		// remove after watchtower is done
@@ -226,6 +226,12 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		// the Sweep tx sent to the chain is in Hex format
 		// encode it into base64 before passing to the decodePsbt function
 		psbt, _ := utils.HexToBase64(txHex)
+		psbtStruct, err := comms.DecodePsbt(psbt, wallet)
+		if err != nil {
+			fmt.Println("error decoding psbt : inside processSweep Watchtower : ", err)
+			return nil
+		}
+		currentReserveScript = psbtStruct.Inputs[0].WitnessScript.Asm 
 		signedPsbt, err := comms.SignPsbt(psbt, wallet)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)

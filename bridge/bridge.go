@@ -143,7 +143,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 					NewReserveAddress:     tx.Address,
 					JudgeAddress:          reserve.JudgeAddress,
 					BtcRelayCapacityValue: 0,
-					BtcTxHash:             tx.Txid,
+					BtcTxHash:             n.Receiving_txid,
 					UnlockHeight:          uint64(addresses[0].Unlock_height),
 					RoundId:               uint64(tx.Round),
 					BtcBlockNumber:        0,

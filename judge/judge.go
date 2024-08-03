@@ -64,7 +64,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		totalAmountTxOut = totalAmountTxOut + uint64(a)
 	}
 
-	c := totalAmountTxIn - totalAmountTxOut - 1000
+	c := totalAmountTxIn - totalAmountTxOut 
 	change := utils.SatsToBtc(int64(c))
 	outputs = append([]comms.TxOutput{comms.TxOutput{newSweepAddress: float64(change)}}, outputs...)
 	locktime := uint32(unlockHeight + int64(sweepPreblock))
@@ -326,7 +326,11 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 			dataSig = append(dataSig, sig)
 		}
 
-		script := newReserveAddress.Script
+		script, err := hex.DecodeString(newReserveScript)
+		if err != nil {
+			fmt.Println("error in decoding script: ", err)
+			return nil, btcOracleTypes.SweepAddress{}, err
+		}
 		preimageFalse, _ := address.Preimage()
 		dummy := []byte{}
 
@@ -345,7 +349,7 @@ func generateSignedRefundTx(accountName string, refundTx *wire.MsgTx, reserveId 
 		}
 
 		var signedRefundTx bytes.Buffer
-		err := refundTx.Serialize(&signedRefundTx)
+		err = refundTx.Serialize(&signedRefundTx)
 		if err != nil {
 			fmt.Println("Signed Refund : ", err)
 		}

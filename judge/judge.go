@@ -438,7 +438,7 @@ func ProcessSweep(accountName string, dbconn *sql.DB, judgeAddr string) {
 			continue
 		}
 
-		addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true, false)
+		addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
 		if len(addresses) <= 0 {
 			continue
 		}

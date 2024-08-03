@@ -179,14 +179,14 @@ func ProcessProposeAddress(accountName string, judgeAddr string, dbconn *sql.DB)
 				continue
 			}
 
-			addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true, true)
+			addresses := db.QuerySweepAddressesByHeight(dbconn, uint64(height+sweepInitateBlockHeight), true)
 			if len(addresses) <= 0 {
 				continue
 			}
 
 			var reserve btcOracleTypes.BtcReserve
 			for _, r := range btcReserves.BtcReserves {
-				if r.ReserveAddress == addresses[0].Parent_address {
+				if r.ReserveAddress == addresses[0].Address {
 					reserve = r
 				}
 			}

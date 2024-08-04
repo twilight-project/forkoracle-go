@@ -591,6 +591,8 @@ func ProcessRefund(accountName string, judgeAddr string, dbconn *sql.DB) {
 }
 
 func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
+	// sleep for a minute
+	time.Sleep(2 * time.Minute)
 	fmt.Println("Process signed sweep started")
 
 	fragments := comms.GetAllFragments()
@@ -705,8 +707,10 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 }
 
 func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, WsHub *btcOracleTypes.Hub, latestRefundTxHash *prometheus.GaugeVec) {
+	// sleep for a minute
+	time.Sleep(2 * time.Minute)
 	fmt.Println("Process signed Refund started")
-
+	
 	fragments := comms.GetAllFragments()
 	var fragment btcOracleTypes.Fragment
 	for _, f := range fragments.Fragments {

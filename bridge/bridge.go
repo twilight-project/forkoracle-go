@@ -140,18 +140,18 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 				cosmos := comms.GetCosmosClient()
 				fmt.Println("==============proposal message =============")
 				fmt.Println(tx.Reserve)
-				fmt.Println(tx.Address)
+				fmt.Println(n.Receiving)
 				fmt.Println(reserve.JudgeAddress)
 				fmt.Println(n.Receiving_txid)
-				fmt.Println(addresses[0].Unlock_height)
+				fmt.Println(n.Height)
 				fmt.Println(tx.Round)
 				msg := &bridgetypes.MsgSweepProposal{
 					ReserveId:             uint64(tx.Reserve),
-					NewReserveAddress:     tx.Address,
+					NewReserveAddress:     n.Receiving,
 					JudgeAddress:          reserve.JudgeAddress,
 					BtcRelayCapacityValue: 0,
 					BtcTxHash:             n.Receiving_txid,
-					UnlockHeight:          uint64(addresses[0].Unlock_height),
+					UnlockHeight:          uint64(n.Height),
 					RoundId:               uint64(tx.Round),
 					BtcBlockNumber:        0,
 				}

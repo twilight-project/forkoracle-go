@@ -107,7 +107,9 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 		comms.SendTransactionSignSweep(accountName, cosmos, msg)
 
 		db.MarkAddressSignedSweep(dbconn, reserveAddress.Address)
-		db.InsertTransaction(dbconn, decodedPsbt.Tx.TxID, reserveAddress.Address, uint64(reserveId), uint64(roundId))
+
+		newAddress := comms.GetProposedSweepAddress(uint64(reserveId), uint64(roundId))
+		db.InsertTransaction(dbconn, decodedPsbt.Tx.TxID, newAddress.ProposeSweepAddressMsg.BtcAddress, uint64(reserveId), uint64(roundId))
 	}
 	fmt.Println("finishing sweep tx signer")
 }

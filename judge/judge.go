@@ -64,7 +64,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		totalAmountTxOut = totalAmountTxOut + uint64(a)
 	}
 
-	c := totalAmountTxIn - totalAmountTxOut 
+	c := totalAmountTxIn - totalAmountTxOut
 	change := utils.SatsToBtc(int64(c))
 	outputs = append([]comms.TxOutput{comms.TxOutput{newSweepAddress: float64(change)}}, outputs...)
 	locktime := uint32(unlockHeight + int64(sweepPreblock))
@@ -664,10 +664,10 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 		return
 	}
 	// get the parent address of the sweep address
-	reserverAddressStr := sweepAddressDB[0].Parent_address
+	parentReserveAddressStr := sweepAddressDB[0].Parent_address
 	// get the reserve address info from the DB
-	reserveAddresses := db.QuerySweepAddress(dbconn, reserverAddressStr)
-	if len(reserveAddresses) <= 0 {
+	addrs := db.QuerySweepAddress(dbconn, parentReserveAddressStr)
+	if len(addrs) <= 0 {
 		fmt.Println("No address found")
 		return
 	}
@@ -675,7 +675,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	// 	fmt.Println("No address found")
 	// 	return
 	// }
-	currentReserveAddress := reserveAddresses[0]
+	currentReserveAddress := addrs[0]
 
 	if currentReserveAddress.BroadcastSweep {
 		fmt.Println("Sweep tx already broadcasted")
@@ -700,7 +700,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	comms.SendTransactionBroadcastSweeptx(accountName, cosmos, msg)
 	db.MarkAddressBroadcastedSweep(dbconn, currentReserveAddress.Address)
 	address.UnRegisterAddressOnForkscanner(currentReserveAddress.Address)
-	db.InsertTransaction(dbconn, sweepTx.TxHash().String(), currentReserveAddress.Address, uint64(reserveId), uint64(roundId))
+	db.InsertTransaction(dbconn, sweepTx.TxHash().String(), proposeSweepAddressBTC, uint64(reserveId), uint64(roundId+1))
 
 	fmt.Println("finishing signed sweep process")
 
@@ -710,7 +710,7 @@ func ProcessSignedRefund(accountName string, judgeAddr string, dbconn *sql.DB, W
 	// sleep for a minute
 	time.Sleep(2 * time.Minute)
 	fmt.Println("Process signed Refund started")
-	
+
 	fragments := comms.GetAllFragments()
 	var fragment btcOracleTypes.Fragment
 	for _, f := range fragments.Fragments {

@@ -700,7 +700,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	comms.SendTransactionBroadcastSweeptx(accountName, cosmos, msg)
 	db.MarkAddressBroadcastedSweep(dbconn, currentReserveAddress.Address)
 	address.UnRegisterAddressOnForkscanner(currentReserveAddress.Address)
-	db.InsertTransaction(dbconn, sweepTx.TxHash().String(), proposeSweepAddressBTC, uint64(reserveId), uint64(roundId+1))
+	db.InsertTransaction(dbconn, sweepTx.TxHash().String(), currentReserveAddress.Address, uint64(reserveId), uint64(roundId+1))
 
 	fmt.Println("finishing signed sweep process")
 

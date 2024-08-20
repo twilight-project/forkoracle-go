@@ -153,7 +153,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 					BtcTxHash:             n.Receiving_txid,
 					UnlockHeight:          uint64(n.Height),
 					RoundId:               uint64(tx.Round),
-					BtcBlockNumber:        0,
+					BtcBlockNumber:        uint64(n.Height),
 				}
 				fmt.Println("Sending Sweep proposal message")
 				comms.SendTransactionSweepProposal(accountName, cosmos, msg)
@@ -201,3 +201,5 @@ func confirmBtcTransactionOnNyks(accountName string, data btcOracleTypes.Watchto
 	fmt.Println("deleting notifiction after procesing")
 	db.MarkProcessedNotifications(dbconn, data)
 }
+
+//nyksd tx bridge msg-confirm-btc-deposit 14uEN8abvKA1zgYCpv8MWCUwAMLGBqdZGM 100000000000 789656 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f $(nyksd keys show validator-stg -a --keyring-backend test) --from validator-stg --chain-id nyks --keyring-backend test

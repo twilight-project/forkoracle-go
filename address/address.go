@@ -142,6 +142,10 @@ func proposeAddress(accountName string, reserveId uint64, roundId uint64, oldAdd
 		return
 	}
 
+	fmt.Println("proposing address : ", newReserveAddress)
+	fmt.Println("roundId : ", roundId)
+	fmt.Println("reserveId : ", reserveId)
+
 	cosmos_client := comms.GetCosmosClient()
 	msg := &bridgetypes.MsgProposeSweepAddress{
 		BtcScript:    addressInfo.Hex,

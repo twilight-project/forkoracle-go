@@ -145,6 +145,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 				fmt.Println(n.Receiving_txid)
 				fmt.Println(n.Height)
 				fmt.Println(tx.Round)
+				fmt.Println(accountName)
 				msg := &bridgetypes.MsgSweepProposal{
 					ReserveId:             uint64(tx.Reserve),
 					NewReserveAddress:     n.Receiving,

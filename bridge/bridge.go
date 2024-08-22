@@ -155,6 +155,7 @@ func kDeepCheck(accountName string, height uint64, dbconn *sql.DB, latestSweepTx
 					UnlockHeight:          uint64(n.Height),
 					RoundId:               uint64(tx.Round),
 					BtcBlockNumber:        uint64(n.Height),
+					OracleAddr:            oracleAddr,
 				}
 				fmt.Println("Sending Sweep proposal message")
 				comms.SendTransactionSweepProposal(accountName, cosmos, msg)

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -95,6 +96,9 @@ func main() {
 	if running_mode == "judge" {
 		wg.Add(1)
 		go startJudge(accountName, dbconn, oracleAddr, valAddr, WsHub, latestRefundTxHash)
+		time.Sleep(1 * time.Minute)
+		wg.Add(1)
+		go startBtcTxBroadcaster(dbconn)
 	} else {
 		time.Sleep(2 * time.Minute)
 	}
@@ -117,6 +121,39 @@ func main() {
 
 	wg.Wait()
 	fmt.Println("exiting main")
+}
+
+func startBtcTxBroadcaster(dbconn *sql.DB) {
+	for {
+		resp := comms.GetAttestations("1")
+		if len(resp.Attestations) < 0 {
+			time.Sleep(3 * time.Minute)
+			continue
+		}
+		if resp.Attestations[0].Observed == false {
+			time.Sleep(3 * time.Minute)
+			continue
+		}
+
+		height, _ := strconv.ParseUint(resp.Attestations[0].Proposal.Height, 10, 64)
+		signedTxs, err := db.QuerySignedSweeptx(dbconn, height)
+		if err != nil {
+			fmt.Println("error querying signed tx : ", err)
+			continue
+		}
+
+		for _, t := range signedTxs {
+			tx, err := utils.CreateTxFromHex(t.Tx)
+			if err != nil {
+				fmt.Println("error creating tx from hex : ", err)
+				continue
+			}
+			utils.BroadcastBtcTransaction(tx)
+			db.DeleteSignedSweeptx(dbconn, height)
+		}
+
+		time.Sleep(3 * time.Minute)
+	}
 }
 
 func startTransactionSigner(accountName string, dbconn *sql.DB, signerAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {

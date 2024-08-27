@@ -75,6 +75,25 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		return "", "", "", 0, err
 	}
 
+	sweepTx, err := utils.CreateTxFromHex(hexTx)
+	if err != nil {
+		fmt.Println("error decoding tx : ", err)
+		return "", "", "", 0, err
+	}
+
+	fee, err := utils.GetFeeFromBtcNode(sweepTx)
+	if err != nil {
+		fmt.Println("error in getting fee : ", err)
+		return "", "", "", 0, err
+	}
+
+	feeUtxo, err := utils.CreateFeeUtxo(fee)
+	if err != nil {
+		fmt.Println("error in creating fee utxo : ", err)
+		return "", "", "", 0, err
+	}
+	inputs = append(inputs, comms.TxInput{Txid: feeUtxo.String(), Vout: 0, Sequence: int64(wire.MaxTxInSequenceNum - 10)})
+
 	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
@@ -86,12 +105,6 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	psbt, err := utils.Base64ToHex(p)
 	if err != nil {
 		fmt.Println("error in converting psbt to hex : ", err)
-		return "", "", "", 0, err
-	}
-
-	sweepTx, err := utils.CreateTxFromHex(hexTx)
-	if err != nil {
-		fmt.Println("error decoding tx : ", err)
 		return "", "", "", 0, err
 	}
 
@@ -245,9 +258,10 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 		watchtowerSig, _ := hex.DecodeString(signedPsbt[0])
 
 		//////////////
+		totalInputs := len(sweepTx.TxIn)
 
 		dummy := []byte{}
-		for i := range sweepTx.TxIn {
+		for i := 0; i < totalInputs-1; i++ {
 			dataSig := make([][]byte, 0)
 			for _, sig := range filteredSweepSignatures {
 				sig, _ := hex.DecodeString(sig.SweepSignature[i])
@@ -270,6 +284,14 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			witness = append(witness, script)
 			sweepTx.TxIn[i].Witness = witness
 		}
+
+		feeWitness, err := utils.SignFeeUtxo(sweepTx)
+		if err != nil {
+			fmt.Println("error in signing fee utxo : ", err)
+			return nil
+		}
+		sweepTx.TxIn[totalInputs-1].Witness = feeWitness
+
 		var signedSweepTx bytes.Buffer
 		err = sweepTx.Serialize(&signedSweepTx)
 		if err != nil {
@@ -701,6 +723,7 @@ func ProcessSignedSweep(accountName string, judgeAddr string, dbconn *sql.DB) {
 	db.MarkAddressBroadcastedSweep(dbconn, currentReserveAddress.Address)
 	address.UnRegisterAddressOnForkscanner(currentReserveAddress.Address)
 	db.InsertTransaction(dbconn, sweepTx.TxHash().String(), currentReserveAddress.Address, uint64(reserveId), uint64(roundId+1))
+	db.InsertSignedSweeptx(dbconn, signedSweepTxHex, currentReserveAddress.Unlock_height)
 
 	fmt.Println("finishing signed sweep process")
 

@@ -650,6 +650,51 @@ func CheckIfAddressIsProposed(dbconn *sql.DB, roundID int64, reserveId uint64) b
 	return DB_reader.Next() // Return true if there is at least one result row
 }
 
+func InsertSignedSweeptx(dbconn *sql.DB, tx string, unlockHeight int64) {
+	_, err := dbconn.Exec("INSERT into signed_tx VALUES ($1, $2,)",
+		tx,
+		unlockHeight,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing insert signed sweep tx: ", err)
+	}
+}
+
+func QuerySignedSweeptx(dbconn *sql.DB, height uint64) ([]btcOracleTypes.SignedTx, error) {
+	DB_reader, err := dbconn.Query("select * from signed_tx where unlock_height <  $1", height)
+	if err != nil {
+		fmt.Println("An error occured while query unsigned Tx: ", err)
+		return []btcOracleTypes.SignedTx{}, err
+	}
+
+	defer DB_reader.Close()
+	var signedTxs []btcOracleTypes.SignedTx
+
+	for DB_reader.Next() {
+		var signedTx btcOracleTypes.SignedTx
+		err := DB_reader.Scan(
+			&signedTx.Tx,
+			&signedTx.UnlockHeight,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		signedTxs = append(signedTxs, signedTx)
+	}
+
+	return signedTxs, nil
+}
+
+func DeleteSignedSweeptx(dbconn *sql.DB, height uint64) {
+	_, err := dbconn.Exec("Delete from signed_tx where unlock_height < $1",
+		height,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing deleting signed sweep tx: ", err)
+	}
+}
+
 func InsertUnSignedSweeptx(dbconn *sql.DB, tx string, reserveId int64, roundId int64) {
 	_, err := dbconn.Exec("INSERT into unsigned_sweep_tx VALUES ($1, $2, $3)",
 		tx,

@@ -142,6 +142,11 @@ type SweepAddress struct {
 	Owned           bool
 }
 
+type SignedTx struct {
+	Tx           string
+	UnlockHeight int64
+}
+
 type UnsignedTx struct {
 	Tx        string
 	ReserveId int64
@@ -155,9 +160,9 @@ type Utxo struct {
 }
 
 type MsgSignSweep struct {
-	SignerPublicKey  string
-	SweepSignature   []string
-	SignerAddress string
+	SignerPublicKey string
+	SweepSignature  []string
+	SignerAddress   string
 }
 
 type MsgSignSweepResp struct {
@@ -185,9 +190,9 @@ type RegisteredJudgeResp struct {
 }
 
 type MsgSignRefund struct {
-	SignerPublicKey  string
-	RefundSignature  []string
-	SignerAddress string
+	SignerPublicKey string
+	RefundSignature []string
+	SignerAddress   string
 }
 
 type MsgSignRefundResp struct {

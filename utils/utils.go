@@ -5,11 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -21,7 +18,7 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/cosmos/btcutil"
+	"github.com/btcsuite/btcutil"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
@@ -59,8 +56,7 @@ func SetDelegator(valAddr string, oracleAddr string, btcPublicKey string) {
 	fmt.Println("Delegate Address Set")
 }
 
-func getBitcoinRpcClient() *rpcclient.Client {
-	walletName := viper.GetString("wallet_name")
+func getBitcoinRpcClient(walletName string) *rpcclient.Client {
 	connCfg := &rpcclient.ConnConfig{
 		Host:         viper.GetString("btc_node_host") + "/wallet/" + walletName,
 		User:         viper.GetString("btc_node_user"),
@@ -130,7 +126,8 @@ func CreateTxFromHex(txHex string) (*wire.MsgTx, error) {
 func SignTx(tx *wire.MsgTx, script []byte) []string {
 	signatures := []string{}
 	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
-	client := getBitcoinRpcClient()
+	walletName := viper.GetString("wallet_name")
+	client := getBitcoinRpcClient(walletName)
 	fmt.Println("got client btc")
 	for i, input := range tx.TxIn {
 		fmt.Println("inside loop")
@@ -164,7 +161,8 @@ func RefundsignTx(tx *wire.MsgTx, script []byte) []string {
 	scriptHex := hex.EncodeToString(script)
 	tx.LockTime = uint32(849765)
 	witnessInputs := make([]btcjson.RawTxWitnessInput, len(tx.TxIn))
-	client := getBitcoinRpcClient()
+	walletName := viper.GetString("wallet_name")
+	client := getBitcoinRpcClient(walletName)
 	sum := 0
 	for _, output := range tx.TxOut {
 		sum += int(output.Value)
@@ -335,20 +333,20 @@ func GetCurrentFragment(judgeAddr string) (btcOracleTypes.Fragment, error) {
 		//log.Println("No fragment found with the specified judge address")
 		return fragment, fmt.Errorf("No fragment found with the specified judge address")
 	}
-	return fragment, nil 
+	return fragment, nil
 }
 
 // Check if the current Judge belongs to any registered fragment
 // acquire the fragment and its Signers list
 // check if the current signer is in the Signers list
 // add the signatures in the order the signers appear in the Fragment
-// The ordering should be looked at again once we have multiple fragments to reaafirm the ordering algorithm 
+// The ordering should be looked at again once we have multiple fragments to reaafirm the ordering algorithm
 // Note that currently the checks work on the assumption that each Judge has only one fragment and each Signer has only one address associated with BTC wallet address
 // The function should be updated to handle matching public keys used in the BTC sweep script
 func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignSweep {
 	fmt.Println(sweepSignatures.SignSweepMsg)
 	fmt.Println(pubkeys)
-	// FIltering is not required in the new design 
+	// FIltering is not required in the new design
 	// filtereSignSweep := []btcOracleTypes.MsgSignSweep{}
 	// for _, sweepSig := range sweepSignatures.SignSweepMsg {
 	// 	if StringInSlice(sweepSig.SignerPublicKey, pubkeys) {
@@ -361,9 +359,9 @@ func FilterAndOrderSignSweep(sweepSignatures btcOracleTypes.MsgSignSweepResp, pu
 	if err != nil {
 		fmt.Println("Error getting current fragment : ", err)
 		return nil
-	}		
+	}
 	// acquire the fragment and its Signers list
-	// check if the current signer is in the Signers list	
+	// check if the current signer is in the Signers list
 	orderedSignSweep := make([]btcOracleTypes.MsgSignSweep, 0)
 
 	for _, signer := range fragment.Signers {
@@ -383,17 +381,17 @@ func OrderSignRefund(refundSignatures btcOracleTypes.MsgSignRefundResp, address 
 	pubkeys []string, judgeAddr string) []btcOracleTypes.MsgSignRefund {
 	fmt.Println("Inside OrderSignRefund*******")
 	fmt.Println("script address : ", address)
-	fmt.Println("public keys : ", pubkeys)	
+	fmt.Println("public keys : ", pubkeys)
 	fmt.Println("judge address : ", judgeAddr)
 
 	// check if the current Judge belongs to any registered fragment
-	fragment, err := GetCurrentFragment(judgeAddr)		
+	fragment, err := GetCurrentFragment(judgeAddr)
 
 	if err != nil {
 		fmt.Println("Error getting current fragment : ", err)
 		return nil
 	}
-	
+
 	// acquire the fragment and its Signers list
 	orderedSignRefund := make([]btcOracleTypes.MsgSignRefund, 0)
 
@@ -472,45 +470,6 @@ func HexToBase64(hexString string) (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
-// func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
-// 	client := getBitcoinRpcClient()
-// 	result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
-// 	if err != nil {
-// 		fmt.Println("Failed to get fee from btc node : ", err)
-// 		log.Fatal(err)
-// 	}
-// 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
-// 	feeRate := btcToSats(*result.FeeRate)
-// 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
-// 	baseSize := tx.SerializeSizeStripped()
-// 	totalSize := tx.SerializeSize()
-// 	weight := (baseSize * 3) + totalSize
-// 	vsize := (weight + 3) / 4
-// 	fmt.Println("tx size in bytes : ", vsize)
-// 	fee := float64(vsize) * float64(feeRate/1024)
-// 	return int64(fee), nil
-// }
-
-func GetBtcFeeRate() btcOracleTypes.FeeRate {
-	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	a := btcOracleTypes.FeeRate{}
-	err = json.Unmarshal(body, &a)
-	if err != nil {
-		fmt.Println("Error decoding Fee Rate : ", err)
-	}
-
-	return a
-}
-
 func DecodeBtcScript(script string) string {
 	decoded, err := hex.DecodeString(script)
 	if err != nil {
@@ -522,6 +481,67 @@ func DecodeBtcScript(script string) string {
 	}
 
 	return decodedScript
+}
+
+func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
+	walletName := viper.GetString("wallet_name")
+	client := getBitcoinRpcClient(walletName)
+	feeRateAdjustment := viper.GetInt64("fee_rate_adjustment")
+	result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
+	if err != nil {
+		fmt.Println("Failed to get fee from btc node : ", err)
+		return 0, err
+	}
+	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
+	feeRate := BtcToSats(*result.FeeRate) + feeRateAdjustment
+	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
+	baseSize := tx.SerializeSizeStripped()
+	totalSize := tx.SerializeSize()
+	weight := (baseSize * 3) + totalSize
+	vsize := (weight + 3) / 4
+	fmt.Println("tx size in bytes : ", vsize)
+	fee := float64(vsize) * float64(feeRate/1024)
+	return int64(fee), nil
+}
+
+func CreateFeeUtxo(fee int64) (*chainhash.Hash, error) {
+	walletName := viper.GetString("judge_btc_wallet_name")
+	client := getBitcoinRpcClient(walletName)
+	address, err := client.GetNewAddress("feeUtxo")
+	if err != nil {
+		fmt.Println("Failed to get new address for fee utxo : ", err)
+		return nil, err
+	}
+	hash, err := client.SendToAddress(address, btcutil.Amount(fee))
+	if err != nil {
+		fmt.Println("Failed to send to address for fee utxo : ", err)
+		return nil, err
+	}
+	return hash, nil
+}
+
+func BroadcastBtcTransaction(tx *wire.MsgTx) {
+	walletName := viper.GetString("judge_btc_wallet_name")
+	client := getBitcoinRpcClient(walletName)
+	txHash, err := client.SendRawTransaction(tx, true)
+	if err != nil {
+		fmt.Println("Failed to broadcast transaction : ", err)
+	}
+
+	defer client.Shutdown()
+	fmt.Println("broadcasted btc transaction, txhash : ", txHash)
+}
+
+func SignFeeUtxo(tx *wire.MsgTx) (wire.TxWitness, error) {
+	walletName := viper.GetString("judge_btc_wallet_name")
+	client := getBitcoinRpcClient(walletName)
+	signedTx, _, err := client.SignRawTransactionWithWallet(tx)
+	if err != nil {
+		fmt.Println("Failed to sign fee utxo : ", err)
+		return nil, err
+	}
+	total := len(tx.TxIn)
+	return signedTx.TxIn[total-1].Witness, nil
 }
 
 // func GetUnlockHeightFromScript(script string) int64 {

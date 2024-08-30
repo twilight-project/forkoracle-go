@@ -5,8 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -484,16 +487,18 @@ func DecodeBtcScript(script string) string {
 }
 
 func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
-	walletName := viper.GetString("wallet_name")
-	client := getBitcoinRpcClient(walletName)
+	// walletName := viper.GetString("wallet_name")
+	// client := getBitcoinRpcClient(walletName)
 	feeRateAdjustment := viper.GetInt64("fee_rate_adjustment")
-	result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
-	if err != nil {
-		fmt.Println("Failed to get fee from btc node : ", err)
-		return 0, err
-	}
-	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
-	feeRate := BtcToSats(*result.FeeRate) + feeRateAdjustment
+	// result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
+	// if err != nil {
+	// 	fmt.Println("Failed to get fee from btc node : ", err)
+	// 	return 0, err
+	// }
+	result := GetBtcFeeRate()
+	feeRate := int64(result.Regular) + feeRateAdjustment
+	// fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
+	// feeRate := BtcToSats(*result.FeeRate) + feeRateAdjustment
 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
 	baseSize := tx.SerializeSizeStripped()
 	totalSize := tx.SerializeSize()
@@ -502,6 +507,26 @@ func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
 	fmt.Println("tx size in bytes : ", vsize)
 	fee := float64(vsize) * float64(feeRate/1024)
 	return int64(fee), nil
+}
+
+func GetBtcFeeRate() btcOracleTypes.FeeRate {
+	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//We Read the response body on the line below.
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	a := btcOracleTypes.FeeRate{}
+	err = json.Unmarshal(body, &a)
+	if err != nil {
+		fmt.Println("Error decoding Fee Rate : ", err)
+	}
+
+	return a
 }
 
 func CreateFeeUtxo(fee int64) (*chainhash.Hash, error) {

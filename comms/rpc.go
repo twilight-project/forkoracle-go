@@ -315,6 +315,9 @@ func GetDescriptorInfo(dataStr string, wallet string) (DescriptorInfo, error) {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return response.Result, err
 	}
+	if response.Error != nil {
+		return DescriptorInfo{}, errors.New("error in getting descriptor info")
+	}
 
 	return response.Result, nil
 }
@@ -340,12 +343,15 @@ func ImportDescriptor(desc string, wallet string) error {
 
 func GetNewAddress(wallet string) (string, error) {
 	result, _ := SendRPC("getnewaddress", nil, wallet)
-	fmt.Println("result: ", string(result))
+	fmt.Println("result New Address: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
+	}
+	if response.Error != nil {
+		return "", errors.New("error in get new address")
 	}
 	return response.Result, nil
 }
@@ -353,12 +359,15 @@ func GetNewAddress(wallet string) (string, error) {
 func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	data := []interface{}{psbt}
 	result, _ := SendRPC("decodepsbt", data, wallet)
-	fmt.Println("result: ", string(result))
+	fmt.Println("result Decode Psbt: ", string(result))
 	var response JSONRPCResponsePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return PSBT{}, err
+	}
+	if response.Error != nil {
+		return PSBT{}, errors.New("error in Decode")
 	}
 	return response.Result, nil
 }
@@ -368,12 +377,15 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 	feeRate["feeRate"] = 0
 	data := []interface{}{inputs, outputs, locktime, feeRate}
 	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet)
-	fmt.Println("result: ", string(result))
+	fmt.Println("result Create Psbt: ", string(result))
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
+	}
+	if response.Error != nil {
+		return "", errors.New("error in CreatePSBT")
 	}
 	return response.Result.Psbt, nil
 }
@@ -388,6 +400,11 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
 	}
+
+	if response.Error != nil {
+		return "", errors.New("error in CreateRawTx")
+	}
+
 	return response.Result, nil
 }
 
@@ -397,14 +414,16 @@ func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 	fmt.Println("data: ", data)
 
 	result, _ := SendRPC("walletprocesspsbt", data, wallet)
-	fmt.Println("result: ", string(result))
+	fmt.Println("result Sign PSBT: ", string(result))
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return nil, err
 	}
-	data = []interface{}{response.Result.Psbt}
+	if response.Error != nil {
+		return []string{""}, errors.New("error in SignPsbt")
+	}
 	p := response.Result.Psbt
 	psbt, err := DecodePsbt(p, wallet)
 
@@ -433,12 +452,16 @@ func UtxoUpdatePsbt(psbtStr string, desc string, wallet string) (string, error) 
 		},
 	}
 	result, _ := SendRPC("utxoupdatepsbt", data, wallet)
-	fmt.Println("result: ", string(result))
+	fmt.Println("result Update Utxo PSBT: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
+	}
+
+	if response.Error != nil {
+		return "", errors.New("error in utxoupdatepsbt")
 	}
 
 	return response.Result, nil
@@ -504,6 +527,9 @@ func GetAddressInfo(address string, wallet string) (AddressInfo, error) {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return AddressInfo{}, err
 	}
+	if response.Error != nil {
+		return AddressInfo{}, errors.New("error in getting address info")
+	}
 	return response.Result, nil
 }
 
@@ -521,6 +547,9 @@ func GetEstimateFee(wallet string) (EstimateFeeResponse, error) {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return EstimateFeeResponse{}, err
 	}
+	if response.Error != nil {
+		return EstimateFeeResponse{}, errors.New("error in GetEstimateFee")
+	}
 	return response, nil
 }
 
@@ -528,6 +557,7 @@ func SendToAddress(address string, fee float64, wallet string) (TransactionInfo,
 	data := []interface{}{address, fee}
 	var response TransactionInfo
 	result, err := SendRPC("sendtoaddress", data, wallet)
+	fmt.Println("result Send To Address Psbt: ", string(result))
 	if err != nil {
 		fmt.Println("error creating utxo for fee : ", err)
 		return TransactionInfo{}, err
@@ -537,6 +567,9 @@ func SendToAddress(address string, fee float64, wallet string) (TransactionInfo,
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return TransactionInfo{}, err
+	}
+	if response.Error != nil {
+		return TransactionInfo{}, errors.New("error in sending to address")
 	}
 	return response, nil
 }
@@ -554,6 +587,9 @@ func SignRawTransaction(tx string, wallet string) (string, error) {
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return "", err
+	}
+	if response.Error != nil {
+		return "", errors.New("error in signing raw transaction")
 	}
 	return response.Result.Hex, nil
 }

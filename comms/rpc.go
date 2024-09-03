@@ -222,12 +222,9 @@ type EstimateFeeResponse struct {
 }
 
 type TransactionInfo struct {
-	Result struct {
-		TxID      string `json:"txid"`
-		FeeReason string `json:"fee reason"`
-	}
-	Error interface{} `json:"error"`
-	ID    int         `json:"id"`
+	Result string
+	Error  interface{} `json:"error"`
+	ID     int         `json:"id"`
 }
 
 type TransactionError struct {
@@ -557,7 +554,7 @@ func SendToAddress(address string, fee float64, wallet string) (TransactionInfo,
 	data := []interface{}{address, fee}
 	var response TransactionInfo
 	result, err := SendRPC("sendtoaddress", data, wallet)
-	fmt.Println("result Send To Address Psbt: ", string(result))
+	fmt.Println("result Send To Address: ", string(result))
 	if err != nil {
 		fmt.Println("error creating utxo for fee : ", err)
 		return TransactionInfo{}, err

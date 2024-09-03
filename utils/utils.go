@@ -539,7 +539,7 @@ func CreateFeeUtxo(fee int64) (string, error) {
 		fmt.Println("Failed to send btc to address : ", err)
 		return "", err
 	}
-	return result.Result.TxID, nil
+	return result.Result, nil
 }
 
 func BroadcastBtcTransaction(tx *wire.MsgTx) {

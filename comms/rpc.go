@@ -211,6 +211,43 @@ type CreateTx struct {
 	Outputs []TxOutput `json:"outputs"`
 }
 
+type EstimateFeeResponse struct {
+	Result struct {
+		Feerate float64  `json:"feerate,omitempty"`
+		Errors  []string `json:"errors,omitempty"`
+		Blocks  int      `json:"blocks"`
+	}
+	Error interface{} `json:"error"`
+	ID    int         `json:"id"`
+}
+
+type TransactionInfo struct {
+	Result struct {
+		TxID      string `json:"txid"`
+		FeeReason string `json:"fee reason"`
+	}
+	Error interface{} `json:"error"`
+	ID    int         `json:"id"`
+}
+
+type TransactionError struct {
+	TxID      string `json:"txid"`
+	Vout      int    `json:"vout"`
+	ScriptSig string `json:"scriptSig"`
+	Sequence  int    `json:"sequence"`
+	Error     string `json:"error"`
+}
+
+type SignedTransactionInfo struct {
+	Result struct {
+		Hex      string             `json:"hex"`
+		Complete bool               `json:"complete"`
+		Errors   []TransactionError `json:"errors,omitempty"`
+	}
+	Error interface{} `json:"error"`
+	ID    int         `json:"id"`
+}
+
 func SendRPC(method string, data []interface{}, wallet string) ([]byte, error) {
 	host := viper.GetString("btc_node_host")
 	user := viper.GetString("btc_node_user")
@@ -468,4 +505,55 @@ func GetAddressInfo(address string, wallet string) (AddressInfo, error) {
 		return AddressInfo{}, err
 	}
 	return response.Result, nil
+}
+
+func GetEstimateFee(wallet string) (EstimateFeeResponse, error) {
+	data := []interface{}{3}
+	var response EstimateFeeResponse
+	result, err := SendRPC("estimatesmartfee", data, wallet)
+	if err != nil {
+		fmt.Println("error getting  estimate fee info : ", err)
+		return EstimateFeeResponse{}, err
+	}
+
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return EstimateFeeResponse{}, err
+	}
+	return response, nil
+}
+
+func SendToAddress(address string, fee float64, wallet string) (TransactionInfo, error) {
+	data := []interface{}{address, fee}
+	var response TransactionInfo
+	result, err := SendRPC("sendtoaddress", data, wallet)
+	if err != nil {
+		fmt.Println("error creating utxo for fee : ", err)
+		return TransactionInfo{}, err
+	}
+
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return TransactionInfo{}, err
+	}
+	return response, nil
+}
+
+func SignRawTransaction(tx string, wallet string) (string, error) {
+	data := []interface{}{tx, nil, "ALL|ANYONECANPAY"}
+	var response SignedTransactionInfo
+	result, err := SendRPC("signrawtransactionwithwallet", data, wallet)
+	if err != nil {
+		fmt.Println("error creating utxo for fee : ", err)
+		return "", err
+	}
+
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return "", err
+	}
+	return response.Result.Hex, nil
 }

@@ -5,11 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -61,7 +58,7 @@ func SetDelegator(valAddr string, oracleAddr string, btcPublicKey string) {
 
 func getBitcoinRpcClient(walletName string) *rpcclient.Client {
 	connCfg := &rpcclient.ConnConfig{
-		Host:         viper.GetString("btc_node_host") + "/wallet/" + walletName,
+		Host:         viper.GetString("btc_node_host"),
 		User:         viper.GetString("btc_node_user"),
 		Pass:         viper.GetString("btc_node_pass"),
 		HTTPPostMode: true,
@@ -487,18 +484,18 @@ func DecodeBtcScript(script string) string {
 }
 
 func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
-	// walletName := viper.GetString("wallet_name")
-	// client := getBitcoinRpcClient(walletName)
+	walletName := viper.GetString("wallet_name")
 	feeRateAdjustment := viper.GetInt64("fee_rate_adjustment")
-	// result, err := client.EstimateSmartFee(2, &btcjson.EstimateModeConservative)
-	// if err != nil {
-	// 	fmt.Println("Failed to get fee from btc node : ", err)
-	// 	return 0, err
-	// }
-	result := GetBtcFeeRate()
-	feeRate := int64(result.Regular) + feeRateAdjustment
-	// fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", *result.FeeRate)
-	// feeRate := BtcToSats(*result.FeeRate) + feeRateAdjustment
+	result, err := comms.GetEstimateFee(walletName)
+	if err != nil {
+		fmt.Println("Error getting fee rate : ", err)
+		return 0, err
+	}
+
+	feeRateInBtc := result.Result.Feerate
+
+	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %f BTC\n", feeRateInBtc)
+	feeRate := BtcToSats(feeRateInBtc) + feeRateAdjustment
 	fmt.Printf("Estimated fee per kilobyte for a transaction to be confirmed within 2 blocks: %d Sats\n", feeRate)
 	baseSize := tx.SerializeSizeStripped()
 	totalSize := tx.SerializeSize()
@@ -509,40 +506,40 @@ func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
 	return int64(fee), nil
 }
 
-func GetBtcFeeRate() btcOracleTypes.FeeRate {
-	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	//We Read the response body on the line below.
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
+// func GetBtcFeeRate() btcOracleTypes.FeeRate {
+// 	resp, err := http.Get("https://api.blockchain.info/mempool/fees")
+// 	if err != nil {
+// 		log.Fatalln(err)
+// 	}
+// 	//We Read the response body on the line below.
+// 	body, err := ioutil.ReadAll(resp.Body)
+// 	if err != nil {
+// 		log.Fatalln(err)
+// 	}
 
-	a := btcOracleTypes.FeeRate{}
-	err = json.Unmarshal(body, &a)
-	if err != nil {
-		fmt.Println("Error decoding Fee Rate : ", err)
-	}
+// 	a := btcOracleTypes.FeeRate{}
+// 	err = json.Unmarshal(body, &a)
+// 	if err != nil {
+// 		fmt.Println("Error decoding Fee Rate : ", err)
+// 	}
 
-	return a
-}
+// 	return a
+// }
 
-func CreateFeeUtxo(fee int64) (*chainhash.Hash, error) {
+func CreateFeeUtxo(fee int64) (string, error) {
 	walletName := viper.GetString("judge_btc_wallet_name")
-	client := getBitcoinRpcClient(walletName)
-	address, err := client.GetNewAddress("feeUtxo")
+	address, err := comms.GetNewAddress(walletName)
 	if err != nil {
 		fmt.Println("Failed to get new address for fee utxo : ", err)
-		return nil, err
+		return "", err
 	}
-	hash, err := client.SendToAddress(address, btcutil.Amount(fee))
+	feeInBtc := SatsToBtc(fee)
+	result, err := comms.SendToAddress(address, feeInBtc, walletName)
 	if err != nil {
-		fmt.Println("Failed to send to address for fee utxo : ", err)
-		return nil, err
+		fmt.Println("Failed to send btc to address : ", err)
+		return "", err
 	}
-	return hash, nil
+	return result.Result.TxID, nil
 }
 
 func BroadcastBtcTransaction(tx *wire.MsgTx) {

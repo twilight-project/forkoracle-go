@@ -92,7 +92,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 		fmt.Println("error in creating fee utxo : ", err)
 		return "", "", "", 0, err
 	}
-	inputs = append(inputs, comms.TxInput{Txid: feeUtxo.String(), Vout: 0, Sequence: int64(wire.MaxTxInSequenceNum - 10)})
+	inputs = append(inputs, comms.TxInput{Txid: feeUtxo, Vout: 0, Sequence: int64(wire.MaxTxInSequenceNum - 10)})
 
 	p, err := comms.CreatePsbt(inputs, outputs, locktime, wallet)
 	if err != nil {
@@ -285,20 +285,26 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			sweepTx.TxIn[i].Witness = witness
 		}
 
-		feeWitness, err := utils.SignFeeUtxo(sweepTx)
+		var signedTx bytes.Buffer
+		err = sweepTx.Serialize(&signedTx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		signedSweepTx := hex.EncodeToString(signedTx.Bytes())
+
+		walletName := viper.GetString("judge_btc_wallet_name")
+		sweepTx, err := comms.SignRawTransaction(signedSweepTx, walletName)
 		if err != nil {
 			fmt.Println("error in signing fee utxo : ", err)
 			return nil
 		}
-		sweepTx.TxIn[totalInputs-1].Witness = feeWitness
 
-		var signedSweepTx bytes.Buffer
-		err = sweepTx.Serialize(&signedSweepTx)
+		result, err := hex.DecodeString(sweepTx)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("error in signing fee utxo : ", err)
+			return nil
 		}
-
-		return signedSweepTx.Bytes()
+		return result
 	}
 }
 

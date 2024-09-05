@@ -73,6 +73,14 @@ func getBitcoinRpcClient(walletName string) *rpcclient.Client {
 	return client
 }
 
+func LoadBtcWallet(walletName string) {
+	client := getBitcoinRpcClient(walletName)
+	_, err := client.LoadWallet(walletName)
+	if err != nil {
+		fmt.Println("Failed to load wallet : ", err)
+	}
+}
+
 // func GetAddressInfo(addr string) (*btcjson.GetAddressInfoResult, error) {
 // 	client := getBitcoinRpcClient()
 // 	addressInfo, err := client.GetAddressInfo(addr)
@@ -503,6 +511,7 @@ func GetFeeFromBtcNode(tx *wire.MsgTx) (int64, error) {
 	vsize := (weight + 3) / 4
 	fmt.Println("tx size in bytes : ", vsize)
 	fee := float64(vsize) * float64(feeRate/1024)
+	fmt.Println("fee for this sweep : ", fee)
 	return int64(fee), nil
 }
 

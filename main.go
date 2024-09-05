@@ -51,6 +51,8 @@ func initialize() (string, string, *sql.DB) {
 		utils.SetDelegator(valAddr, oracleAddr, btcPublicKey)
 	}
 
+	utils.LoadBtcWallet(viper.GetString("wallet_name"))
+
 	return valAddr, oracleAddr, dbconn
 }
 

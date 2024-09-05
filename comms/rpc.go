@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -551,24 +552,29 @@ func GetEstimateFee(wallet string) (EstimateFeeResponse, error) {
 }
 
 func SendToAddress(address string, fee float64, wallet string) (TransactionInfo, error) {
-	data := []interface{}{address, fee}
 	var response TransactionInfo
-	result, err := SendRPC("sendtoaddress", data, wallet)
-	fmt.Println("result Send To Address: ", string(result))
-	if err != nil {
-		fmt.Println("error creating utxo for fee : ", err)
-		return TransactionInfo{}, err
+	for i := 0; i < 5; i++ {
+		data := []interface{}{address, fee + 100}
+		result, err := SendRPC("sendtoaddress", data, wallet)
+		fmt.Println("result Send to Address: ", string(result))
+		if err != nil {
+			fmt.Println("error creating utxo for fee : ", err)
+			return TransactionInfo{}, err
+		}
+		if strings.Contains(string(result), "Transaction amount too small") {
+			continue
+		}
+		err = json.Unmarshal(result, &response)
+		if err != nil {
+			fmt.Println("Error unmarshalling JSON: ", err)
+			return TransactionInfo{}, err
+		}
+		if response.Error != nil {
+			return TransactionInfo{}, errors.New("error in sending to address")
+		}
+		return response, nil
 	}
-
-	err = json.Unmarshal(result, &response)
-	if err != nil {
-		fmt.Println("Error unmarshalling JSON: ", err)
-		return TransactionInfo{}, err
-	}
-	if response.Error != nil {
-		return TransactionInfo{}, errors.New("error in sending to address")
-	}
-	return response, nil
+	return TransactionInfo{}, errors.New("error in sending to address 5 tries")
 }
 
 func SignRawTransaction(tx string, wallet string) (string, error) {

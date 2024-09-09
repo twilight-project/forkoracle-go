@@ -543,11 +543,13 @@ func CreateFeeUtxo(fee int64) (string, error) {
 		return "", err
 	}
 	feeInBtc := SatsToBtc(fee)
+	fmt.Println("fee in btc : ", feeInBtc)
 	result, err := comms.SendToAddress(address, feeInBtc, walletName)
 	if err != nil {
 		fmt.Println("Failed to send btc to address : ", err)
 		return "", err
 	}
+	fmt.Println("Fee Utxo created TxID: ", result.Result)
 	return result.Result, nil
 }
 

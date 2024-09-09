@@ -554,7 +554,7 @@ func GetEstimateFee(wallet string) (EstimateFeeResponse, error) {
 func SendToAddress(address string, fee float64, wallet string) (TransactionInfo, error) {
 	var response TransactionInfo
 	for i := 0; i < 5; i++ {
-		data := []interface{}{address, fee + 100}
+		data := []interface{}{address, fee + 0.000001}
 		result, err := SendRPC("sendtoaddress", data, wallet)
 		fmt.Println("result Send to Address: ", string(result))
 		if err != nil {

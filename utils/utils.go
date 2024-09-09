@@ -549,7 +549,7 @@ func CreateFeeUtxo(fee int64) (string, error) {
 		fmt.Println("Failed to send btc to address : ", err)
 		return "", err
 	}
-	fmt.Println("Fee Utxo created TxID: ", result.Result)
+	fmt.Println("Fee Utxo created : ", result.Result)
 	return result.Result, nil
 }
 

@@ -213,12 +213,12 @@ func startJudge(accountName string, dbconn *sql.DB, judgeAddr string, valAddr st
 		judge.InitReserve(accountName, judgeAddr, valAddr, dbconn)
 	}
 
-	go address.ProcessProposeAddress(accountName, judgeAddr, dbconn)
+	address.ProcessProposeAddress(accountName, judgeAddr, dbconn)
 	// go judge.BroadcastOnBtc(dbconn)
-	go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", dbconn, judgeAddr, valAddr, WsHub, nil)
-	go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", dbconn, judgeAddr, valAddr, WsHub, latestRefundTxHash)
-	go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", dbconn, judgeAddr, valAddr, WsHub, nil)
-	eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", dbconn, judgeAddr, valAddr, WsHub, nil)
+	//go eventhandler.NyksEventListener("propose_sweep_address", accountName, "sweep_process", dbconn, judgeAddr, valAddr, WsHub, nil)
+	//go eventhandler.NyksEventListener("broadcast_tx_refund", accountName, "signed_sweep_process", dbconn, judgeAddr, valAddr, WsHub, latestRefundTxHash)
+	//go eventhandler.NyksEventListener("unsigned_tx_sweep", accountName, "refund_process", dbconn, judgeAddr, valAddr, WsHub, nil)
+	//eventhandler.NyksEventListener("unsigned_tx_refund", accountName, "signed_refund_process", dbconn, judgeAddr, valAddr, WsHub, nil)
 }
 
 func startBridge(accountName string, forkscanner_url url.URL, dbconn *sql.DB, latestSweepTxHash *prometheus.GaugeVec, oracleAddr string, valAddr string, WsHub *btcOracleTypes.Hub) {

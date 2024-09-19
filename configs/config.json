@@ -25,14 +25,21 @@
     "validator" : "true",
     "own_validator_address" : "",
     "own_address" : "",
-    "judge_address" : "",
     
     
     "btc_node_host" : "http://143.244.138.170:8332",
     "btc_node_user" : "bitcoin",
     "btc_node_pass" : "Persario_1",
+    "fee_rate_adjustment" : "10",
     "wallet_name": "offline",
     "judge_btc_wallet_name" : "rbf",
-    "btc_xpublic_key": "wpkh([f2ee8d39/84h/0h/0h]xpub6BhivFwKw8faYQaQcmwhjchA1uHQk7vaXJtehCqdhP2x4ETZ6AgCUAPfVeFahDWRQVQ7JKoxoV8G16ji7xei48PcZkVf8hcjNkwKByBLH5J/0/*)#mr9x7xp6"
+    "btc_xpublic_key": "wpkh([f2ee8d39/84h/0h/0h]xpub6BhivFwKw8faYQaQcmwhjchA1uHQk7vaXJtehCqdhP2x4ETZ6AgCUAPfVeFahDWRQVQ7JKoxoV8G16ji7xei48PcZkVf8hcjNkwKByBLH5J/0/*)#mr9x7xp6",
 
+    "eth_chain_id": "11155111",
+    "eth_url": "https://sepolia.infura.io/v3/c06051a5f8cc4cd9986c31f640e228cb",
+    "eth_wss": "wss://sepolia.infura.io/ws/v3/c06051a5f8cc4cd9986c31f640e228cb",
+    "eth_contract_address" : "",
+    "eth_keystore_password" : "Persario_1"
+
+    
 }

@@ -4,21 +4,103 @@
 		"inputs": [
 			{
 				"indexed": false,
-				"internalType": "uint256",
-				"name": "newNumber",
-				"type": "uint256"
+				"internalType": "string",
+				"name": "hexBitcoinPodAddress",
+				"type": "string"
 			}
 		],
-		"name": "NumberStored",
+		"name": "AddressCreated",
 		"type": "event"
 	},
 	{
-		"inputs": [],
-		"name": "retrieve",
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "bitcoinPublicKey",
+				"type": "bytes"
+			}
+		],
+		"name": "AddressRequested",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "balance",
+				"type": "uint256"
+			}
+		],
+		"name": "DepositConfirmed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "psbt",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "ethAddress",
+				"type": "address"
+			}
+		],
+		"name": "SignedPSBT",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "withdrawAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "WithdrawalConfirmed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "hexBTCAddress",
+				"type": "string"
+			}
+		],
+		"name": "WithdrawalRequest",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "accounts",
 		"outputs": [
 			{
+				"internalType": "string",
+				"name": "hexPodAddress",
+				"type": "string"
+			},
+			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "deposit",
 				"type": "uint256"
 			}
 		],
@@ -28,12 +110,97 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "num",
-				"type": "uint256"
+				"internalType": "string",
+				"name": "hexBitcoinPodAddress",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "ethAddress",
+				"type": "address"
 			}
 		],
-		"name": "store",
+		"name": "confirm_address",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "ethAddress",
+				"type": "address"
+			}
+		],
+		"name": "confirm_deposit",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "ethAddress",
+				"type": "address"
+			}
+		],
+		"name": "confirm_withdraw",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "psbt",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "ethAddress",
+				"type": "address"
+			}
+		],
+		"name": "emit_signed_btc_psbt",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "bitcoinPublicKey",
+				"type": "bytes"
+			}
+		],
+		"name": "request_bitcoin_address",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "hexAddress",
+				"type": "string"
+			}
+		],
+		"name": "withdraw_request",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

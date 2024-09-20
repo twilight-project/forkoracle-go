@@ -1,16 +1,29 @@
 package eventhandler
 
 import (
+	"context"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/twilight-project/forkoracle-go/address"
+	"github.com/twilight-project/forkoracle-go/comms"
 	"github.com/twilight-project/forkoracle-go/judge"
+	"github.com/twilight-project/forkoracle-go/multisig"
+	"github.com/twilight-project/forkoracle-go/store"
 	"github.com/twilight-project/forkoracle-go/transaction_signer"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
 )
@@ -116,6 +129,66 @@ func NyksEventListener(event string, accountName string, functionCall string, db
 			go judge.ProcessSweep(accountName, dbconn, oracleAddr)
 		default:
 			log.Println("Unknown function :", functionCall)
+		}
+	}
+}
+
+func RegistertoEthEvents(contractAddress string, dbconn *sql.DB, accountName string, judgeAddr string, ethAccount accounts.Account) {
+	client := comms.GetEthWSSClient()
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{common.HexToAddress(contractAddress)},
+	}
+
+	logs := make(chan types.Log)
+	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
+	if err != nil {
+		fmt.Println("Failed to subscribe to contract logs: %v", err)
+	}
+
+	contractAbi, err := abi.JSON(strings.NewReader(string(store.StoreABI)))
+	if err != nil {
+		fmt.Println("Failed to parse contract ABI: %v", err)
+	}
+
+	var fragment btcOracleTypes.Fragment
+	fragments := comms.GetAllFragments()
+	for _, f := range fragments.Fragments {
+		if f.JudgeAddress == judgeAddr {
+			fragment = f
+		}
+	}
+	fragmentId, _ := strconv.Atoi(fragment.FragmentId)
+
+	for {
+		select {
+		case vLog := <-logs:
+			switch vLog.Topics[0].Hex() {
+			case crypto.Keccak256Hash([]byte("AddressRequested(bytes)")).Hex():
+				event := new(struct {
+					BitcoinPublicKey []byte
+				})
+				err := contractAbi.UnpackIntoInterface(event, "AddressRequested", vLog.Data)
+				if err != nil {
+					fmt.Println("Failed to unpack AddressRequested event data: %v", err)
+				}
+				fmt.Printf("AddressRequested event emitted, BitcoinPublicKey: %s\n", event.BitcoinPublicKey)
+
+				multisig.ProcessMultisigAddressGeneration(accountName, judgeAddr, dbconn, hex.EncodeToString(event.BitcoinPublicKey), vLog.Address.Hex(), fragmentId, ethAccount)
+
+			case crypto.Keccak256Hash([]byte("WithdrawalRequest(string)")).Hex():
+				event := new(struct {
+					HexAddress string
+				})
+				err := contractAbi.UnpackIntoInterface(event, "WithdrawalRequest", vLog.Data)
+				if err != nil {
+					fmt.Println("Failed to unpack WithdrawalRequest event data: %v", err)
+				}
+				fmt.Printf("WithdrawalRequest event emitted, HexAddress: %s\n", event.HexAddress)
+				multisig.ProcessMultisigWithdraw(event.HexAddress, vLog.Address.Hex(), accountName, dbconn, ethAccount)
+			}
+
+		case err := <-sub.Err():
+			fmt.Println("Received subscription error: %v", err)
 		}
 	}
 }

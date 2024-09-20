@@ -770,3 +770,78 @@ func QueryUnSignedRefundtx(dbconn *sql.DB, reserveId int64, roundId int64) ([]bt
 
 	return unSignedTxs, nil
 }
+
+func InsertMultiSigAddress(dbconn *sql.DB, address string, script string, ethAddr string) {
+	_, err := dbconn.Exec("INSERT into multi_sig_address VALUES ($1, $2, $3, $4, $5)",
+		address,
+		script,
+		ethAddr,
+		false,
+		false,
+	)
+	if err != nil {
+		fmt.Println("An error occured while executing insert multi sig address query: ", err)
+	}
+}
+
+func QueryMultisigAddressByEthAddress(dbconn *sql.DB, ethAddr string) []btcOracleTypes.MultiSigAddress {
+	// fmt.Println("getting address for height: ", height)
+	var DB_reader *sql.Rows
+	var err error
+	DB_reader, err = dbconn.Query("select * from multi_sig_address where eth_address = $1 and archived = false", ethAddr)
+
+	if err != nil {
+		fmt.Println("An error occured while query address by height: ", err)
+	}
+
+	defer DB_reader.Close()
+	addresses := make([]btcOracleTypes.MultiSigAddress, 0)
+
+	for DB_reader.Next() {
+		address := btcOracleTypes.MultiSigAddress{}
+		err := DB_reader.Scan(
+			&address.Address,
+			&address.Script,
+			&address.EthAddress,
+			&address.Signed,
+			&address.Archived,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses
+}
+
+func QueryMultisigAddresses(dbconn *sql.DB) []btcOracleTypes.MultiSigAddress {
+	// fmt.Println("getting address for height: ", height)
+	var DB_reader *sql.Rows
+	var err error
+	DB_reader, err = dbconn.Query("select * from multi_sig_address where archived = false")
+
+	if err != nil {
+		fmt.Println("An error occured while query address by height: ", err)
+	}
+
+	defer DB_reader.Close()
+	addresses := make([]btcOracleTypes.MultiSigAddress, 0)
+
+	for DB_reader.Next() {
+		address := btcOracleTypes.MultiSigAddress{}
+		err := DB_reader.Scan(
+			&address.Address,
+			&address.Script,
+			&address.EthAddress,
+			&address.Signed,
+			&address.Archived,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
+		addresses = append(addresses, address)
+	}
+
+	return addresses
+}

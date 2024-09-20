@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/spf13/viper"
 	comms "github.com/twilight-project/forkoracle-go/comms"
 	db "github.com/twilight-project/forkoracle-go/db"
@@ -76,6 +77,69 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 
 	fmt.Println(descriptorScript)
 	return descriptorScript, nil
+}
+
+func buildSimpleMultisigDescriptor(judgeAddr string, depositorPubKey string) (string, error) {
+	var fragment btcOracleTypes.Fragment
+	fragments := comms.GetAllFragments()
+	for _, f := range fragments.Fragments {
+		if f.JudgeAddress == judgeAddr {
+			fragment = f
+		}
+	}
+	signers := fragment.Signers
+
+	required := len(signers) * 2 / 3
+	required = required + 2
+
+	var signer_keys string
+	for _, signer := range signers {
+		signer_keys += fmt.Sprintf(",%s", signer.SignerBtcPublicKey)
+	}
+	judgePubKry := viper.GetString("btc_xpublic_key")
+
+	descriptorScript := fmt.Sprintf("wsh(multi(%d,%s%s,%s))", required, judgePubKry, signer_keys, depositorPubKey)
+
+	fmt.Println(descriptorScript)
+	return descriptorScript, nil
+}
+
+func GenerateSimpleMultisigAddress(depositorPubKey string, judgeAddr string, dbconn *sql.DB, clientEthAddress string) (string, string) {
+	wallet := viper.GetString("wallet_name")
+
+	descriptor, err := buildSimpleMultisigDescriptor(judgeAddr, depositorPubKey)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	resp, err := comms.GetDescriptorInfo(descriptor, wallet)
+	if err != nil {
+		fmt.Println("error in getting descriptorinfo : ", err)
+		return "", ""
+	}
+
+	fmt.Println("Descriptor : ", resp.Descriptor)
+
+	err = comms.ImportDescriptor(resp.Descriptor, wallet)
+	if err != nil {
+		fmt.Println("error in importing descriptor : ", err)
+	}
+
+	address, err := comms.DeriveAddress(wallet, resp.Descriptor)
+	if err != nil {
+		fmt.Println("error in getting address : ", err)
+	}
+
+	addressInfo, err := comms.GetAddressInfo(address, wallet)
+	if err != nil {
+		fmt.Println("Error getting address info : ", err)
+		return "", ""
+	}
+	// Decode Hex string to bytes
+
+	db.InsertMultiSigAddress(dbconn, address, addressInfo.Hex, clientEthAddress)
+
+	return address, addressInfo.Hex
 }
 
 func GenerateAddress(unlock_height int64, oldReserveAddress string, judgeAddr string, dbconn *sql.DB) (string, string) {
@@ -221,6 +285,16 @@ func GenerateAndRegisterNewBtcReserveAddress(dbconn *sql.DB, accountName string,
 	registerAddressOnForkscanner(newSweepAddress)
 
 	return newSweepAddress
+}
+
+func GenerateAndRegisterNewBtcMultiSigAddress(dbconn *sql.DB, accountName string, depositorPubKey string, judgeAddr string, fragmentId int, clientEthAddress string, ethAccount accounts.Account) string {
+	newAddress, script := GenerateSimpleMultisigAddress(depositorPubKey, judgeAddr, dbconn, clientEthAddress)
+	registerReserveAddressOnNyks(accountName, newAddress, script, judgeAddr, fragmentId)
+	registerAddressOnForkscanner(newAddress)
+	contractAddr := viper.GetString("contract_address")
+	comms.SubmitNewAddress(ethAccount, contractAddr, newAddress, clientEthAddress)
+
+	return newAddress
 }
 
 func registerReserveAddressOnNyks(accountName string, address string, script string, judgeAddr string, fragmentId int) {

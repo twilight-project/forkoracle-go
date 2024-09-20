@@ -142,6 +142,14 @@ type SweepAddress struct {
 	Owned           bool
 }
 
+type MultiSigAddress struct {
+	Address    string
+	Script     string
+	EthAddress string
+	Signed     bool
+	Archived   bool
+}
+
 type SignedTx struct {
 	Tx           string
 	UnlockHeight int64

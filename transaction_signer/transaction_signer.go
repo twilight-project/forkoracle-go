@@ -88,7 +88,7 @@ func ProcessTxSigningSweep(accountName string, dbconn *sql.DB, signerAddr string
 			fmt.Println("Signer is not registered with the provided judge")
 		}
 
-		signatures, err := comms.SignPsbt(sweepTx64, wallet)
+		signatures, _, err := comms.SignPsbt(sweepTx64, wallet, false)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweepTx ->SignPSBT: ", err)
 			continue
@@ -142,7 +142,7 @@ func ProcessTxSigningRefund(accountName string, dbconn *sql.DB, signerAddr strin
 		if reserveAddress.Signed_refund {
 			continue
 		}
-		signatures, err := comms.SignPsbt(tx.BtcUnsignedRefundTx, wallet)
+		signatures, _, err := comms.SignPsbt(tx.BtcUnsignedRefundTx, wallet, false)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweepTx : ", err)
 			continue

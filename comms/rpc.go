@@ -246,10 +246,16 @@ type SignedTransactionInfo struct {
 	ID    int         `json:"id"`
 }
 
-func SendRPC(method string, data []interface{}, wallet string) ([]byte, error) {
+func SendRPC(method string, data []interface{}, wallet string, signer bool) ([]byte, error) {
 	host := viper.GetString("btc_node_host")
 	user := viper.GetString("btc_node_user")
 	pass := viper.GetString("btc_node_pass")
+
+	if signer == true {
+		host = ""
+		user = ""
+		pass = ""
+	}
 
 	request := JSONRPCRequest{
 		ID:      1,
@@ -302,7 +308,7 @@ func GetDescriptorInfo(dataStr string, wallet string) (DescriptorInfo, error) {
 
 	var response JSONRPCResponseDesc
 	data := []interface{}{dataStr}
-	result, err := SendRPC("getdescriptorinfo", data, wallet)
+	result, err := SendRPC("getdescriptorinfo", data, wallet, false)
 	if err != nil {
 		fmt.Println("error getting descriptor info : ", err)
 		return response.Result, err
@@ -332,15 +338,31 @@ func ImportDescriptor(desc string, wallet string) error {
 	}
 	data := []interface{}{descData}
 
-	_, err := SendRPC("importdescriptors", data, wallet)
+	_, err := SendRPC("importdescriptors", data, wallet, false)
 	if err != nil {
 		fmt.Println("error importing descriptor	: ", err)
 	}
 	return nil
 }
 
+func DeriveAddress(wallet string, descriptor string) (string, error) {
+	data := []interface{}{descriptor, "[0,0]"}
+	result, _ := SendRPC("deriveaddresses", data, wallet, false)
+	fmt.Println("result New Address: ", string(result))
+	var response JSONRPCResponse
+	err := json.Unmarshal(result, &response)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON: ", err)
+		return "", err
+	}
+	if response.Error != nil {
+		return "", errors.New("error in get new address")
+	}
+	return response.Result, nil
+}
+
 func GetNewAddress(wallet string) (string, error) {
-	result, _ := SendRPC("getnewaddress", nil, wallet)
+	result, _ := SendRPC("getnewaddress", nil, wallet, false)
 	fmt.Println("result New Address: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
@@ -356,7 +378,7 @@ func GetNewAddress(wallet string) (string, error) {
 
 func DecodePsbt(psbt string, wallet string) (PSBT, error) {
 	data := []interface{}{psbt}
-	result, _ := SendRPC("decodepsbt", data, wallet)
+	result, _ := SendRPC("decodepsbt", data, wallet, false)
 	fmt.Println("result Decode Psbt: ", string(result))
 	var response JSONRPCResponsePsbt
 	err := json.Unmarshal(result, &response)
@@ -374,7 +396,7 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 	feeRate := make(map[string]float64)
 	feeRate["feeRate"] = 0
 	data := []interface{}{inputs, outputs, locktime, feeRate}
-	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet)
+	result, _ := SendRPC("walletcreatefundedpsbt", data, wallet, false)
 	fmt.Println("result Create Psbt: ", string(result))
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
@@ -390,7 +412,7 @@ func CreatePsbt(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet st
 
 func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet string) (string, error) {
 	data := []interface{}{inputs, outputs, locktime}
-	result, _ := SendRPC("createrawtransaction", data, wallet)
+	result, _ := SendRPC("createrawtransaction", data, wallet, false)
 	fmt.Println("result in CreateRawTx: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
@@ -406,27 +428,27 @@ func CreateRawTx(inputs []TxInput, outputs []TxOutput, locktime uint32, wallet s
 	return response.Result, nil
 }
 
-func SignPsbt(psbtStr string, wallet string) ([]string, error) {
+func SignPsbt(psbtStr string, wallet string, signer bool) ([]string, string, error) {
 	data := []interface{}{psbtStr, true, "ALL|ANYONECANPAY"}
 
 	fmt.Println("data: ", data)
 
-	result, _ := SendRPC("walletprocesspsbt", data, wallet)
+	result, _ := SendRPC("walletprocesspsbt", data, wallet, signer)
 	fmt.Println("result Sign PSBT: ", string(result))
 	var response RPCResponseCreatePsbt
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
-		return nil, err
+		return nil, "", err
 	}
 	if response.Error != nil {
-		return []string{""}, errors.New("error in SignPsbt")
+		return []string{""}, "", errors.New("error in SignPsbt")
 	}
 	p := response.Result.Psbt
 	psbt, err := DecodePsbt(p, wallet)
 
 	if len(psbt.Inputs) <= 0 {
-		return nil, errors.New("no inputs in psbt")
+		return nil, "", errors.New("no inputs in psbt")
 	}
 	var signatures []string
 
@@ -437,7 +459,7 @@ func SignPsbt(psbtStr string, wallet string) ([]string, error) {
 		}
 	}
 
-	return signatures, nil
+	return signatures, p, nil
 }
 
 func UtxoUpdatePsbt(psbtStr string, desc string, wallet string) (string, error) {
@@ -449,7 +471,7 @@ func UtxoUpdatePsbt(psbtStr string, desc string, wallet string) (string, error) 
 			},
 		},
 	}
-	result, _ := SendRPC("utxoupdatepsbt", data, wallet)
+	result, _ := SendRPC("utxoupdatepsbt", data, wallet, false)
 	fmt.Println("result Update Utxo PSBT: ", string(result))
 	var response JSONRPCResponse
 	err := json.Unmarshal(result, &response)
@@ -514,7 +536,7 @@ func CreatePsbtV1(utxo TxInput, outputs []TxOutput, unlockHeight uint32, scriptP
 func GetAddressInfo(address string, wallet string) (AddressInfo, error) {
 	data := []interface{}{address}
 	var response JSONRPCResponseAddressInfo
-	result, err := SendRPC("getaddressinfo", data, wallet)
+	result, err := SendRPC("getaddressinfo", data, wallet, false)
 	if err != nil {
 		fmt.Println("error getting descriptor info : ", err)
 		return AddressInfo{}, err
@@ -534,7 +556,7 @@ func GetAddressInfo(address string, wallet string) (AddressInfo, error) {
 func GetEstimateFee(wallet string) (EstimateFeeResponse, error) {
 	data := []interface{}{3}
 	var response EstimateFeeResponse
-	result, err := SendRPC("estimatesmartfee", data, wallet)
+	result, err := SendRPC("estimatesmartfee", data, wallet, false)
 	if err != nil {
 		fmt.Println("error getting  estimate fee info : ", err)
 		return EstimateFeeResponse{}, err
@@ -555,7 +577,7 @@ func SendToAddress(address string, fee float64, wallet string) (TransactionInfo,
 	var response TransactionInfo
 	for i := 0; i < 5; i++ {
 		data := []interface{}{address, fee + 0.000001}
-		result, err := SendRPC("sendtoaddress", data, wallet)
+		result, err := SendRPC("sendtoaddress", data, wallet, false)
 		fmt.Println("result Send to Address: ", string(result))
 		if err != nil {
 			fmt.Println("error creating utxo for fee : ", err)
@@ -580,7 +602,7 @@ func SendToAddress(address string, fee float64, wallet string) (TransactionInfo,
 func SignRawTransaction(tx string, wallet string) (string, error) {
 	data := []interface{}{tx, nil, "ALL|ANYONECANPAY"}
 	var response SignedTransactionInfo
-	result, err := SendRPC("signrawtransactionwithwallet", data, wallet)
+	result, err := SendRPC("signrawtransactionwithwallet", data, wallet, false)
 	if err != nil {
 		fmt.Println("error creating utxo for fee : ", err)
 		return "", err

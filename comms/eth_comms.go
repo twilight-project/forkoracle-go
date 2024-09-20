@@ -7,13 +7,10 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
@@ -30,7 +27,7 @@ func getEthClient() *ethclient.Client {
 	return client
 }
 
-func CallContractFunc(account accounts.Account, contractAddress string) {
+func SubmitNewAddress(account accounts.Account, contractAddress string, newAddress string, clientEthAddress string) {
 	client := getEthClient()
 
 	// The path to the keystore directory
@@ -78,17 +75,63 @@ func CallContractFunc(account accounts.Account, contractAddress string) {
 		fmt.Println("Failed to instantiate a Store contract: %v", err)
 	}
 
-	num := big.NewInt(888)
-	tx, err := contract.Store(auth, num)
+	tx, err := contract.ConfirmAddress(auth, newAddress, common.HexToAddress(clientEthAddress))
 
-	// retrieved_num, err := contract.Retrieve(&bind.CallOpts{})
-	// if err != nil {
-	// 	fmt.Println("Failed to retrieve the value from the contract: %v", err)
-	// }
+	fmt.Printf("tx submit new address sent: %s", tx.Hash().Hex())
+}
 
-	// fmt.Printf("Retrieved value from contract: %s", retrieved_num.String())
+func SubmitSignedPsbt(account accounts.Account, psbt string, clientEthAddress string) {
+	client := getEthClient()
 
-	fmt.Printf("tx sent: %s", tx.Hash().Hex())
+	// The path to the keystore directory
+	keystoreDir := "keystore"
+
+	// Load the keystore
+	ks := keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
+
+	// Ask the user for the password
+	fmt.Print("Enter the password for the account: ")
+	password := viper.GetString("eth_keystore_password")
+
+	// Unlock the account with the password
+	if err := ks.Unlock(account, password); err != nil {
+		log.Fatalf("Failed to unlock account: %v", err)
+	}
+
+	fromAddress := account.Address
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	chainId := big.NewInt(viper.GetInt64("eth_chain_id"))
+
+	auth, err := bind.NewKeyStoreTransactorWithChainID(ks, account, chainId)
+	if err != nil {
+		fmt.Println("Failed to create authorized transactor: %v", err)
+		return
+	}
+
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0)     // in wei
+	auth.GasLimit = uint64(300000) // in units
+	auth.GasPrice = gasPrice
+
+	contractAddress := viper.GetString("eth_contract_address")
+	address := common.HexToAddress(contractAddress)
+	contract, err := store.NewStore(address, client)
+	if err != nil {
+		fmt.Println("Failed to instantiate a Store contract: %v", err)
+	}
+
+	tx, err := contract.EmitSignedBtcPsbt(auth, psbt, common.HexToAddress(clientEthAddress))
+
+	fmt.Printf("tx signed psbt sent: %s", tx.Hash().Hex())
 }
 
 func DeployEthContract(account accounts.Account) string {
@@ -144,7 +187,7 @@ func GenerateEthKeyPair() accounts.Account {
 	return account
 }
 
-func getEthWSSClient() *ethclient.Client {
+func GetEthWSSClient() *ethclient.Client {
 	eth_wss := viper.GetString("eth_wss")
 	client, err := ethclient.Dial(eth_wss)
 	if err != nil {
@@ -152,40 +195,4 @@ func getEthWSSClient() *ethclient.Client {
 		return nil
 	}
 	return client
-}
-
-func RegistertoEvent(contractAddress string) {
-	client := getEthWSSClient()
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{common.HexToAddress(contractAddress)},
-	}
-
-	logs := make(chan types.Log)
-	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		fmt.Println("Failed to subscribe to contract logs: %v", err)
-	}
-
-	contractAbi, err := abi.JSON(strings.NewReader(string(store.StoreABI)))
-	if err != nil {
-		fmt.Println("Failed to parse contract ABI: %v", err)
-	}
-	fmt.Println(logs)
-	fmt.Println(contractAbi)
-	for {
-		select {
-
-		case vLog := <-logs:
-			event := new(store.StoreNumberStored)
-			err := contractAbi.UnpackIntoInterface(event, "NumberStored", vLog.Data)
-			if err != nil {
-				fmt.Println("Failed to unpack event data: %v", err)
-			}
-
-			fmt.Printf("New number stored: %s\n", event.NewNumber.String())
-		case err := <-sub.Err():
-			fmt.Println("Received subscription error: %v", err)
-		}
-		fmt.Println("waiting for event")
-	}
 }

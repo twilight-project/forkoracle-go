@@ -13,6 +13,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/twilight-project/forkoracle-go/address"
@@ -111,6 +112,75 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	fmt.Println("transaction hex psbt: ", psbt)
 	fmt.Println("transaction UnSigned Sweep: ", hexTx)
 	return hexTx, psbt, sweepTx.TxHash().String(), totalAmountTxIn, nil
+}
+
+func GenerateMultisigwithdrawTx(withdrawBTCAddress string, ethAddr string, accountName string, dbconn *sql.DB, ethAccount accounts.Account) {
+	wallet := viper.GetString("wallet_name")
+	multiSigAddresses := db.QueryMultisigAddressByEthAddress(dbconn, ethAddr)
+	if len(multiSigAddresses) <= 0 {
+		fmt.Println("no multisig address found")
+	}
+	multiSigAddress := multiSigAddresses[0]
+
+	utxos := db.QueryUtxo(dbconn, multiSigAddress.Address)
+
+	if len(utxos) <= 0 {
+		// need to decide if this needs to be enabled
+		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
+		fmt.Println("INFO : No funds in address : ", multiSigAddress.Address)
+		return
+	}
+
+	var inputs []comms.TxInput
+	var outputs []comms.TxOutput
+	totalAmountTxIn := uint64(0)
+
+	for _, u := range utxos { //ideally the height should be masked with 0x0000ffff
+		inputs = append(inputs, comms.TxInput{Txid: u.Txid, Vout: int64(u.Vout), Sequence: int64(wire.MaxTxInSequenceNum - 10)})
+		totalAmountTxIn += u.Amount
+	}
+
+	outputs = append(outputs, comms.TxOutput{withdrawBTCAddress: float64(totalAmountTxIn)})
+
+	hexTx, err := comms.CreateRawTx(inputs, outputs, 0, wallet)
+	if err != nil {
+		fmt.Println("error in creating raw tx : ", err)
+		return
+	}
+
+	multisigTx, err := utils.CreateTxFromHex(hexTx)
+	if err != nil {
+		fmt.Println("error decoding tx : ", err)
+		return
+	}
+
+	fee, err := utils.GetFeeFromBtcNode(multisigTx)
+	if err != nil {
+		fmt.Println("error in getting fee : ", err)
+		return
+	}
+	outputs = []comms.TxOutput{comms.TxOutput{withdrawBTCAddress: float64(totalAmountTxIn - uint64(fee))}}
+
+	p, err := comms.CreatePsbt(inputs, outputs, 0, wallet)
+	if err != nil {
+		fmt.Println("error in creating psbt : ", err)
+		return
+	}
+
+	fmt.Println("transaction base64 psbt: ", p)
+
+	_, p, err = comms.SignPsbt(p, "rbf", false)
+	if err != nil {
+		fmt.Println("error in signing psbt : ", err)
+		return
+	}
+	_, p, err = comms.SignPsbt(p, "s1", true)
+	if err != nil {
+		fmt.Println("error in signing psbt : ", err)
+		return
+	}
+
+	comms.SubmitSignedPsbt(ethAccount, p, ethAddr)
 }
 
 func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, string, error) {
@@ -245,7 +315,7 @@ func generateSignedSweepTx(accountName string, sweepTx *wire.MsgTx, reserveId ui
 			return nil
 		}
 		currentReserveScript = psbtStruct.Inputs[0].WitnessScript.Asm
-		signedPsbt, err := comms.SignPsbt(psbt, wallet)
+		signedPsbt, _, err := comms.SignPsbt(psbt, wallet, false)
 		if err != nil {
 			fmt.Println("error signing psbt : inside processSweep Watchtower : ", err)
 			return nil

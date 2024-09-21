@@ -90,6 +90,9 @@ func buildSimpleMultisigDescriptor(judgeAddr string, depositorPubKey string) (st
 	signers := fragment.Signers
 
 	required := len(signers) * 2 / 3
+	if required == 0 {
+		required = 1
+	}
 	required = required + 2
 
 	var signer_keys string

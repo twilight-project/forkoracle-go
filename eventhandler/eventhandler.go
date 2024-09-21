@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/rpc"
 
 	"strconv"
@@ -240,8 +241,12 @@ func RpcServer(contractAddress string, dbconn *sql.DB, accountName string, judge
 
 	router := mux.NewRouter()
 	router.Handle("/rpc", rpcServer)
+
+	corsOrigins := handlers.AllowedOrigins([]string{"*"})
+	corsMethods := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	corsHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	fmt.Println("rpc server started")
-	http.ListenAndServe("0.0.0.0:1234", router)
+	http.ListenAndServe("0.0.0.0:1234", handlers.CORS(corsOrigins, corsMethods, corsHeaders)(router))
 }
 
 func (s *Server) SubmitBtcPubkey(r *http.Request, args *BtcPubkeyArgs, reply *string) error {

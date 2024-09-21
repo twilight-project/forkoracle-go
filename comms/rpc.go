@@ -33,6 +33,12 @@ type JSONRPCResponse struct {
 	ID     int         `json:"id"`
 }
 
+type JSONRPCArrayResponse struct {
+	Result []string    `json:"result"`
+	Error  interface{} `json:"error"`
+	ID     int         `json:"id"`
+}
+
 type JSONRPCResponseAddressInfo struct {
 	Result AddressInfo `json:"result"`
 	Error  interface{} `json:"error"`
@@ -349,7 +355,7 @@ func DeriveAddress(wallet string, descriptor string) (string, error) {
 	data := []interface{}{descriptor, []int{0, 0}}
 	result, _ := SendRPC("deriveaddresses", data, wallet, false)
 	fmt.Println("result New Address: ", string(result))
-	var response JSONRPCResponse
+	var response JSONRPCArrayResponse
 	err := json.Unmarshal(result, &response)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
@@ -358,7 +364,7 @@ func DeriveAddress(wallet string, descriptor string) (string, error) {
 	if response.Error != nil {
 		return "", errors.New("error in get new address")
 	}
-	return response.Result, nil
+	return response.Result[0], nil
 }
 
 func GetNewAddress(wallet string) (string, error) {

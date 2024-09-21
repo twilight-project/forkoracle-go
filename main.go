@@ -78,7 +78,7 @@ func main() {
 	fmt.Println("account name : ", accountName)
 
 	contractAddress := viper.GetString("contract_address")
-
+	//
 	// contractAddress := comms.DeployEthContract(account)
 	// contractAddress := "0xA1d7Ef418889b93794498274b519Ac1B3AF2bCC6"
 	var wg sync.WaitGroup

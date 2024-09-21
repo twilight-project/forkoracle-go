@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"net"
-	"net/rpc"
+	"net/http"
+
+	"github.com/gorilla/rpc"
+
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/rpc/json"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
@@ -28,6 +32,14 @@ import (
 	"github.com/twilight-project/forkoracle-go/store"
 	"github.com/twilight-project/forkoracle-go/transaction_signer"
 	btcOracleTypes "github.com/twilight-project/forkoracle-go/types"
+)
+
+var (
+	ContractAddress string
+	Dbconn          *sql.DB
+	AccountName     string
+	JudgeAddr       string
+	EthAccount      accounts.Account
 )
 
 func NyksEventListener(event string, accountName string, functionCall string, dbconn *sql.DB,
@@ -195,13 +207,7 @@ func RegistertoEthEvents(contractAddress string, dbconn *sql.DB, accountName str
 	}
 }
 
-type Server struct {
-	ContractAddress string
-	DbConn          *sql.DB
-	AccountName     string
-	JudgeAddr       string
-	EthAccount      accounts.Account
-}
+type Server struct{}
 
 type BtcPubkeyArgs struct {
 	BTCPubKey string
@@ -218,44 +224,46 @@ type SubmitSignedPSBT struct {
 }
 
 func RpcServer(contractAddress string, dbconn *sql.DB, accountName string, judgeAddr string, ethAccount accounts.Account) {
-	server := &Server{
-		ContractAddress: contractAddress,
-		DbConn:          dbconn,
-		AccountName:     accountName,
-		JudgeAddr:       judgeAddr,
-		EthAccount:      ethAccount,
-	}
-	rpc.Register(server)
-	listener, err := net.Listen("tcp", "0.0.0.0:1234")
-	if err != nil {
-		log.Fatal("Listener error: ", err)
-	}
-	log.Printf("Serving RPC server on port %d", 1234)
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Fatal("Accept error: ", err)
-		}
-		go rpc.ServeConn(conn)
-	}
+	judgeAddr = judgeAddr
+	ContractAddress = contractAddress
+	Dbconn = dbconn
+	AccountName = accountName
+	EthAccount = ethAccount
+
+	rpcServer := rpc.NewServer()
+
+	rpcServer.RegisterCodec(json.NewCodec(), "application/json")
+	rpcServer.RegisterCodec(json.NewCodec(), "application/json;charset=UTF-8")
+
+	rpc := new(Server)
+	rpcServer.RegisterService(rpc, "rpc")
+
+	router := mux.NewRouter()
+	router.Handle("/rpc", rpcServer)
+	fmt.Println("rpc server started")
+	http.ListenAndServe("0.0.0.0:1234", router)
 }
 
-func (s *Server) SubmitBtcPubkey(args *BtcPubkeyArgs, reply *string) error {
+func (s *Server) SubmitBtcPubkey(r *http.Request, args *BtcPubkeyArgs, reply *string) error {
 	fmt.Println("inside submit btc pubkey")
 	if args.BTCPubKey == "" {
+		*reply = ""
+		return nil
+	}
+	if args.EthAddr == "" {
 		*reply = ""
 		return nil
 	}
 	var fragment btcOracleTypes.Fragment
 	fragments := comms.GetAllFragments()
 	for _, f := range fragments.Fragments {
-		if f.JudgeAddress == s.JudgeAddr {
+		if f.JudgeAddress == JudgeAddr {
 			fragment = f
 		}
 	}
 	fragmentId, _ := strconv.Atoi(fragment.FragmentId)
 
-	newAddress := multisig.ProcessMultisigAddressGeneration(s.AccountName, s.JudgeAddr, s.DbConn, args.BTCPubKey, args.EthAddr, fragmentId, s.EthAccount)
+	newAddress := multisig.ProcessMultisigAddressGeneration(AccountName, JudgeAddr, Dbconn, args.BTCPubKey, args.EthAddr, fragmentId, EthAccount)
 	*reply = newAddress
 	return nil
 }
@@ -270,7 +278,7 @@ func (s *Server) GetUnsignedPsbt(args *GetUnsignedPsbtArgs, reply *string) error
 	if args.WithdrawBtcAddr == "" {
 		*reply = "no withdraw btc address submitted"
 	}
-	psbt := multisig.ProcessMultisigWithdraw(args.WithdrawBtcAddr, args.EthAddr, s.AccountName, s.DbConn, s.EthAccount)
+	psbt := multisig.ProcessMultisigWithdraw(args.WithdrawBtcAddr, args.EthAddr, AccountName, Dbconn, EthAccount)
 	*reply = psbt
 	return nil
 }

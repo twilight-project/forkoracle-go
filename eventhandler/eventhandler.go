@@ -262,6 +262,7 @@ func (s *Server) SubmitBtcPubkey(r *http.Request, args *BtcPubkeyArgs, reply *st
 		}
 	}
 	fragmentId, _ := strconv.Atoi(fragment.FragmentId)
+	fmt.Println("fragment id : ", fragmentId)
 
 	newAddress := multisig.ProcessMultisigAddressGeneration(AccountName, JudgeAddr, Dbconn, args.BTCPubKey, args.EthAddr, fragmentId, EthAccount)
 	*reply = newAddress

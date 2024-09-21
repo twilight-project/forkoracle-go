@@ -56,7 +56,6 @@ func buildDescriptor(preimage []byte, unlockHeight int64, judgeAddr string) (str
 		}
 	}
 	signers := fragment.Signers
-	fmt.Println("Signers : ", signers)
 
 	required := len(signers) * 2 / 3
 	if required == 0 {
@@ -89,6 +88,7 @@ func buildSimpleMultisigDescriptor(judgeAddr string, depositorPubKey string) (st
 		}
 	}
 	signers := fragment.Signers
+	fmt.Println("Signers : ", signers)
 
 	required := len(signers) * 2 / 3
 	if required == 0 {

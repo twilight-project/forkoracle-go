@@ -291,8 +291,8 @@ func GenerateAndRegisterNewBtcMultiSigAddress(dbconn *sql.DB, accountName string
 	newAddress, script := GenerateSimpleMultisigAddress(depositorPubKey, judgeAddr, dbconn, clientEthAddress)
 	registerReserveAddressOnNyks(accountName, newAddress, script, judgeAddr, fragmentId)
 	registerAddressOnForkscanner(newAddress)
-	contractAddr := viper.GetString("contract_address")
-	comms.SubmitNewAddress(ethAccount, contractAddr, newAddress, clientEthAddress)
+	// contractAddr := viper.GetString("contract_address")
+	// comms.SubmitNewAddress(ethAccount, contractAddr, newAddress, clientEthAddress)
 
 	return newAddress
 }

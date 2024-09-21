@@ -83,7 +83,7 @@ func main() {
 	// contractAddress := "0xA1d7Ef418889b93794498274b519Ac1B3AF2bCC6"
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go eventhandler.RegistertoEthEvents(contractAddress, dbconn, accountName, oracleAddr, account)
+	go eventhandler.RpcServer(contractAddress, dbconn, accountName, oracleAddr, account)
 
 	validator := viper.GetBool("validator")
 	running_mode := viper.GetString("running_mode")

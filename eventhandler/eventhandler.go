@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"net"
+	"net/rpc"
 	"strconv"
 	"strings"
 	"time"
@@ -191,4 +193,93 @@ func RegistertoEthEvents(contractAddress string, dbconn *sql.DB, accountName str
 			fmt.Println("Received subscription error: %v", err)
 		}
 	}
+}
+
+type Server struct {
+	ContractAddress string
+	DbConn          *sql.DB
+	AccountName     string
+	JudgeAddr       string
+	EthAccount      accounts.Account
+}
+
+type BtcPubkeyArgs struct {
+	BTCPubKey string
+	EthAddr   string
+}
+
+type GetUnsignedPsbtArgs struct {
+	EthAddr         string
+	WithdrawBtcAddr string
+}
+
+type SubmitSignedPSBT struct {
+	Psbt string
+}
+
+func RpcServer(contractAddress string, dbconn *sql.DB, accountName string, judgeAddr string, ethAccount accounts.Account) {
+	server := &Server{
+		ContractAddress: contractAddress,
+		DbConn:          dbconn,
+		AccountName:     accountName,
+		JudgeAddr:       judgeAddr,
+		EthAccount:      ethAccount,
+	}
+	rpc.Register(server)
+	listener, err := net.Listen("tcp", "127.0.0.1:1234")
+	if err != nil {
+		log.Fatal("Listener error: ", err)
+	}
+	log.Printf("Serving RPC server on port %d", 1234)
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Fatal("Accept error: ", err)
+		}
+		go rpc.ServeConn(conn)
+	}
+}
+
+func (s *Server) SubmitBtcPubkey(args *BtcPubkeyArgs, reply *string) error {
+	if args.BTCPubKey == "" {
+		*reply = ""
+		return nil
+	}
+	var fragment btcOracleTypes.Fragment
+	fragments := comms.GetAllFragments()
+	for _, f := range fragments.Fragments {
+		if f.JudgeAddress == s.JudgeAddr {
+			fragment = f
+		}
+	}
+	fragmentId, _ := strconv.Atoi(fragment.FragmentId)
+
+	newAddress := multisig.ProcessMultisigAddressGeneration(s.AccountName, s.JudgeAddr, s.DbConn, args.BTCPubKey, args.EthAddr, fragmentId, s.EthAccount)
+	*reply = newAddress
+	return nil
+}
+
+func (s *Server) GetUnsignedPsbt(args *GetUnsignedPsbtArgs, reply *string) error {
+	// Here you can add your logic to get the unsigned PSBT
+	// For now, it just returns an empty string
+	if args.EthAddr == "" {
+		*reply = "no eth address submitted"
+	}
+	if args.WithdrawBtcAddr == "" {
+		*reply = "no withdraw btc address submitted"
+	}
+	psbt := multisig.ProcessMultisigWithdraw(args.WithdrawBtcAddr, args.EthAddr, s.AccountName, s.DbConn, s.EthAccount)
+	*reply = psbt
+	return nil
+}
+
+func (s *Server) SubmitSignedPsbt(args *SubmitSignedPSBT, reply *string) error {
+	// Here you can add your logic to process the signed PSBT
+	// For now, it just returns true if the PSBT is not empty
+	if args.Psbt == "" {
+		*reply = "no psbt submitted"
+	}
+	psbt := multisig.ProcesSignWithdrawPSBT(args.Psbt)
+	*reply = psbt
+	return nil
 }

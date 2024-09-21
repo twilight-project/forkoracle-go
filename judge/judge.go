@@ -114,7 +114,7 @@ func generateSweepTx(sweepAddress string, newSweepAddress string,
 	return hexTx, psbt, sweepTx.TxHash().String(), totalAmountTxIn, nil
 }
 
-func GenerateMultisigwithdrawTx(withdrawBTCAddress string, ethAddr string, accountName string, dbconn *sql.DB, ethAccount accounts.Account) {
+func GenerateMultisigwithdrawTx(withdrawBTCAddress string, ethAddr string, accountName string, dbconn *sql.DB, ethAccount accounts.Account) string {
 	wallet := viper.GetString("wallet_name")
 	multiSigAddresses := db.QueryMultisigAddressByEthAddress(dbconn, ethAddr)
 	if len(multiSigAddresses) <= 0 {
@@ -128,7 +128,7 @@ func GenerateMultisigwithdrawTx(withdrawBTCAddress string, ethAddr string, accou
 		// need to decide if this needs to be enabled
 		// addr := generateAndRegisterNewAddress(accountName, height+noOfMultisigs, sweepAddress.Address)
 		fmt.Println("INFO : No funds in address : ", multiSigAddress.Address)
-		return
+		return ""
 	}
 
 	var inputs []comms.TxInput
@@ -145,42 +145,44 @@ func GenerateMultisigwithdrawTx(withdrawBTCAddress string, ethAddr string, accou
 	hexTx, err := comms.CreateRawTx(inputs, outputs, 0, wallet)
 	if err != nil {
 		fmt.Println("error in creating raw tx : ", err)
-		return
+		return ""
 	}
 
 	multisigTx, err := utils.CreateTxFromHex(hexTx)
 	if err != nil {
 		fmt.Println("error decoding tx : ", err)
-		return
+		return ""
 	}
 
 	fee, err := utils.GetFeeFromBtcNode(multisigTx)
 	if err != nil {
 		fmt.Println("error in getting fee : ", err)
-		return
+		return ""
 	}
 	outputs = []comms.TxOutput{comms.TxOutput{withdrawBTCAddress: float64(totalAmountTxIn - uint64(fee))}}
 
 	p, err := comms.CreatePsbt(inputs, outputs, 0, wallet)
 	if err != nil {
 		fmt.Println("error in creating psbt : ", err)
-		return
+		return ""
 	}
 
 	fmt.Println("transaction base64 psbt: ", p)
+	return p
+}
 
-	_, p, err = comms.SignPsbt(p, "rbf", false)
+func SignMultisigPSBT(psbt string) string {
+	_, psbt, err := comms.SignPsbt(psbt, "rbf", false)
 	if err != nil {
 		fmt.Println("error in signing psbt : ", err)
-		return
+		return ""
 	}
-	_, p, err = comms.SignPsbt(p, "s1", true)
+	_, psbt, err = comms.SignPsbt(psbt, "s1", true)
 	if err != nil {
 		fmt.Println("error in signing psbt : ", err)
-		return
+		return ""
 	}
-
-	comms.SubmitSignedPsbt(ethAccount, p, ethAddr)
+	return psbt
 }
 
 func generateRefundTx(txHex string, reserveId uint64, roundId uint64) (string, string, error) {

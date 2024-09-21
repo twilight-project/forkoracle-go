@@ -281,9 +281,11 @@ func (s *Server) GetUnsignedPsbt(args *GetUnsignedPsbtArgs, reply *string) error
 	fmt.Println("inside get unsigned psbt")
 	if args.EthAddr == "" {
 		*reply = "no eth address submitted"
+		return nil
 	}
 	if args.WithdrawBtcAddr == "" {
 		*reply = "no withdraw btc address submitted"
+		return nil
 	}
 	psbt := multisig.ProcessMultisigWithdraw(args.WithdrawBtcAddr, args.EthAddr, AccountName, Dbconn, EthAccount)
 	*reply = psbt

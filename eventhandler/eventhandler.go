@@ -226,7 +226,7 @@ func RpcServer(contractAddress string, dbconn *sql.DB, accountName string, judge
 		EthAccount:      ethAccount,
 	}
 	rpc.Register(server)
-	listener, err := net.Listen("tcp", "127.0.0.1:1234")
+	listener, err := net.Listen("tcp", "0.0.0.0:1234")
 	if err != nil {
 		log.Fatal("Listener error: ", err)
 	}
@@ -241,6 +241,7 @@ func RpcServer(contractAddress string, dbconn *sql.DB, accountName string, judge
 }
 
 func (s *Server) SubmitBtcPubkey(args *BtcPubkeyArgs, reply *string) error {
+	fmt.Println("inside submit btc pubkey")
 	if args.BTCPubKey == "" {
 		*reply = ""
 		return nil
@@ -262,6 +263,7 @@ func (s *Server) SubmitBtcPubkey(args *BtcPubkeyArgs, reply *string) error {
 func (s *Server) GetUnsignedPsbt(args *GetUnsignedPsbtArgs, reply *string) error {
 	// Here you can add your logic to get the unsigned PSBT
 	// For now, it just returns an empty string
+	fmt.Println("inside get unsigned psbt")
 	if args.EthAddr == "" {
 		*reply = "no eth address submitted"
 	}
@@ -274,6 +276,7 @@ func (s *Server) GetUnsignedPsbt(args *GetUnsignedPsbtArgs, reply *string) error
 }
 
 func (s *Server) SubmitSignedPsbt(args *SubmitSignedPSBT, reply *string) error {
+	fmt.Println("inside submit signed psbt")
 	// Here you can add your logic to process the signed PSBT
 	// For now, it just returns true if the PSBT is not empty
 	if args.Psbt == "" {

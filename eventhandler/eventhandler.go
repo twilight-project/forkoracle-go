@@ -225,7 +225,7 @@ type SubmitSignedPSBT struct {
 }
 
 func RpcServer(contractAddress string, dbconn *sql.DB, accountName string, judgeAddr string, ethAccount accounts.Account) {
-	judgeAddr = judgeAddr
+	JudgeAddr = judgeAddr
 	ContractAddress = contractAddress
 	Dbconn = dbconn
 	AccountName = accountName
